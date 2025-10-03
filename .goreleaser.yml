@@ -1,5 +1,9 @@
 version: 2
 
+before:
+  hooks:
+    - bun install
+
 builds:
   - builder: bun
     binary: gh-release-notes
