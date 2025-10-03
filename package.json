@@ -1,6 +1,6 @@
 {
   "name": "@actionutils/gh-release-notes",
-  "version": "v0.1.0",
+  "version": "0.1.0",
   "description": "PR-based release notes generator. Release-drafter compatible CLI using release-drafter internals.",
   "type": "module",
   "main": "dist/index.js",
