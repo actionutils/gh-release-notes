@@ -1,7 +1,7 @@
 {
   "name": "gh-release-notes",
   "version": "0.0.0",
-  "description": "One-shot CLI to draft release notes using release-drafter internals. Node-friendly bundle via ncc.",
+  "description": "PR-based release notes generator. Release-drafter compatible CLI using release-drafter internals.",
   "type": "commonjs",
   "main": "dist/index.cjs",
   "exports": {
