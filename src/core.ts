@@ -4,14 +4,21 @@ import path from "node:path";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 const require = createRequire(__filename);
-const { validateSchema }: { validateSchema: any } = require("release-drafter/lib/schema");
+const {
+	validateSchema,
+}: { validateSchema: any } = require("release-drafter/lib/schema");
 const {
 	findCommitsWithAssociatedPullRequests,
-}: { findCommitsWithAssociatedPullRequests: any } = require("release-drafter/lib/commits");
+}: {
+	findCommitsWithAssociatedPullRequests: any;
+} = require("release-drafter/lib/commits");
 const {
 	generateReleaseInfo,
 	findReleases,
-}: { generateReleaseInfo: any; findReleases: any } = require("release-drafter/lib/releases");
+}: {
+	generateReleaseInfo: any;
+	findReleases: any;
+} = require("release-drafter/lib/releases");
 
 const DEFAULT_FALLBACK_TEMPLATE = "## What's Changed\n\n$CHANGES";
 
@@ -108,24 +115,22 @@ function parseConfigString(source: string, filename = ""): any {
 		try {
 			return yaml.load(source);
 		} catch (error) {
-			throw new Error("Failed to parse YAML config: " + (error as Error).message);
+			throw new Error(
+				"Failed to parse YAML config: " + (error as Error).message,
+			);
 		}
 	}
 	try {
 		return JSON.parse(source);
 	} catch (error) {
-		throw new Error("Config is neither valid JSON nor YAML: " + (error as Error).message);
+		throw new Error(
+			"Config is neither valid JSON nor YAML: " + (error as Error).message,
+		);
 	}
 }
 
 export async function run(options: RunOptions) {
-	const {
-		repo: repoNameWithOwner,
-		config,
-		prevTag,
-		tag,
-		target,
-	} = options;
+	const { repo: repoNameWithOwner, config, prevTag, tag, target } = options;
 	const token =
 		options.token || process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 	if (!repoNameWithOwner) throw new Error("Missing repo (owner/repo)");
@@ -166,13 +171,14 @@ export async function run(options: RunOptions) {
 		});
 		lastRelease = rel.data;
 	} else {
-		const { draftRelease: _draftRelease, lastRelease: lr }: any = await findReleases({
-			context,
-			targetCommitish: target || defaultBranch,
-			filterByCommitish: !!rdConfig["filter-by-commitish"],
-			includePreReleases: !!rdConfig["include-pre-releases"],
-			tagPrefix: String(rdConfig["tag-prefix"] || ""),
-		});
+		const { draftRelease: _draftRelease, lastRelease: lr }: any =
+			await findReleases({
+				context,
+				targetCommitish: target || defaultBranch,
+				filterByCommitish: !!rdConfig["filter-by-commitish"],
+				includePreReleases: !!rdConfig["include-pre-releases"],
+				tagPrefix: String(rdConfig["tag-prefix"] || ""),
+			});
 		lastRelease = lr || null;
 	}
 
