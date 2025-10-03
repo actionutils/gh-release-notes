@@ -1,10 +1,8 @@
-import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
-const require = createRequire(__filename);
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");

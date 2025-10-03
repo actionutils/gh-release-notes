@@ -3,18 +3,21 @@
   "workspaces": {
     "": {
       "name": "gh-release-notes",
+      "dependencies": {
+        "@actions/core": "",
+      },
       "devDependencies": {
-        "@biomejs/biome": "latest",
-        "@octokit/rest": "latest",
-        "@types/pino-std-serializers": "latest",
-        "esbuild": "latest",
-        "jest": "latest",
-        "js-yaml": "latest",
-        "nock": "latest",
-        "oxlint": "latest",
-        "oxlint-tsgolint": "latest",
+        "@biomejs/biome": "^2.2.5",
+        "@octokit/rest": "^22.0.0",
+        "@types/pino-std-serializers": "^4.0.0",
+        "esbuild": "^0.25.10",
+        "jest": "30.2.0",
+        "js-yaml": "^4.1.0",
+        "nock": "^14.0.10",
+        "oxlint": "^1.19.0",
+        "oxlint-tsgolint": "^0.2.0",
         "release-drafter": "github:release-drafter/release-drafter#v6.1.0",
-        "typescript": "latest",
+        "typescript": "^5.9.3",
       },
     },
   },
@@ -22,6 +25,8 @@
     "@actions/core": "file:shims/actions-core",
   },
   "packages": {
+    "@actions/core": ["@actions/core@file:shims/actions-core", {}],
+
     "@babel/code-frame": ["@babel/code-frame@7.27.1", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.27.1", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg=="],
 
     "@babel/compat-data": ["@babel/compat-data@7.28.4", "", {}, "sha512-YsmSKC29MJwf0gF8Rjjrg5LQCmyh+j/nD8/eP7f+BeoQTKYqs9RoWbjGOdy0+1Ekr68RJZMUOPVQaQisnIo4Rw=="],
