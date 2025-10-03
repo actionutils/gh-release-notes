@@ -164,5 +164,5 @@ jobs:
     # Use npm publish for trusted publishing until bun publish suppports it.
     # ref: https://github.com/oven-sh/bun/issues/15601
     - env:
-        DRY_RUN: fromJSON(needs.release-pr.outputs.release_pr).state != 'release_required'
+        DRY_RUN: ${{ fromJSON(needs.release-pr.outputs.release_pr).state != 'release_required' }}
       run: npm publish --dry-run="${DRY_RUN}"
