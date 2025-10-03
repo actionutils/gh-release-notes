@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/binary-install/binstaller/main/schema/InstallSpec.json
+schema: v1
+name: gh-release-notes
+repo: actionutils/gh-release-notes
+asset:
+  template: ${NAME}_${VERSION}_${OS}_${ARCH}${EXT}
+  naming_convention:
+    os: lowercase
+    arch: lowercase
+checksums:
+  algorithm: sha256
+  template: checksums.txt

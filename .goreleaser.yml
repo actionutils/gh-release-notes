@@ -1,0 +1,44 @@
+version: 2
+
+builds:
+  - builder: bun
+    binary: gh-release-notes
+    main: ./src/cli.ts
+    flags:
+      - --compile
+      - --minify
+      - --bytecode
+
+archives:
+  - id: binary
+    formats:
+      - binary
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+# create a source tarball
+# https://goreleaser.com/customization/source/
+source:
+  enabled: true
+
+# creates SBOMs of all archives and the source tarball using syft
+# https://goreleaser.com/customization/sbom
+sboms:
+  - artifacts: archive
+  - id: source # Two different sbom configurations need two different IDs
+    artifacts: source
+
+# https://goreleaser.com/customization/sign
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes" # needed on cosign 2.0.0+
+    artifacts: all
+    output: true

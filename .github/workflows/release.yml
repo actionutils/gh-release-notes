@@ -1,0 +1,188 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main  # Only run on main branch pushes (PR merges)
+  pull_request:
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
+
+permissions: {}
+
+jobs:
+  release-pr:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      statuses: write
+    runs-on: ubuntu-latest
+    outputs:
+      release_pr: ${{ toJSON(steps.release-pr.outputs) }}
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actionutils/trusted-tag-verifier@68bef2f18f8ceb5c4dccc5542cadcfbc82ed4656 # v0.5.0
+        with:
+          verify: 'actionutils/create-release-pr'
+      - uses: actionutils/create-release-pr@v0
+        id: release-pr
+
+  update-release-pr:
+    needs: [release-pr]
+    if: fromJSON(needs.release-pr.outputs.release_pr).state == 'release_pr_open'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write # Required for OIDC token exchange
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_branch }}
+          persist-credentials: false
+
+      # Post Dependency Review
+      - uses: actions/dependency-review-action@v4
+        id: dependency-review
+        with:
+          base-ref: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
+          head-ref: main
+      - name: Verify actionutils/sticky-comment
+        uses: actionutils/trusted-tag-verifier@68bef2f18f8ceb5c4dccc5542cadcfbc82ed4656 # v0.5.0
+        with:
+          verify: 'actionutils/sticky-comment'
+      - name: Post sticky comment
+        uses: actionutils/sticky-comment@v1
+        with:
+          key: 'dep-review'
+          number: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_number }}
+          body: |
+            ${{ steps.dependency-review.outputs.comment-content }}
+
+            <details>
+              <summary>Dependency Changes (JSON)</summary>
+              <pre>${{ toJSON(fromJSON(steps.dependency-review.outputs.dependency-changes)) }}</pre>
+            </details>
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - uses: actionutils/trusted-tag-verifier@68bef2f18f8ceb5c4dccc5542cadcfbc82ed4656 # v0.5.0
+        with:
+          verify: 'actionutils/commit-or-rewrite'
+
+      - name: Update package version
+        if: fromJSON(needs.release-pr.outputs.release_pr).next_tag != ''
+        env:
+          VERSION: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+        run: |
+          bun pm version "${VERSION}"
+      - uses: actionutils/commit-or-rewrite@v0
+        if: fromJSON(needs.release-pr.outputs.release_pr).next_tag != ''
+        with:
+          commit_message: "chore: Bump version to ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}"
+          id: bump-package-version
+          branch: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_branch }}
+          files: |
+            package.json
+
+      # Test goreleaser
+      - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+      - uses: sigstore/cosign-installer@v3.9.2 # installs cosign
+      - uses: anchore/sbom-action/download-syft@v0.20.5 # installs syft
+      - uses: goreleaser/goreleaser-action@v6
+        id: goreleaser
+        with:
+          version: '~> v2'
+          args: release --clean --draft --snapshot --skip publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot
+          path: ./dist
+
+  verify-releaser:
+    needs: [release-pr]
+    if: fromJSON(needs.release-pr.outputs.release_pr).state == 'release_required'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+      - name: Verify Trusted Tag Releaser
+        uses: actionutils/trusted-tag-verifier@68bef2f18f8ceb5c4dccc5542cadcfbc82ed4656 # v0.5.0
+        with:
+          verify: 'actionutils/trusted-go-releaser@v1'
+
+  extract-release-notes:
+    needs: [release-pr]
+    if: fromJSON(needs.release-pr.outputs.release_pr).state == 'release_required'
+    runs-on: ubuntu-latest
+    outputs:
+      release_notes: ${{ steps.extract.outputs.release_notes }}
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        persist-credentials: false
+    - name: Install kugiri
+      uses: binary-install/setup-x@v1
+      with:
+        script_url: https://github.com/actionutils/kugiri/releases/latest/download/install.sh
+        gh_attestations_verify_flags: --repo=actionutils/kugiri --signer-workflow=actionutils/trusted-go-releaser/.github/workflows/trusted-release-workflow.yml
+    - name: Extract release note
+      id: extract
+      env:
+        NEXT_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+      run: |
+        NOTE=$(kugiri extract --id "${NEXT_TAG}-notes" CHANGELOG.md | kugiri trim)
+        {
+          echo "release_notes<<EOF"
+          echo "$NOTE"
+          echo EOF
+        } >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: [verify-releaser, release-pr, extract-release-notes]
+    if: fromJSON(needs.release-pr.outputs.release_pr).state == 'release_required'
+    permissions:
+      id-token: write    # Required for signed tags
+      contents: write    # Required for release and tag creation
+      pull-requests: write # Required for bumpr commenting
+      attestations: write # Required for build provenance attestation
+      actions: read      # Required for SLSA generator
+    uses: actionutils/trusted-go-releaser/.github/workflows/trusted-release-workflow.yml@v1
+    with:
+      environment: release
+      setup-bun: true
+      release-notes: ${{ needs.extract-release-notes.outputs.release_notes }}
+
+  publish:
+    needs: [release-pr, release]
+    if: fromJSON(needs.release-pr.outputs.release_pr).state == 'release_required'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC token exchange
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+    - run: npm run build
+    - run: npm publish
