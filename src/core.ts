@@ -20,7 +20,6 @@ export type RunOptions = {
 	config?: string;
 	prevTag?: string;
 	tag?: string;
-	includePrereleases?: boolean;
 	target?: string;
 	token?: string;
 };
@@ -125,7 +124,6 @@ export async function run(options: RunOptions) {
 		config,
 		prevTag,
 		tag,
-		includePrereleases: _includePrereleases,
 		target,
 	} = options;
 	const token =
