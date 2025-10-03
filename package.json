@@ -2,17 +2,17 @@
   "name": "@actionutils/gh-release-notes",
   "version": "0.0.0",
   "description": "PR-based release notes generator. Release-drafter compatible CLI using release-drafter internals.",
-  "type": "commonjs",
-  "main": "dist/index.cjs",
+  "type": "module",
+  "main": "dist/index.js",
   "exports": {
-    ".": "./dist/index.cjs"
+    ".": "./dist/index.js"
   },
   "bin": {
-    "gh-release-notes": "dist/cli.cjs"
+    "gh-release-notes": "dist/cli.js"
   },
   "scripts": {
-    "build:lib": "bun build src/core.ts --target=node --format=cjs --outfile=dist/index.cjs",
-    "build:cli": "bun build src/cli.ts --target=node --format=cjs --outfile=dist/cli.cjs",
+    "build:lib": "bun build src/core.ts --target=node --outfile=dist/index.js",
+    "build:cli": "bun build src/cli.ts --target=node --outfile=dist/cli.js",
     "build": "bun run build:lib && bun run build:cli",
     "prepublishOnly": "bun run build",
     "test": "bun run build && bun test",
