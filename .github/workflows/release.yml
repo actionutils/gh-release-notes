@@ -176,6 +176,7 @@ jobs:
 
   publish:
     needs: [release-pr, release]
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       id-token: write # Required for OIDC token exchange
@@ -192,4 +193,4 @@ jobs:
     # ref: https://github.com/oven-sh/bun/issues/15601
     - env:
         DRY_RUN: fromJSON(needs.release-pr.outputs.release_pr).state != 'release_required'
-      run: npm publish --dry-run=DRY_RUN
+      run: npm publish --dry-run="${DRY_RUN}"
