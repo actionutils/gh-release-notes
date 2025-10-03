@@ -1,0 +1,5 @@
+{
+  "name": "@actions/core",
+  "version": "0.0.0-noop",
+  "main": "index.js"
+}
