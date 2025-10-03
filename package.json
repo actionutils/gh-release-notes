@@ -32,7 +32,6 @@
     "@biomejs/biome": "^2.2.5",
     "@octokit/rest": "^22.0.0",
     "@types/pino-std-serializers": "^4.0.0",
-    "esbuild": "^0.25.10",
     "jest": "30.2.0",
     "js-yaml": "^4.1.0",
     "nock": "^14.0.10",
