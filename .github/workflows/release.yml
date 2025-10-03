@@ -86,6 +86,9 @@ jobs:
         with:
           verify: 'actionutils/commit-or-rewrite'
 
+      - run: git status
+      - run: git diff
+
       - name: Update package version
         if: fromJSON(needs.release-pr.outputs.release_pr).next_tag != ''
         env:
