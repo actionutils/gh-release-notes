@@ -15,7 +15,7 @@
     "build:cli": "esbuild src/cli.ts --bundle --platform=node --format=cjs --target=node22 --external:@actions/core --outfile=dist/cli.cjs",
     "build": "npm run build:lib && npm run build:cli",
     "prepublishOnly": "npm run build",
-    "test": "npm run build && node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test": "npm run build && jest",
     "lint": "oxlint --type-aware src",
     "format": "biome format --write src"
   },
