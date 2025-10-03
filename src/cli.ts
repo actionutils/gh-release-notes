@@ -84,7 +84,7 @@ async function main() {
 			tag: args.tag,
 			includePrereleases: args.includePrereleases,
 			target: args.target,
-			token: token as string,
+			token: token!
 		});
 		if (args.json) {
 			process.stdout.write(
@@ -103,12 +103,12 @@ async function main() {
 				) + "\n",
 			);
 		} else {
-			process.stdout.write(String(result.release.body || "") + "\n");
+			process.stdout.write(String((result.release as any).body || "") + "\n");
 		}
-	} catch (e: any) {
+	} catch (e) {
 		console.error("Error:", e);
 		process.exit(1);
 	}
 }
 
-main();
+void main();

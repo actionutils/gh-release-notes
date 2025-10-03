@@ -4,14 +4,14 @@ import path from "node:path";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 const require = createRequire(__filename);
-const { validateSchema } = require("release-drafter/lib/schema");
+const { validateSchema }: { validateSchema: any } = require("release-drafter/lib/schema");
 const {
 	findCommitsWithAssociatedPullRequests,
-} = require("release-drafter/lib/commits");
+}: { findCommitsWithAssociatedPullRequests: any } = require("release-drafter/lib/commits");
 const {
 	generateReleaseInfo,
 	findReleases,
-} = require("release-drafter/lib/releases");
+}: { generateReleaseInfo: any; findReleases: any } = require("release-drafter/lib/releases");
 
 const DEFAULT_FALLBACK_TEMPLATE = "## What's Changed\n\n$CHANGES";
 
@@ -31,7 +31,7 @@ async function ghRest(
 		token,
 		method = "GET" as const,
 	}: { token: string; method?: "GET" | "POST" },
-) {
+): Promise<any> {
 	const url = new URL(`https://api.github.com${pathname}`);
 	const res = await fetch(url, {
 		method,
@@ -45,14 +45,14 @@ async function ghRest(
 		const text = await res.text();
 		throw new Error(`GitHub REST ${method} ${url} -> ${res.status}: ${text}`);
 	}
-	return res.json();
+	return res.json() as Promise<any>;
 }
 
 async function ghGraphQL(
 	query: string,
 	variables: any,
 	{ token }: { token: string },
-) {
+): Promise<any> {
 	const res = await fetch("https://api.github.com/graphql", {
 		method: "POST",
 		headers: {
@@ -67,11 +67,11 @@ async function ghGraphQL(
 		const text = await res.text();
 		throw new Error(`GitHub GraphQL -> ${res.status}: ${text}`);
 	}
-	const payload = await res.json();
+	const payload: any = await res.json();
 	if (payload.errors) {
 		throw new Error(`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`);
 	}
-	return payload.data;
+	return payload.data as any;
 }
 
 function buildContext({
@@ -86,21 +86,21 @@ function buildContext({
 	defaultBranch: string;
 }) {
 	const octokit = new Octokit({ auth: token });
-	const ctx: any = {
+	const ctx = {
 		payload: {
 			repository: {
 				full_name: `${owner}/${repo}`,
 				default_branch: defaultBranch,
 			},
 		},
-		repo: (obj: any = {}) => ({ owner, repo, ...obj }),
+		repo: (obj: Record<string, any> = {}) => ({ owner, repo, ...obj }),
 		log: { info: () => {}, warn: () => {} },
-		octokit,
+		octokit: octokit as any,
 	};
 	// Provide graphql compatible with release-drafter's expectation
-	(ctx.octokit as any).graphql = async (query: string, variables: any) =>
+	ctx.octokit.graphql = async (query: string, variables: any): Promise<any> =>
 		ghGraphQL(query, variables, { token });
-	return ctx;
+	return ctx as any;
 }
 
 function parseConfigString(source: string, filename = ""): any {
@@ -108,14 +108,14 @@ function parseConfigString(source: string, filename = ""): any {
 	if (lower.endsWith(".yml") || lower.endsWith(".yaml")) {
 		try {
 			return yaml.load(source);
-		} catch (error: any) {
-			throw new Error("Failed to parse YAML config: " + error.message);
+		} catch (error) {
+			throw new Error("Failed to parse YAML config: " + (error as Error).message);
 		}
 	}
 	try {
 		return JSON.parse(source);
-	} catch (error: any) {
-		throw new Error("Config is neither valid JSON nor YAML: " + error.message);
+	} catch (error) {
+		throw new Error("Config is neither valid JSON nor YAML: " + (error as Error).message);
 	}
 }
 
@@ -125,7 +125,7 @@ export async function run(options: RunOptions) {
 		config,
 		prevTag,
 		tag,
-		includePrereleases,
+		includePrereleases: _includePrereleases,
 		target,
 	} = options;
 	const token =
@@ -153,22 +153,22 @@ export async function run(options: RunOptions) {
 		}
 	}
 
-	const repoInfo = await ghRest(`/repos/${owner}/${repo}`, { token });
-	const defaultBranch = repoInfo.default_branch;
+	const repoInfo: any = await ghRest(`/repos/${owner}/${repo}`, { token });
+	const defaultBranch: string = repoInfo.default_branch as string;
 
-	const context = buildContext({ owner, repo, token, defaultBranch });
-	const rdConfig = validateSchema(context, cfg);
+	const context: any = buildContext({ owner, repo, token, defaultBranch });
+	const rdConfig: any = validateSchema(context, cfg);
 
 	let lastRelease: any = null;
 	if (prevTag) {
-		const rel = await (context as any).octokit.repos.getReleaseByTag({
+		const rel: any = await context.octokit.repos.getReleaseByTag({
 			owner,
 			repo,
 			tag: prevTag,
 		});
 		lastRelease = rel.data;
 	} else {
-		const { draftRelease, lastRelease: lr } = await findReleases({
+		const { draftRelease: _draftRelease, lastRelease: lr }: any = await findReleases({
 			context,
 			targetCommitish: target || defaultBranch,
 			filterByCommitish: !!rdConfig["filter-by-commitish"],
@@ -178,15 +178,15 @@ export async function run(options: RunOptions) {
 		lastRelease = lr || null;
 	}
 
-	const targetCommitish = target || defaultBranch;
-	const data = await findCommitsWithAssociatedPullRequests({
+	const targetCommitish: string = target || defaultBranch;
+	const data: any = await findCommitsWithAssociatedPullRequests({
 		context,
 		targetCommitish,
 		lastRelease,
 		config: rdConfig,
 	});
 
-	const releaseInfo = generateReleaseInfo({
+	const releaseInfo: any = generateReleaseInfo({
 		context,
 		commits: data.commits,
 		config: rdConfig,
