@@ -94,7 +94,8 @@ jobs:
         env:
           VERSION: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
         run: |
-          bun pm version "${VERSION}" --no-git-tag-version --allow-same-version
+          VERSION_NO_V="${VERSION#v}"
+          bun pm version "${VERSION_NO_V}" --no-git-tag-version --allow-same-version
       - uses: actionutils/commit-or-rewrite@v0
         if: fromJSON(needs.release-pr.outputs.release_pr).next_tag != ''
         with:
