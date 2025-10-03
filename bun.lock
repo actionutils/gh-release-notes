@@ -3,10 +3,8 @@
   "workspaces": {
     "": {
       "name": "gh-release-notes",
-      "dependencies": {
-        "@actions/core": "",
-      },
       "devDependencies": {
+        "@actions/core": "",
         "@biomejs/biome": "^2.2.5",
         "@octokit/rest": "^22.0.0",
         "@types/pino-std-serializers": "^4.0.0",
