@@ -78,7 +78,7 @@ async function main() {
 			prevTag: args.prevTag,
 			tag: args.tag,
 			target: args.target,
-			token: token!
+			token: token!,
 		});
 		if (args.json) {
 			process.stdout.write(

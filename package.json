@@ -17,7 +17,13 @@
     "prepublishOnly": "npm run build",
     "test": "npm run build && jest",
     "lint": "oxlint --type-aware src",
-    "format": "biome format --write src"
+    "lint:fix": "oxlint --type-aware --fix src",
+    "format": "biome format --write src",
+    "format:check": "biome format src",
+    "check": "npm run lint && npm run format:check && npm run test",
+    "dev": "npm run build && node dist/cli.cjs",
+    "clean": "rm -rf dist",
+    "typecheck": "npx tsc --noEmit"
   },
   "overrides": {
     "@actions/core": "file:shims/actions-core"
