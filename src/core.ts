@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
+import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 const require = createRequire(__filename);
@@ -129,12 +130,29 @@ function parseConfigString(source: string, filename = ""): any {
 	}
 }
 
+async function getGitHubToken(providedToken?: string): Promise<string> {
+	// First try provided token
+	if (providedToken) return providedToken;
+
+	// Then try environment variables
+	if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
+	if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
+
+	// Finally try gh auth token
+	try {
+		const token = execSync("gh auth token", { encoding: "utf8" }).trim();
+		if (token) return token;
+	} catch (error) {
+		// gh auth token failed, fall through to error
+	}
+
+	throw new Error("Missing GITHUB_TOKEN, GH_TOKEN, or gh auth token");
+}
+
 export async function run(options: RunOptions) {
 	const { repo: repoNameWithOwner, config, prevTag, tag, target } = options;
-	const token =
-		options.token || process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+	const token = await getGitHubToken(options.token);
 	if (!repoNameWithOwner) throw new Error("Missing repo (owner/repo)");
-	if (!token) throw new Error("Missing GITHUB_TOKEN or GH_TOKEN");
 	const [owner, repo] = repoNameWithOwner.split("/");
 	if (!owner || !repo) throw new Error("Invalid repo, expected owner/repo");
 
