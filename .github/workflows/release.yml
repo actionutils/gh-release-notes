@@ -55,6 +55,7 @@ jobs:
 
       # Post Dependency Review
       - uses: actions/dependency-review-action@v4
+        if: fromJSON(needs.release-pr.outputs.release_pr).current_tag != ''
         id: dependency-review
         with:
           base-ref: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
@@ -64,6 +65,7 @@ jobs:
         with:
           verify: 'actionutils/sticky-comment'
       - name: Post sticky comment
+        if: fromJSON(needs.release-pr.outputs.release_pr).current_tag != ''
         uses: actionutils/sticky-comment@v1
         with:
           key: 'dep-review'
@@ -89,7 +91,8 @@ jobs:
         env:
           VERSION: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
         run: |
-          bun pm version "${VERSION}"
+          VERSION_NO_V="${VERSION#v}"
+          bun pm version "${VERSION_NO_V}" --no-git-tag-version --allow-same-version
       - uses: actionutils/commit-or-rewrite@v0
         if: fromJSON(needs.release-pr.outputs.release_pr).next_tag != ''
         with:
@@ -184,5 +187,8 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: '24'
-    - run: npm run build
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version-file: .bun-version
+    - run: bun run build
     - run: npm publish
