@@ -1,161 +1,218 @@
-import { createRequire } from 'node:module'
-import fs from 'node:fs'
-import path from 'node:path'
-import { Octokit } from '@octokit/rest'
-import yaml from 'js-yaml'
-const require = createRequire(__filename)
-const { validateSchema } = require('release-drafter/lib/schema')
-const { findCommitsWithAssociatedPullRequests } = require('release-drafter/lib/commits')
-const { generateReleaseInfo, findReleases } = require('release-drafter/lib/releases')
+import { createRequire } from "node:module";
+import fs from "node:fs";
+import path from "node:path";
+import { Octokit } from "@octokit/rest";
+import yaml from "js-yaml";
+const require = createRequire(__filename);
+const { validateSchema } = require("release-drafter/lib/schema");
+const {
+	findCommitsWithAssociatedPullRequests,
+} = require("release-drafter/lib/commits");
+const {
+	generateReleaseInfo,
+	findReleases,
+} = require("release-drafter/lib/releases");
 
-const DEFAULT_FALLBACK_TEMPLATE = "## What's Changed\n\n$CHANGES"
+const DEFAULT_FALLBACK_TEMPLATE = "## What's Changed\n\n$CHANGES";
 
 export type RunOptions = {
-  repo: string
-  config?: string
-  prevTag?: string
-  tag?: string
-  includePrereleases?: boolean
-  target?: string
-  token?: string
+	repo: string;
+	config?: string;
+	prevTag?: string;
+	tag?: string;
+	includePrereleases?: boolean;
+	target?: string;
+	token?: string;
+};
+
+async function ghRest(
+	pathname: string,
+	{
+		token,
+		method = "GET" as const,
+	}: { token: string; method?: "GET" | "POST" },
+) {
+	const url = new URL(`https://api.github.com${pathname}`);
+	const res = await fetch(url, {
+		method,
+		headers: {
+			Authorization: `Bearer ${token}`,
+			"User-Agent": "actionutils-gh-release-notes",
+			Accept: "application/vnd.github+json",
+		},
+	});
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(`GitHub REST ${method} ${url} -> ${res.status}: ${text}`);
+	}
+	return res.json();
 }
 
-async function ghRest(pathname: string, { token, method = 'GET' as const }: { token: string; method?: 'GET' | 'POST' }) {
-  const url = new URL(`https://api.github.com${pathname}`)
-  const res = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'User-Agent': 'actionutils-gh-release-notes',
-      Accept: 'application/vnd.github+json',
-    },
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`GitHub REST ${method} ${url} -> ${res.status}: ${text}`)
-  }
-  return res.json()
+async function ghGraphQL(
+	query: string,
+	variables: any,
+	{ token }: { token: string },
+) {
+	const res = await fetch("https://api.github.com/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${token}`,
+			"User-Agent": "actionutils-release-drafter-run",
+			Accept: "application/vnd.github+json",
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ query, variables }),
+	});
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(`GitHub GraphQL -> ${res.status}: ${text}`);
+	}
+	const payload = await res.json();
+	if (payload.errors) {
+		throw new Error(`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`);
+	}
+	return payload.data;
 }
 
-async function ghGraphQL(query: string, variables: any, { token }: { token: string }) {
-  const res = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'User-Agent': 'actionutils-release-drafter-run',
-      Accept: 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query, variables }),
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`GitHub GraphQL -> ${res.status}: ${text}`)
-  }
-  const payload = await res.json()
-  if (payload.errors) {
-    throw new Error(`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`)
-  }
-  return payload.data
+function buildContext({
+	owner,
+	repo,
+	token,
+	defaultBranch,
+}: {
+	owner: string;
+	repo: string;
+	token: string;
+	defaultBranch: string;
+}) {
+	const octokit = new Octokit({ auth: token });
+	const ctx: any = {
+		payload: {
+			repository: {
+				full_name: `${owner}/${repo}`,
+				default_branch: defaultBranch,
+			},
+		},
+		repo: (obj: any = {}) => ({ owner, repo, ...obj }),
+		log: { info: () => {}, warn: () => {} },
+		octokit,
+	};
+	// Provide graphql compatible with release-drafter's expectation
+	(ctx.octokit as any).graphql = async (query: string, variables: any) =>
+		ghGraphQL(query, variables, { token });
+	return ctx;
 }
 
-function buildContext({ owner, repo, token, defaultBranch }: { owner: string; repo: string; token: string; defaultBranch: string }) {
-  const octokit = new Octokit({ auth: token })
-  const ctx: any = {
-    payload: { repository: { full_name: `${owner}/${repo}`, default_branch: defaultBranch } },
-    repo: (obj: any = {}) => ({ owner, repo, ...obj }),
-    log: { info: () => {}, warn: () => {} },
-    octokit,
-  }
-  // Provide graphql compatible with release-drafter's expectation
-  ;(ctx.octokit as any).graphql = async (query: string, variables: any) => ghGraphQL(query, variables, { token })
-  return ctx
-}
-
-  function parseConfigString(source: string, filename = ''): any {
-  const lower = filename.toLowerCase()
-  if (lower.endsWith('.yml') || lower.endsWith('.yaml')) {
-    try {
-      return yaml.load(source)
-    } catch (error: any) {
-      throw new Error('Failed to parse YAML config: ' + error.message)
-    }
-  }
-  try {
-    return JSON.parse(source)
-  } catch (error: any) {
-    throw new Error('Config is neither valid JSON nor YAML: ' + error.message)
-  }
+function parseConfigString(source: string, filename = ""): any {
+	const lower = filename.toLowerCase();
+	if (lower.endsWith(".yml") || lower.endsWith(".yaml")) {
+		try {
+			return yaml.load(source);
+		} catch (error: any) {
+			throw new Error("Failed to parse YAML config: " + error.message);
+		}
+	}
+	try {
+		return JSON.parse(source);
+	} catch (error: any) {
+		throw new Error("Config is neither valid JSON nor YAML: " + error.message);
+	}
 }
 
 export async function run(options: RunOptions) {
-  const { repo: repoNameWithOwner, config, prevTag, tag, includePrereleases, target } = options
-  const token = options.token || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
-  if (!repoNameWithOwner) throw new Error('Missing repo (owner/repo)')
-  if (!token) throw new Error('Missing GITHUB_TOKEN or GH_TOKEN')
-  const [owner, repo] = repoNameWithOwner.split('/')
-  if (!owner || !repo) throw new Error('Invalid repo, expected owner/repo')
+	const {
+		repo: repoNameWithOwner,
+		config,
+		prevTag,
+		tag,
+		includePrereleases,
+		target,
+	} = options;
+	const token =
+		options.token || process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+	if (!repoNameWithOwner) throw new Error("Missing repo (owner/repo)");
+	if (!token) throw new Error("Missing GITHUB_TOKEN or GH_TOKEN");
+	const [owner, repo] = repoNameWithOwner.split("/");
+	if (!owner || !repo) throw new Error("Invalid repo, expected owner/repo");
 
-  // Load config (optional). If not provided, try local .github/release-drafter.yml then fallback.
-  let cfg: any
-  if (config) {
-    const rawCfg = fs.readFileSync(path.resolve(process.cwd(), config), 'utf8')
-    cfg = parseConfigString(rawCfg, config)
-  } else {
-    const localCfgPath = path.resolve(process.cwd(), '.github/release-drafter.yml')
-    if (fs.existsSync(localCfgPath)) {
-      const raw = fs.readFileSync(localCfgPath, 'utf8')
-      cfg = parseConfigString(raw, localCfgPath)
-    } else {
-      cfg = { template: DEFAULT_FALLBACK_TEMPLATE }
-    }
-  }
+	// Load config (optional). If not provided, try local .github/release-drafter.yml then fallback.
+	let cfg: any;
+	if (config) {
+		const rawCfg = fs.readFileSync(path.resolve(process.cwd(), config), "utf8");
+		cfg = parseConfigString(rawCfg, config);
+	} else {
+		const localCfgPath = path.resolve(
+			process.cwd(),
+			".github/release-drafter.yml",
+		);
+		if (fs.existsSync(localCfgPath)) {
+			const raw = fs.readFileSync(localCfgPath, "utf8");
+			cfg = parseConfigString(raw, localCfgPath);
+		} else {
+			cfg = { template: DEFAULT_FALLBACK_TEMPLATE };
+		}
+	}
 
-  const repoInfo = await ghRest(`/repos/${owner}/${repo}`, { token })
-  const defaultBranch = repoInfo.default_branch
+	const repoInfo = await ghRest(`/repos/${owner}/${repo}`, { token });
+	const defaultBranch = repoInfo.default_branch;
 
-  const context = buildContext({ owner, repo, token, defaultBranch })
-  const rdConfig = validateSchema(context, cfg)
+	const context = buildContext({ owner, repo, token, defaultBranch });
+	const rdConfig = validateSchema(context, cfg);
 
-  let lastRelease: any = null
-  if (prevTag) {
-    const rel = await (context as any).octokit.repos.getReleaseByTag({ owner, repo, tag: prevTag })
-    lastRelease = rel.data
-  } else {
-    const { draftRelease, lastRelease: lr } = await findReleases({
-      context,
-      targetCommitish: target || defaultBranch,
-      filterByCommitish: !!(rdConfig['filter-by-commitish']),
-      includePreReleases: !!(rdConfig['include-pre-releases']),
-      tagPrefix: String(rdConfig['tag-prefix'] || ''),
-    })
-    lastRelease = lr || null
-  }
+	let lastRelease: any = null;
+	if (prevTag) {
+		const rel = await (context as any).octokit.repos.getReleaseByTag({
+			owner,
+			repo,
+			tag: prevTag,
+		});
+		lastRelease = rel.data;
+	} else {
+		const { draftRelease, lastRelease: lr } = await findReleases({
+			context,
+			targetCommitish: target || defaultBranch,
+			filterByCommitish: !!rdConfig["filter-by-commitish"],
+			includePreReleases: !!rdConfig["include-pre-releases"],
+			tagPrefix: String(rdConfig["tag-prefix"] || ""),
+		});
+		lastRelease = lr || null;
+	}
 
-  const targetCommitish = target || defaultBranch
-  const data = await findCommitsWithAssociatedPullRequests({ context, targetCommitish, lastRelease, config: rdConfig })
+	const targetCommitish = target || defaultBranch;
+	const data = await findCommitsWithAssociatedPullRequests({
+		context,
+		targetCommitish,
+		lastRelease,
+		config: rdConfig,
+	});
 
-  const releaseInfo = generateReleaseInfo({
-    context,
-    commits: data.commits,
-    config: rdConfig,
-    lastRelease,
-    mergedPullRequests: data.pullRequests,
-    tag,
-    isPreRelease: rdConfig.prerelease,
-    latest: rdConfig.latest,
-    shouldDraft: true,
-    targetCommitish,
-  })
+	const releaseInfo = generateReleaseInfo({
+		context,
+		commits: data.commits,
+		config: rdConfig,
+		lastRelease,
+		mergedPullRequests: data.pullRequests,
+		tag,
+		isPreRelease: rdConfig.prerelease,
+		latest: rdConfig.latest,
+		shouldDraft: true,
+		targetCommitish,
+	});
 
-  return {
-    release: releaseInfo,
-    commits: data.commits,
-    pullRequests: data.pullRequests,
-    lastRelease: lastRelease ? { id: lastRelease.id, tag_name: lastRelease.tag_name, created_at: lastRelease.created_at } : null,
-    defaultBranch,
-    targetCommitish,
-    owner,
-    repo,
-  }
+	return {
+		release: releaseInfo,
+		commits: data.commits,
+		pullRequests: data.pullRequests,
+		lastRelease: lastRelease
+			? {
+					id: lastRelease.id,
+					tag_name: lastRelease.tag_name,
+					created_at: lastRelease.created_at,
+				}
+			: null,
+		defaultBranch,
+		targetCommitish,
+		owner,
+		repo,
+	};
 }
