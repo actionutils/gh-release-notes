@@ -2,7 +2,7 @@ const {
 	isGitHubReleaseConfig,
 	convertGitHubToReleaseDrafter,
 	normalizeConfig,
-} = require("../dist/github-config-converter");
+} = require("../src/github-config-converter.ts");
 
 describe("GitHub Config Converter", () => {
 	describe("isGitHubReleaseConfig", () => {
