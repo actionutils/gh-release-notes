@@ -37,7 +37,24 @@ describe("GitHub Config Converter", () => {
 			expect(isGitHubReleaseConfig(null)).toBe(false);
 			expect(isGitHubReleaseConfig(undefined)).toBe(false);
 			expect(isGitHubReleaseConfig({})).toBe(false);
-			expect(isGitHubReleaseConfig({ changelog: {} })).toBe(false);
+		});
+
+		it("should detect GitHub format with only exclude section", () => {
+			const githubConfig = {
+				changelog: {
+					exclude: {
+						labels: ["ignore"],
+					},
+				},
+			};
+			expect(isGitHubReleaseConfig(githubConfig)).toBe(true);
+		});
+
+		it("should detect GitHub format with empty changelog", () => {
+			const githubConfig = {
+				changelog: {},
+			};
+			expect(isGitHubReleaseConfig(githubConfig)).toBe(true);
 		});
 	});
 
@@ -196,6 +213,26 @@ describe("GitHub Config Converter", () => {
 
 			const result = convertGitHubToReleaseDrafter(githubConfig);
 
+			expect(result.template).toBe(
+				"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG",
+			);
+		});
+
+		it("should handle config with only exclusions (no categories)", () => {
+			const githubConfig = {
+				changelog: {
+					exclude: {
+						labels: ["wontfix", "duplicate"],
+						authors: ["dependabot"],
+					},
+				},
+			};
+
+			const result = convertGitHubToReleaseDrafter(githubConfig);
+
+			expect(result["exclude-labels"]).toEqual(["wontfix", "duplicate"]);
+			expect(result["exclude-contributors"]).toEqual(["dependabot"]);
+			expect(result.categories).toBeUndefined();
 			expect(result.template).toBe(
 				"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG",
 			);

@@ -19,7 +19,7 @@ interface GitHubReleaseConfig {
 			labels?: string[];
 			authors?: string[];
 		};
-		categories: GitHubReleaseCategory[];
+		categories?: GitHubReleaseCategory[];
 	};
 }
 
@@ -46,9 +46,7 @@ export function isGitHubReleaseConfig(config: any): config is GitHubReleaseConfi
 		typeof config === "object" &&
 		"changelog" in config &&
 		config.changelog &&
-		typeof config.changelog === "object" &&
-		"categories" in config.changelog &&
-		Array.isArray(config.changelog.categories)
+		typeof config.changelog === "object"
 	);
 }
 
