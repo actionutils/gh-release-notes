@@ -99,8 +99,9 @@ async function main() {
 				"  2. GH_TOKEN environment variable\n" +
 				"  3. gh auth token (from GitHub CLI)\n\n" +
 				"Config File Format:\n" +
-				"  Compatible with release-drafter configuration format.\n" +
-				"  See: https://github.com/release-drafter/release-drafter\n\n" +
+				"  Compatible with both:\n" +
+				"  - Release-drafter: https://github.com/release-drafter/release-drafter\n" +
+				"  - GitHub's release.yml: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes\n\n" +
 				"More Information:\n" +
 				"  GitHub: https://github.com/actionutils/gh-release-notes",
 		)
