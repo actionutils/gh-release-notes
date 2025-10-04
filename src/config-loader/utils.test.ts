@@ -131,13 +131,10 @@ describe("parsePurl", () => {
 	});
 
 	it("throws on invalid purl format", () => {
-		expect(() => parsePurl("not-a-purl")).toThrow(
-			"Invalid purl: must start with 'pkg:'",
-		);
-		expect(() => parsePurl("pkg:")).toThrow();
-		// packageurl-js throws a different error message
-		expect(() => parsePurl("pkg:github")).toThrow();
-		expect(() => parsePurl("pkg:/name")).toThrow();
+		expect(() => parsePurl("not-a-purl")).toThrow("Invalid purl");
+		expect(() => parsePurl("pkg:")).toThrow("Invalid purl");
+		expect(() => parsePurl("pkg:github")).toThrow("Invalid purl");
+		expect(() => parsePurl("pkg:/name")).toThrow("Invalid purl");
 	});
 });
 

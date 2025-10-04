@@ -29,31 +29,15 @@ export function detectConfigSource(source: string): ConfigSource {
 }
 
 export function parsePurl(purlString: string): ParsedPurl {
-	try {
-		const purl = PackageURL.fromString(purlString);
-		return {
-			type: purl.type,
-			namespace: purl.namespace || undefined,
-			name: purl.name,
-			version: purl.version || undefined,
-			qualifiers: purl.qualifiers || {},
-			subpath: purl.subpath || undefined,
-		};
-	} catch (error) {
-		// Improve error messages for our use case
-		const message = (error as Error).message;
-		if (message.includes("missing required \"pkg\" scheme")) {
-			throw new Error("Invalid purl: must start with 'pkg:'");
-		}
-		if (message.includes("type is required")) {
-			throw new Error("Invalid purl: missing type");
-		}
-		if (message.includes("name is required")) {
-			throw new Error("Invalid purl: missing name");
-		}
-		// For other errors, throw the original
-		throw error;
-	}
+	const purl = PackageURL.fromString(purlString);
+	return {
+		type: purl.type,
+		namespace: purl.namespace || undefined,
+		name: purl.name,
+		version: purl.version || undefined,
+		qualifiers: purl.qualifiers || {},
+		subpath: purl.subpath || undefined,
+	};
 }
 
 export function parseChecksumQualifier(checksumValue: string): Checksum[] {
