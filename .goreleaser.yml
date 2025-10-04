@@ -11,7 +11,8 @@ builds:
     flags:
       - --compile
       - --minify
-      - --bytecode
+      # Disable --bytecode
+      # - --bytecode
 
 archives:
   - id: binary
