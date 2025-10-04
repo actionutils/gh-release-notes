@@ -1,10 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-	parseRepoRef,
-	normalizeGitURL,
-	remoteScore,
-	type Repo,
-} from "../src/repo-detector";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { parseRepoRef, normalizeGitURL, remoteScore } from "./repo-detector";
 
 describe("parseRepoRef", () => {
 	const defaultHost = "github.com";
@@ -64,10 +59,7 @@ describe("parseRepoRef", () => {
 	});
 
 	it("should normalize hosts (lowercase)", () => {
-		const result = parseRepoRef(
-			"https://GITHUB.COM/owner/repo",
-			defaultHost,
-		);
+		const result = parseRepoRef("https://GITHUB.COM/owner/repo", defaultHost);
 		expect(result).toEqual({
 			host: "github.com",
 			owner: "owner",

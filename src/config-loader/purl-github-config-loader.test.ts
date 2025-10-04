@@ -22,25 +22,25 @@ describe("PurlGitHubConfigLoader", () => {
 		test("throws on non-GitHub purl", async () => {
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			await expect(loader.load("pkg:npm/package#file.json")).rejects.toThrow(
+			(await expect(loader.load("pkg:npm/package#file.json")).rejects.toThrow(
 				"Unsupported purl type: npm",
-			);
+			)) as any;
 		});
 
 		test("throws when subpath is missing", async () => {
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			await expect(loader.load("pkg:github/owner/repo")).rejects.toThrow(
+			(await expect(loader.load("pkg:github/owner/repo")).rejects.toThrow(
 				"purl must include a subpath",
-			);
+			)) as any;
 		});
 
 		test("throws when subpath is missing with version", async () => {
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			await expect(loader.load("pkg:github/owner/repo@v1.0.0")).rejects.toThrow(
-				"purl must include a subpath",
-			);
+			(await expect(
+				loader.load("pkg:github/owner/repo@v1.0.0"),
+			).rejects.toThrow("purl must include a subpath")) as any;
 		});
 	});
 
@@ -68,12 +68,12 @@ describe("PurlGitHubConfigLoader", () => {
 				}
 
 				throw new Error(`Unexpected URL: ${urlStr}`);
-			});
+			}) as any;
 
 			const loader = new PurlGitHubConfigLoader("test-token");
-			const result = await loader.load(
+			const result = (await loader.load(
 				"pkg:github/owner/repo#.github/config.yaml",
-			);
+			)) as any;
 
 			expect(result).toBe(configContent);
 		});
@@ -97,12 +97,12 @@ describe("PurlGitHubConfigLoader", () => {
 				}
 
 				throw new Error(`Unexpected URL: ${urlStr}`);
-			});
+			}) as any;
 
 			const loader = new PurlGitHubConfigLoader("test-token");
-			const result = await loader.load(
+			const result = (await loader.load(
 				"pkg:github/owner/repo@v1.0.0#config/release.yaml",
-			);
+			)) as any;
 
 			expect(result).toBe(configContent);
 		});
@@ -116,14 +116,14 @@ describe("PurlGitHubConfigLoader", () => {
 						ok: true,
 						text: async () => configContent,
 					}) as Response,
-			);
+			) as any;
 
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 
 			// Correct sha256 hash of "Hello, World!"
-			const result = await loader.load(
+			const result = (await loader.load(
 				"pkg:github/owner/repo@main?checksum=sha256:dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f#config.yaml",
-			);
+			)) as any;
 
 			expect(result).toBe(configContent);
 		});
@@ -137,9 +137,9 @@ describe("PurlGitHubConfigLoader", () => {
 						ok: true,
 						text: async () => configContent,
 					}) as Response,
-			);
+			) as any;
 
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 
 			await expect(
 				loader.load(
@@ -156,9 +156,9 @@ describe("PurlGitHubConfigLoader", () => {
 						status: 404,
 						statusText: "Not Found",
 					}) as Response,
-			);
+			) as any;
 
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 
 			await expect(
 				loader.load("pkg:github/owner/repo@main#missing.yaml"),
@@ -174,9 +174,9 @@ describe("PurlGitHubConfigLoader", () => {
 						ok: true,
 						text: async () => largeContent,
 					}) as Response,
-			);
+			) as any;
 
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 
 			await expect(
 				loader.load("pkg:github/owner/repo@main#large.yaml"),
@@ -195,7 +195,7 @@ describe("PurlGitHubConfigLoader", () => {
 					ok: true,
 					text: async () => "content",
 				} as Response;
-			});
+			}) as any;
 
 			await loader.load("pkg:github/owner/repo@main#file.yaml");
 
@@ -213,14 +213,14 @@ describe("PurlGitHubConfigLoader", () => {
 					ok: true,
 					text: async () => "content",
 				} as Response;
-			});
+			}) as any;
 
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 			await loader.load("pkg:github/org/team/repo@main#file.yaml");
 
 			expect(capturedUrl).toContain(
 				"/repos/org/team/repo/contents/file.yaml?ref=main",
-			);
+			) as any;
 		});
 
 		test("handles URL-encoded paths", async () => {
@@ -232,16 +232,16 @@ describe("PurlGitHubConfigLoader", () => {
 					ok: true,
 					text: async () => "content",
 				} as Response;
-			});
+			}) as any;
 
-			const loader = new PurlGitHubConfigLoader();
-			await loader.load(
+			const loader = new PurlGitHubConfigLoader("test-token");
+			(await loader.load(
 				"pkg:github/owner/repo@main#path%20with%20spaces/file.yaml",
-			);
+			)) as any;
 
 			expect(capturedUrl).toContain(
 				"/repos/owner/repo/contents/path with spaces/file.yaml?ref=main",
-			);
+			) as any;
 		});
 
 		test("fetches default branch when version not specified", async () => {
@@ -266,9 +266,9 @@ describe("PurlGitHubConfigLoader", () => {
 				}
 
 				throw new Error(`Unexpected URL: ${urlStr}`);
-			});
+			}) as any;
 
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 			await loader.load("pkg:github/owner/repo#config.yaml");
 
 			expect(defaultBranchFetched).toBe(true);

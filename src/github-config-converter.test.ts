@@ -1,8 +1,9 @@
-const {
+import { describe, it, expect } from "bun:test";
+import {
 	isGitHubReleaseConfig,
 	convertGitHubToReleaseDrafter,
 	normalizeConfig,
-} = require("../src/github-config-converter.ts");
+} from "./github-config-converter";
 
 describe("GitHub Config Converter", () => {
 	describe("isGitHubReleaseConfig", () => {
@@ -190,13 +191,13 @@ describe("GitHub Config Converter", () => {
 				"release-pr",
 			]);
 			expect(result.categories).toBeDefined();
-			expect(result.categories.length).toBe(6);
-			expect(result.categories[0]).toEqual({
+			expect(result.categories!.length).toBe(6);
+			expect(result.categories![0]).toEqual({
 				title: "Breaking Changes 🛠",
 				labels: ["breaking-change"],
 			});
 			// Wildcard category should have no labels
-			expect(result.categories[4]).toEqual({
+			expect(result.categories![4]).toEqual({
 				title: "Other Changes",
 			});
 		});
@@ -237,7 +238,7 @@ describe("GitHub Config Converter", () => {
 
 		it("should warn about category-level exclusions", () => {
 			// Capture stderr output
-			const originalStderr = process.stderr.write;
+			const originalStderr = process.stderr.write.bind(process.stderr);
 			let stderrOutput = "";
 			process.stderr.write = (chunk) => {
 				stderrOutput += chunk;

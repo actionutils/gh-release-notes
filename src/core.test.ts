@@ -3,13 +3,13 @@ import path from "node:path";
 import fs from "node:fs";
 
 describe("actionutils/gh-release-notes core", () => {
-	const sourcePath = path.resolve(import.meta.dir, "../src/core.ts");
+	const sourcePath = path.resolve(import.meta.dir, "./core.ts");
 	const owner = "acme";
 	const repo = "demo";
 
-	let originalFetch;
-	let originalExistsSync;
-	let originalReadFileSync;
+	let originalFetch: typeof global.fetch;
+	let originalExistsSync: typeof fs.existsSync;
+	let originalReadFileSync: typeof fs.readFileSync;
 
 	beforeEach(() => {
 		process.env.GITHUB_TOKEN = "fake-token";
@@ -18,7 +18,7 @@ describe("actionutils/gh-release-notes core", () => {
 		originalReadFileSync = fs.readFileSync;
 
 		// Mock all GitHub API calls
-		global.fetch = mock(async (url) => {
+		global.fetch = mock(async (url: any) => {
 			const u = url.toString();
 
 			// Repo info
@@ -85,7 +85,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		});
+		}) as any;
 	});
 
 	afterEach(() => {
@@ -98,15 +98,15 @@ describe("actionutils/gh-release-notes core", () => {
 	test("auto-loads local .github/release-drafter.yml when --config is omitted", async () => {
 		const localCfg = path.resolve(process.cwd(), ".github/release-drafter.yml");
 
-		fs.existsSync = mock((p) => {
+		fs.existsSync = mock((p: any) => {
 			if (p === localCfg) return true;
 			return originalExistsSync(p);
 		});
 
-		fs.readFileSync = mock((p, enc) => {
+		fs.readFileSync = mock((p: any, enc: any) => {
 			if (p === localCfg) return 'template: "Hello from local config"\n';
 			return originalReadFileSync(p, enc);
-		});
+		}) as any;
 
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}` });
@@ -116,10 +116,10 @@ describe("actionutils/gh-release-notes core", () => {
 	test("uses provided local --config file (yaml)", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "tmp-config.yml");
 
-		fs.readFileSync = mock((p, enc) => {
+		fs.readFileSync = mock((p: any, enc: any) => {
 			if (p === cfgPath) return 'template: "Custom config"\n';
 			return originalReadFileSync(p, enc);
-		});
+		}) as any;
 
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
@@ -129,10 +129,10 @@ describe("actionutils/gh-release-notes core", () => {
 	test("passes flags to findReleases and tag to generateReleaseInfo", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "test-config.yml");
 
-		fs.readFileSync = mock((p, enc) => {
+		fs.readFileSync = mock((p: any, enc: any) => {
 			if (p === cfgPath) return 'template: "Test template"\n';
 			return originalReadFileSync(p, enc);
-		});
+		}) as any;
 
 		const { run } = await import(sourcePath);
 		const res = await run({
