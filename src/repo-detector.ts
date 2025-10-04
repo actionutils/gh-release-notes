@@ -78,7 +78,9 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 
 		if (byAuth.length > 0) {
 			filtered = ghHost
-				? byAuth.filter((x) => x.repo.host.toLowerCase() === ghHost.toLowerCase())
+				? byAuth.filter(
+						(x) => x.repo.host.toLowerCase() === ghHost.toLowerCase(),
+					)
 				: byAuth;
 
 			if (ghHost && filtered.length === 0) {
