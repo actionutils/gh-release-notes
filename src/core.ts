@@ -19,7 +19,8 @@ const {
 	findReleases: any;
 } = require("release-drafter/lib/releases");
 
-const DEFAULT_FALLBACK_TEMPLATE = "## What's Changed\n\n$CHANGES";
+const DEFAULT_FALLBACK_TEMPLATE =
+	"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG";
 
 export type RunOptions = {
 	repo: string;
@@ -28,6 +29,7 @@ export type RunOptions = {
 	tag?: string;
 	target?: string;
 	token?: string;
+	preview?: boolean;
 };
 
 async function ghRest(
@@ -147,8 +149,78 @@ async function getGitHubToken(providedToken?: string): Promise<string> {
 	throw new Error("Missing GITHUB_TOKEN, GH_TOKEN, or gh auth token");
 }
 
+function generateFullChangelogLink(params: {
+	owner: string;
+	repo: string;
+	previousTag?: string;
+	nextTag: string;
+}): string {
+	const { owner, repo, previousTag, nextTag } = params;
+
+	if (previousTag) {
+		return `**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...${nextTag}`;
+	}
+	return `**Full Changelog**: https://github.com/${owner}/${repo}/commits/${nextTag}`;
+}
+
+function replaceFullChangelogPlaceholder(
+	body: string,
+	params: {
+		owner: string;
+		repo: string;
+		prevTag?: string;
+		lastReleaseTag?: string;
+		tag?: string;
+		target?: string;
+		defaultBranch: string;
+		preview?: boolean;
+	},
+): string {
+	if (!body.includes("$FULL_CHANGELOG")) {
+		return body;
+	}
+
+	const {
+		owner,
+		repo,
+		prevTag,
+		lastReleaseTag,
+		tag,
+		target,
+		defaultBranch,
+		preview,
+	} = params;
+
+	// Determine the previous and next tags for comparison
+	const previousTag = prevTag || lastReleaseTag;
+	const nextTag = preview
+		? target || tag || defaultBranch
+		: tag || target || defaultBranch;
+
+	// Generate the link if we have enough information
+	if (previousTag || nextTag) {
+		const fullChangelogLink = generateFullChangelogLink({
+			owner,
+			repo,
+			previousTag,
+			nextTag,
+		});
+		return body.replace("$FULL_CHANGELOG", fullChangelogLink);
+	}
+
+	// Remove the placeholder if we don't have enough info for a link
+	return body.replace(/\n*\$FULL_CHANGELOG/, "");
+}
+
 export async function run(options: RunOptions) {
-	const { repo: repoNameWithOwner, config, prevTag, tag, target } = options;
+	const {
+		repo: repoNameWithOwner,
+		config,
+		prevTag,
+		tag,
+		target,
+		preview,
+	} = options;
 	const token = await getGitHubToken(options.token);
 	if (!repoNameWithOwner) throw new Error("Missing repo (owner/repo)");
 	const [owner, repo] = repoNameWithOwner.split("/");
@@ -187,6 +259,10 @@ export async function run(options: RunOptions) {
 		});
 		lastRelease = rel.data;
 	} else {
+		// TODO: Support --no-auto-prev flag to disable automatic previous release detection
+		// When autoPrev is false, should generate changelog from the beginning of commit history
+		// (matching GitHub's "Generate release notes" behavior when no previous tag exists)
+		// This would require passing autoPrev from CLI and conditionally skipping findReleases
 		const { draftRelease: _draftRelease, lastRelease: lr }: any =
 			await findReleases({
 				context,
@@ -218,6 +294,20 @@ export async function run(options: RunOptions) {
 		shouldDraft: true,
 		targetCommitish,
 	});
+
+	// Replace $FULL_CHANGELOG placeholder if present in the template
+	if (releaseInfo.body) {
+		releaseInfo.body = replaceFullChangelogPlaceholder(releaseInfo.body, {
+			owner,
+			repo,
+			prevTag,
+			lastReleaseTag: lastRelease?.tag_name,
+			tag,
+			target,
+			defaultBranch,
+			preview,
+		});
+	}
 
 	return {
 		release: releaseInfo,
