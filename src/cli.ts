@@ -56,7 +56,8 @@ async function main() {
 		})
 		.option("preview", {
 			type: "boolean",
-			description: "Preview mode (uses target instead of tag for changelog comparison)",
+			description:
+				"Preview mode (uses target instead of tag for changelog comparison)",
 			default: false,
 		})
 		.option("verbose", {
