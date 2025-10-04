@@ -72,7 +72,8 @@ jobs:
           RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
             --target main \
             --prev-tag "$PREV_TAG" \
-            --tag "$TAG")
+            --tag "$TAG" \
+            --preview)
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -147,6 +148,43 @@ jobs:
           name: snapshot
           path: ./dist
 
+  generate-release-notes:
+    needs: [release-pr]
+    if: fromJSON(needs.release-pr.outputs.release_pr).state == 'release_required'
+    runs-on: ubuntu-latest
+    outputs:
+      release_notes: ${{ steps.release-notes.outputs.notes }}
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - run: bun install
+
+      - id: release-notes
+        env:
+          PREV_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
+          TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --prev-tag "$PREV_TAG" \
+            --tag "$TAG")
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
   verify-releaser:
     needs: [release-pr]
     if: fromJSON(needs.release-pr.outputs.release_pr).state == 'release_required'
@@ -164,7 +202,7 @@ jobs:
           verify: 'actionutils/trusted-go-releaser@v1'
 
   release:
-    needs: [verify-releaser, release-pr]
+    needs: [verify-releaser, generate-release-notes, release-pr]
     if: fromJSON(needs.release-pr.outputs.release_pr).state == 'release_required'
     permissions:
       id-token: write    # Required for signed tags
@@ -176,7 +214,7 @@ jobs:
     with:
       environment: release
       setup-bun: true
-      release-notes: ${{ needs.update-release-pr.outputs.release_notes }}
+      release-notes: ${{ needs.generate-release-notes.outputs.release_notes }}
 
   publish:
     needs: [release-pr, release]
