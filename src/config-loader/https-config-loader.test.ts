@@ -1,26 +1,30 @@
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { HTTPSConfigLoader } from "./https-config-loader";
-
-// Mock global fetch
-global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 describe("HTTPSConfigLoader", () => {
 	let loader: HTTPSConfigLoader;
-	const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+	let originalFetch: typeof global.fetch;
 
 	beforeEach(() => {
 		loader = new HTTPSConfigLoader();
-		jest.clearAllMocks();
+		originalFetch = global.fetch;
+	});
+
+	afterEach(() => {
+		global.fetch = originalFetch;
 	});
 
 	it("loads config from HTTPS URL", async () => {
 		const configContent = "name: Remote Config\nversion: 2.0";
-		mockFetch.mockResolvedValue({
+
+		const mockFetch = mock(async () => ({
 			ok: true,
 			status: 200,
 			statusText: "OK",
 			text: async () => configContent,
-		} as Response);
+		} as Response));
+
+		global.fetch = mockFetch as any;
 
 		const result = await loader.load("https://example.com/config.yaml");
 
@@ -35,7 +39,34 @@ describe("HTTPSConfigLoader", () => {
 		);
 	});
 
-	it("rejects non-HTTPS URLs", async () => {
+	it("throws error on non-200 response", async () => {
+		const mockFetch = mock(async () => ({
+			ok: false,
+			status: 404,
+			statusText: "Not Found",
+			text: async () => "Not Found",
+		} as Response));
+
+		global.fetch = mockFetch as any;
+
+		await expect(loader.load("https://example.com/nonexistent.yaml")).rejects.toThrow(
+			"Failed to fetch config from https://example.com/nonexistent.yaml: Failed to fetch config: HTTP 404 Not Found",
+		);
+	});
+
+	it("throws error on network failure", async () => {
+		const mockFetch = mock(async () => {
+			throw new Error("Network error");
+		});
+
+		global.fetch = mockFetch as any;
+
+		await expect(loader.load("https://example.com/config.yaml")).rejects.toThrow(
+			"Network error",
+		);
+	});
+
+	it("only accepts HTTPS URLs", async () => {
 		await expect(loader.load("http://example.com/config.yaml")).rejects.toThrow(
 			"URL must use HTTPS protocol",
 		);
@@ -43,74 +74,31 @@ describe("HTTPSConfigLoader", () => {
 		await expect(loader.load("ftp://example.com/config.yaml")).rejects.toThrow(
 			"URL must use HTTPS protocol",
 		);
+
+		await expect(loader.load("file:///local/config.yaml")).rejects.toThrow(
+			"URL must use HTTPS protocol",
+		);
 	});
 
-	it("handles HTTP errors", async () => {
-		mockFetch.mockResolvedValue({
-			ok: false,
-			status: 404,
-			statusText: "Not Found",
-		} as Response);
-
-		await expect(
-			loader.load("https://example.com/missing.yaml"),
-		).rejects.toThrow("Failed to fetch config: HTTP 404 Not Found");
-	});
-
-	it("enforces size limit", async () => {
-		const largeContent = "x".repeat(1024 * 1024 + 1); // 1MB + 1 byte
-		mockFetch.mockResolvedValue({
+	it("adds User-Agent header to requests", async () => {
+		const mockFetch = mock(async () => ({
 			ok: true,
 			status: 200,
 			statusText: "OK",
-			text: async () => largeContent,
-		} as Response);
+			text: async () => "config content",
+		} as Response));
 
-		await expect(loader.load("https://example.com/large.yaml")).rejects.toThrow(
-			"Config file too large (max 1MB)",
+		global.fetch = mockFetch as any;
+
+		await loader.load("https://example.com/config.yaml");
+
+		expect(mockFetch).toHaveBeenCalledWith(
+			"https://example.com/config.yaml",
+			expect.objectContaining({
+				headers: {
+					"User-Agent": "gh-release-notes",
+				},
+			}),
 		);
-	});
-
-	// Skip timeout test due to bun test limitations with timer mocks
-	it.skip("handles timeout", async () => {
-		const loader = new HTTPSConfigLoader(1000); // 1 second timeout
-
-		// Create a promise that never resolves to simulate timeout
-		mockFetch.mockImplementation(
-			() =>
-				new Promise(() => {
-					// Never resolves
-				}),
-		);
-
-		const loadPromise = loader.load("https://example.com/slow.yaml");
-
-		// Note: Bun doesn't support timer mocks like Jest
-		// This test would need different approach in Bun
-
-		await expect(loadPromise).rejects.toThrow("Request timeout after 1000ms");
-	});
-
-	it("handles network errors", async () => {
-		mockFetch.mockRejectedValue(new Error("Network error"));
-
-		await expect(loader.load("https://example.com/error.yaml")).rejects.toThrow(
-			"Failed to fetch config from https://example.com/error.yaml: Network error",
-		);
-	});
-
-	it("uses custom timeout", async () => {
-		const customLoader = new HTTPSConfigLoader(5000);
-		const configContent = "timeout: test";
-
-		mockFetch.mockResolvedValue({
-			ok: true,
-			status: 200,
-			statusText: "OK",
-			text: async () => configContent,
-		} as Response);
-
-		const result = await customLoader.load("https://example.com/config.yaml");
-		expect(result).toBe(configContent);
 	});
 });

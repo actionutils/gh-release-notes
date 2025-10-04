@@ -13,7 +13,7 @@ describe("Full Changelog Link", () => {
 
 		fs.existsSync = () => false;
 
-		global.fetch = async (url, opts) => {
+		global.fetch = (async (url: any, opts: any) => {
 			const u = url.toString();
 			const headers = new Map([["content-type", "application/json"]]);
 
@@ -40,7 +40,7 @@ describe("Full Changelog Link", () => {
 			}
 
 			if (u.includes("/graphql")) {
-				const body = opts ? JSON.parse(opts.body) : {};
+				const body = opts ? JSON.parse(opts.body as string) : {};
 				if (body.query?.includes("history")) {
 					return {
 						ok: true,
@@ -69,7 +69,7 @@ describe("Full Changelog Link", () => {
 			}
 
 			return { ok: false, status: 404, headers, text: async () => "Not found" };
-		};
+		}) as any;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -97,7 +97,7 @@ describe("Full Changelog Link", () => {
 
 		fs.existsSync = () => false;
 
-		global.fetch = async (url, opts) => {
+		global.fetch = (async (url: any, opts: any) => {
 			const u = url.toString();
 			const headers = new Map([["content-type", "application/json"]]);
 
@@ -115,7 +115,7 @@ describe("Full Changelog Link", () => {
 			}
 
 			if (u.includes("/graphql")) {
-				const body = opts ? JSON.parse(opts.body) : {};
+				const body = opts ? JSON.parse(opts.body as string) : {};
 				if (body.query?.includes("history")) {
 					return {
 						ok: true,
@@ -153,7 +153,7 @@ describe("Full Changelog Link", () => {
 			}
 
 			return { ok: false, status: 404, headers, text: async () => "Not found" };
-		};
+		}) as any;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -180,7 +180,7 @@ describe("Full Changelog Link", () => {
 
 		fs.existsSync = () => false;
 
-		global.fetch = async (url, opts) => {
+		global.fetch = (async (url: any, opts: any) => {
 			const u = url.toString();
 			const headers = new Map([["content-type", "application/json"]]);
 
@@ -207,7 +207,7 @@ describe("Full Changelog Link", () => {
 			}
 
 			if (u.includes("/graphql")) {
-				const body = opts ? JSON.parse(opts.body) : {};
+				const body = opts ? JSON.parse(opts.body as string) : {};
 				if (body.query?.includes("history")) {
 					return {
 						ok: true,
@@ -236,7 +236,7 @@ describe("Full Changelog Link", () => {
 			}
 
 			return { ok: false, status: 404, headers, text: async () => "Not found" };
-		};
+		}) as any;
 
 		try {
 			const { run } = await import(sourcePath);
