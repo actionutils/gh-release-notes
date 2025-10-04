@@ -75,7 +75,10 @@ async function main() {
 			"$0 --prev-tag v1.0.0 --tag v1.1.0",
 			"Generate notes from v1.0.0 to v1.1.0",
 		)
-		.example("$0 --config .github/release-drafter.yml", "Use custom config file")
+		.example(
+			"$0 --config .github/release-drafter.yml",
+			"Use custom config file",
+		)
 		.example(
 			"$0 --preview --tag v2.0.0",
 			"Preview release notes with changelog comparing to current target",
