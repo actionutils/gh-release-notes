@@ -242,6 +242,10 @@ export async function run(options: RunOptions) {
 		});
 		lastRelease = rel.data;
 	} else {
+		// TODO: Support --no-auto-prev flag to disable automatic previous release detection
+		// When autoPrev is false, should generate changelog from the beginning of commit history
+		// (matching GitHub's "Generate release notes" behavior when no previous tag exists)
+		// This would require passing autoPrev from CLI and conditionally skipping findReleases
 		const { draftRelease: _draftRelease, lastRelease: lr }: any =
 			await findReleases({
 				context,
