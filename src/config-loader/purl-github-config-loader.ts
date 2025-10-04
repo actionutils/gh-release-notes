@@ -38,7 +38,7 @@ export class PurlGitHubConfigLoader implements ConfigLoader {
 		const content = await this.fetchFileContent(repoPath, ref, purl.subpath);
 
 		// Validate checksum if provided
-		if (purl.qualifiers.checksum) {
+		if (purl.qualifiers?.checksum) {
 			const checksums = parseChecksumQualifier(purl.qualifiers.checksum);
 			await validateChecksums(content, checksums);
 		}

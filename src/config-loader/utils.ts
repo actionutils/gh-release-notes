@@ -1,6 +1,6 @@
 import * as crypto from "node:crypto";
 import { PackageURL } from "packageurl-js";
-import type { ConfigSource, Checksum, ParsedPurl } from "./types";
+import type { ConfigSource, Checksum } from "./types";
 
 export function detectConfigSource(source: string): ConfigSource {
 	if (source.startsWith("https://")) {
@@ -12,7 +12,7 @@ export function detectConfigSource(source: string): ConfigSource {
 
 	if (source.startsWith("pkg:")) {
 		const parsed = parsePurl(source);
-		const checksums = parsed.qualifiers.checksum
+		const checksums = parsed.qualifiers?.checksum
 			? parseChecksumQualifier(parsed.qualifiers.checksum)
 			: undefined;
 		return {
@@ -28,16 +28,8 @@ export function detectConfigSource(source: string): ConfigSource {
 	};
 }
 
-export function parsePurl(purlString: string): ParsedPurl {
-	const purl = PackageURL.fromString(purlString);
-	return {
-		type: purl.type,
-		namespace: purl.namespace || undefined,
-		name: purl.name,
-		version: purl.version || undefined,
-		qualifiers: purl.qualifiers || {},
-		subpath: purl.subpath || undefined,
-	};
+export function parsePurl(purlString: string): PackageURL {
+	return PackageURL.fromString(purlString);
 }
 
 export function parseChecksumQualifier(checksumValue: string): Checksum[] {

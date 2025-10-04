@@ -12,12 +12,3 @@ export interface Checksum {
 	algorithm: "sha256" | "sha512" | "sha1";
 	hash: string;
 }
-
-export interface ParsedPurl {
-	type: string;
-	namespace?: string;
-	name: string;
-	version?: string;
-	qualifiers: Record<string, string>;
-	subpath?: string;
-}

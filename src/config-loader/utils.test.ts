@@ -59,67 +59,57 @@ describe("detectConfigSource", () => {
 describe("parsePurl", () => {
 	it("parses basic GitHub purl", () => {
 		const result = parsePurl("pkg:github/owner/repo#path/to/file.yaml");
-		expect(result).toEqual({
-			type: "github",
-			namespace: "owner",
-			name: "repo",
-			version: undefined,
-			qualifiers: {},
-			subpath: "path/to/file.yaml",
-		});
+		expect(result.type).toBe("github");
+		expect(result.namespace).toBe("owner");
+		expect(result.name).toBe("repo");
+		expect(result.version).toBeUndefined();
+		expect(result.qualifiers).toBeUndefined();
+		expect(result.subpath).toBe("path/to/file.yaml");
 	});
 
 	it("parses GitHub purl with version", () => {
 		const result = parsePurl("pkg:github/owner/repo@v1.0.0#config.yaml");
-		expect(result).toEqual({
-			type: "github",
-			namespace: "owner",
-			name: "repo",
-			version: "v1.0.0",
-			qualifiers: {},
-			subpath: "config.yaml",
-		});
+		expect(result.type).toBe("github");
+		expect(result.namespace).toBe("owner");
+		expect(result.name).toBe("repo");
+		expect(result.version).toBe("v1.0.0");
+		expect(result.qualifiers).toBeUndefined();
+		expect(result.subpath).toBe("config.yaml");
 	});
 
 	it("parses GitHub purl with qualifiers", () => {
 		const result = parsePurl(
 			"pkg:github/owner/repo@main?checksum=sha256:abc123&foo=bar#.github/config.yaml",
 		);
-		expect(result).toEqual({
-			type: "github",
-			namespace: "owner",
-			name: "repo",
-			version: "main",
-			qualifiers: {
-				checksum: "sha256:abc123",
-				foo: "bar",
-			},
-			subpath: ".github/config.yaml",
+		expect(result.type).toBe("github");
+		expect(result.namespace).toBe("owner");
+		expect(result.name).toBe("repo");
+		expect(result.version).toBe("main");
+		expect(result.qualifiers).toEqual({
+			checksum: "sha256:abc123",
+			foo: "bar",
 		});
+		expect(result.subpath).toBe(".github/config.yaml");
 	});
 
 	it("parses GitHub purl with nested namespace", () => {
 		const result = parsePurl("pkg:github/org/team/repo#file.yaml");
-		expect(result).toEqual({
-			type: "github",
-			namespace: "org/team",
-			name: "repo",
-			version: undefined,
-			qualifiers: {},
-			subpath: "file.yaml",
-		});
+		expect(result.type).toBe("github");
+		expect(result.namespace).toBe("org/team");
+		expect(result.name).toBe("repo");
+		expect(result.version).toBeUndefined();
+		expect(result.qualifiers).toBeUndefined();
+		expect(result.subpath).toBe("file.yaml");
 	});
 
 	it("parses GitHub purl without namespace", () => {
 		const result = parsePurl("pkg:github/singlename#file.yaml");
-		expect(result).toEqual({
-			type: "github",
-			namespace: undefined,
-			name: "singlename",
-			version: undefined,
-			qualifiers: {},
-			subpath: "file.yaml",
-		});
+		expect(result.type).toBe("github");
+		expect(result.namespace).toBeUndefined();
+		expect(result.name).toBe("singlename");
+		expect(result.version).toBeUndefined();
+		expect(result.qualifiers).toBeUndefined();
+		expect(result.subpath).toBe("file.yaml");
 	});
 
 	it("handles URL-encoded values", () => {
@@ -127,7 +117,7 @@ describe("parsePurl", () => {
 			"pkg:github/owner/repo?key=value%20with%20spaces#path%20with%20spaces/file.yaml",
 		);
 		expect(result.subpath).toBe("path with spaces/file.yaml");
-		expect(result.qualifiers.key).toBe("value with spaces");
+		expect(result.qualifiers?.key).toBe("value with spaces");
 	});
 
 	it("throws on invalid purl format", () => {
