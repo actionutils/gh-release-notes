@@ -13,7 +13,9 @@
   "scripts": {
     "build:lib": "bun build src/core.ts --target=node --outfile=dist/index.js",
     "build:cli": "bun build src/cli.ts --target=node --outfile=dist/cli.js",
-    "build": "bun run build:lib && bun run build:cli",
+    "build:converter": "bun build src/github-config-converter.ts --target=node --outfile=dist/github-config-converter.js",
+    "build:logger": "bun build src/logger.ts --target=node --outfile=dist/logger.js",
+    "build": "bun run build:lib && bun run build:cli && bun run build:converter && bun run build:logger",
     "prepublishOnly": "bun run build",
     "test": "bun run build && bun test",
     "lint": "oxlint --type-aware src",
