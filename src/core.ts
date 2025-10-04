@@ -4,7 +4,10 @@ import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
-import { GITHUB_STYLE_CHANGE_TEMPLATE, DEFAULT_RELEASE_TEMPLATE } from "./constants";
+import {
+	GITHUB_STYLE_CHANGE_TEMPLATE,
+	DEFAULT_RELEASE_TEMPLATE,
+} from "./constants";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -20,7 +23,6 @@ const {
 	generateReleaseInfo: any;
 	findReleases: any;
 } = require("release-drafter/lib/releases");
-
 
 export type RunOptions = {
 	repo: string;
@@ -142,7 +144,7 @@ async function getGitHubToken(providedToken?: string): Promise<string> {
 	try {
 		const token = execSync("gh auth token", { encoding: "utf8" }).trim();
 		if (token) return token;
-	} catch (error) {
+	} catch {
 		// gh auth token failed, fall through to error
 	}
 
@@ -203,7 +205,7 @@ export async function run(options: RunOptions) {
 		} else {
 			cfg = {
 				template: DEFAULT_RELEASE_TEMPLATE,
-				'change-template': GITHUB_STYLE_CHANGE_TEMPLATE
+				"change-template": GITHUB_STYLE_CHANGE_TEMPLATE,
 			};
 		}
 	}

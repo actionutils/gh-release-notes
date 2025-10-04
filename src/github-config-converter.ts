@@ -3,7 +3,10 @@
  */
 
 import { logVerbose, logWarning } from "./logger";
-import { GITHUB_STYLE_CHANGE_TEMPLATE, DEFAULT_RELEASE_TEMPLATE } from "./constants";
+import {
+	GITHUB_STYLE_CHANGE_TEMPLATE,
+	DEFAULT_RELEASE_TEMPLATE,
+} from "./constants";
 
 interface GitHubReleaseCategory {
 	title: string;
@@ -120,8 +123,8 @@ export function convertGitHubToReleaseDrafter(
 	}
 
 	// Set GitHub-style change-template
-	if (!releaseDrafterConfig['change-template']) {
-		releaseDrafterConfig['change-template'] = GITHUB_STYLE_CHANGE_TEMPLATE;
+	if (!releaseDrafterConfig["change-template"]) {
+		releaseDrafterConfig["change-template"] = GITHUB_STYLE_CHANGE_TEMPLATE;
 	}
 
 	return releaseDrafterConfig;

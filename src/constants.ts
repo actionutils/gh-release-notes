@@ -5,7 +5,7 @@
 /**
  * GitHub-style change template that matches GitHub's official release notes format
  */
-export const GITHUB_STYLE_CHANGE_TEMPLATE = '- $TITLE by @$AUTHOR in #$NUMBER';
+export const GITHUB_STYLE_CHANGE_TEMPLATE = "- $TITLE by @$AUTHOR in #$NUMBER";
 
 /**
  * Default template for release notes body
