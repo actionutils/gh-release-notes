@@ -21,7 +21,7 @@ async function main() {
 		.scriptName("gh-release-notes")
 		.usage("$0 [options]")
 		.option("repo", {
-			alias: "r",
+			alias: "R",
 			type: "string",
 			description:
 				"Repository in owner/repo format (auto-detected if not provided)",
