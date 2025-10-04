@@ -3,7 +3,7 @@ schema: v1
 name: gh-release-notes
 repo: actionutils/gh-release-notes
 asset:
-  template: ${NAME}_${VERSION}_${OS}_${ARCH}${EXT}
+  template: ${NAME}_${VERSION}_${OS}-${ARCH}${EXT}
   naming_convention:
     os: lowercase
     arch: lowercase
