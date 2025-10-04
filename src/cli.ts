@@ -40,7 +40,7 @@ async function main() {
 		})
 		.option("tag", {
 			type: "string",
-			description: "New release tag (for preview mode)",
+			description: "New release tag",
 			example: "v1.1.0",
 		})
 		.option("target", {
@@ -56,7 +56,7 @@ async function main() {
 		})
 		.option("preview", {
 			type: "boolean",
-			description: "Preview mode (don't create actual release)",
+			description: "Preview mode (uses target instead of tag for changelog comparison)",
 			default: false,
 		})
 		.option("verbose", {
@@ -82,7 +82,7 @@ async function main() {
 		)
 		.example(
 			"$0 --repo octocat/Hello-World --preview --tag v2.0.0",
-			"Preview release notes for v2.0.0 without creating release",
+			"Preview release notes with changelog comparing to current target",
 		)
 		.example(
 			"$0 --repo octocat/Hello-World --json",
