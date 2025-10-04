@@ -17,12 +17,15 @@ describe("HTTPSConfigLoader", () => {
 	it("loads config from HTTPS URL", async () => {
 		const configContent = "name: Remote Config\nversion: 2.0";
 
-		const mockFetch = mock(async () => ({
-			ok: true,
-			status: 200,
-			statusText: "OK",
-			text: async () => configContent,
-		} as Response));
+		const mockFetch = mock(
+			async () =>
+				({
+					ok: true,
+					status: 200,
+					statusText: "OK",
+					text: async () => configContent,
+				}) as Response,
+		);
 
 		global.fetch = mockFetch as any;
 
@@ -40,16 +43,21 @@ describe("HTTPSConfigLoader", () => {
 	});
 
 	it("throws error on non-200 response", async () => {
-		const mockFetch = mock(async () => ({
-			ok: false,
-			status: 404,
-			statusText: "Not Found",
-			text: async () => "Not Found",
-		} as Response));
+		const mockFetch = mock(
+			async () =>
+				({
+					ok: false,
+					status: 404,
+					statusText: "Not Found",
+					text: async () => "Not Found",
+				}) as Response,
+		);
 
 		global.fetch = mockFetch as any;
 
-		await expect(loader.load("https://example.com/nonexistent.yaml")).rejects.toThrow(
+		await expect(
+			loader.load("https://example.com/nonexistent.yaml"),
+		).rejects.toThrow(
 			"Failed to fetch config from https://example.com/nonexistent.yaml: Failed to fetch config: HTTP 404 Not Found",
 		);
 	});
@@ -61,9 +69,9 @@ describe("HTTPSConfigLoader", () => {
 
 		global.fetch = mockFetch as any;
 
-		await expect(loader.load("https://example.com/config.yaml")).rejects.toThrow(
-			"Network error",
-		);
+		await expect(
+			loader.load("https://example.com/config.yaml"),
+		).rejects.toThrow("Network error");
 	});
 
 	it("only accepts HTTPS URLs", async () => {
@@ -81,12 +89,15 @@ describe("HTTPSConfigLoader", () => {
 	});
 
 	it("adds User-Agent header to requests", async () => {
-		const mockFetch = mock(async () => ({
-			ok: true,
-			status: 200,
-			statusText: "OK",
-			text: async () => "config content",
-		} as Response));
+		const mockFetch = mock(
+			async () =>
+				({
+					ok: true,
+					status: 200,
+					statusText: "OK",
+					text: async () => "config content",
+				}) as Response,
+		);
 
 		global.fetch = mockFetch as any;
 
