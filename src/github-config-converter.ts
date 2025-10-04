@@ -3,6 +3,7 @@
  */
 
 import { logVerbose, logWarning } from "./logger";
+import { GITHUB_STYLE_CHANGE_TEMPLATE, DEFAULT_RELEASE_TEMPLATE } from "./constants";
 
 interface GitHubReleaseCategory {
 	title: string;
@@ -112,11 +113,15 @@ export function convertGitHubToReleaseDrafter(
 		);
 	}
 
-	// Set a default template if not provided
+	// Set a default template and change-template if not provided
 	// This matches the default behavior of GitHub's release notes
 	if (!releaseDrafterConfig.template) {
-		releaseDrafterConfig.template =
-			"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
+		releaseDrafterConfig.template = DEFAULT_RELEASE_TEMPLATE;
+	}
+
+	// Set GitHub-style change-template
+	if (!releaseDrafterConfig['change-template']) {
+		releaseDrafterConfig['change-template'] = GITHUB_STYLE_CHANGE_TEMPLATE;
 	}
 
 	return releaseDrafterConfig;

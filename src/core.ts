@@ -4,6 +4,7 @@ import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
+import { GITHUB_STYLE_CHANGE_TEMPLATE, DEFAULT_RELEASE_TEMPLATE } from "./constants";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -20,8 +21,6 @@ const {
 	findReleases: any;
 } = require("release-drafter/lib/releases");
 
-const DEFAULT_FALLBACK_TEMPLATE =
-	"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
 
 export type RunOptions = {
 	repo: string;
@@ -202,7 +201,10 @@ export async function run(options: RunOptions) {
 			const raw = fs.readFileSync(githubReleasePath, "utf8");
 			cfg = parseConfigString(raw, githubReleasePath);
 		} else {
-			cfg = { template: DEFAULT_FALLBACK_TEMPLATE };
+			cfg = {
+				template: DEFAULT_RELEASE_TEMPLATE,
+				'change-template': GITHUB_STYLE_CHANGE_TEMPLATE
+			};
 		}
 	}
 
