@@ -4,10 +4,7 @@ import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
-import {
-	GITHUB_STYLE_CHANGE_TEMPLATE,
-	DEFAULT_RELEASE_TEMPLATE,
-} from "./constants";
+import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -210,10 +207,7 @@ export async function run(options: RunOptions) {
 			const raw = fs.readFileSync(githubReleaseYamlPath, "utf8");
 			cfg = parseConfigString(raw, githubReleaseYamlPath);
 		} else {
-			cfg = {
-				template: DEFAULT_RELEASE_TEMPLATE,
-				"change-template": GITHUB_STYLE_CHANGE_TEMPLATE,
-			};
+			cfg = DEFAULT_FALLBACK_CONFIG;
 		}
 	}
 
