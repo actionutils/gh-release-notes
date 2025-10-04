@@ -5,6 +5,7 @@ import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
+import { ConfigLoaderFactory } from "./config-loader";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -179,8 +180,18 @@ export async function run(options: RunOptions) {
 	// Load config (optional). If not provided, try local configs then fallback.
 	let cfg: any;
 	if (config) {
-		const rawCfg = fs.readFileSync(path.resolve(process.cwd(), config), "utf8");
-		cfg = parseConfigString(rawCfg, config);
+		// Use config loader for remote config support
+		const configLoader = new ConfigLoaderFactory(token);
+		const rawCfg = await configLoader.load(config);
+		// For purl sources, extract the filename from the subpath
+		let configFilename = config;
+		if (config.startsWith("pkg:")) {
+			const match = config.match(/#([^?]+)/);
+			if (match) {
+				configFilename = match[1];
+			}
+		}
+		cfg = parseConfigString(rawCfg, configFilename);
 	} else {
 		// Try release-drafter.yml first
 		const releaseDrafterPath = path.resolve(
