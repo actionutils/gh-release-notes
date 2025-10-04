@@ -101,10 +101,7 @@ describe("GitHub Config Converter", () => {
 
 			const result = convertGitHubToReleaseDrafter(githubConfig);
 
-			expect(result["exclude-labels"]).toEqual([
-				"ignore-for-release",
-				"skip",
-			]);
+			expect(result["exclude-labels"]).toEqual(["ignore-for-release", "skip"]);
 		});
 
 		it("should convert excluded authors", () => {

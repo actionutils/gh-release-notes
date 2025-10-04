@@ -164,7 +164,6 @@ function generateFullChangelogLink(params: {
 	return `https://github.com/${owner}/${repo}/commits/${nextTag}`;
 }
 
-
 export async function run(options: RunOptions) {
 	const {
 		repo: repoNameWithOwner,
@@ -251,7 +250,10 @@ export async function run(options: RunOptions) {
 				? target || tag || defaultBranch
 				: tag || target || defaultBranch,
 		});
-		rdConfig.template = rdConfig.template.replaceAll("$FULL_CHANGELOG_LINK", fullChangelogLink);
+		rdConfig.template = rdConfig.template.replaceAll(
+			"$FULL_CHANGELOG_LINK",
+			fullChangelogLink,
+		);
 	}
 
 	const targetCommitish: string = target || defaultBranch;
