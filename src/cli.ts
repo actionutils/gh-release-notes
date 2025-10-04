@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { run } from "./core";
+import { setVerbose } from "./logger";
 
 type Args = {
 	repo?: string;
@@ -10,13 +11,14 @@ type Args = {
 	target?: string;
 	json: boolean;
 	preview: boolean;
+	verbose: boolean;
 };
 
 function usage(msg?: string) {
 	if (msg) console.error(msg);
 	console.error(`
 Usage:
-  gh-release-notes --repo owner/repo [--config config.yml] [--target REF] [--prev-tag TAG | --auto-prev] [--tag NEW_TAG] [--json] [--preview]
+  gh-release-notes --repo owner/repo [--config config.yml] [--target REF] [--prev-tag TAG | --auto-prev] [--tag NEW_TAG] [--json] [--preview] [--verbose]
 
 Env:
   GITHUB_TOKEN or GH_TOKEN must be set.
@@ -29,6 +31,7 @@ function parseArgs(argv: string[]): Args {
 		autoPrev: true,
 		json: false,
 		preview: false,
+		verbose: false,
 	};
 	for (let i = 2; i < argv.length; i++) {
 		const a = argv[i];
@@ -61,6 +64,10 @@ function parseArgs(argv: string[]): Args {
 			case "--preview":
 				args.preview = true;
 				break;
+			case "--verbose":
+			case "-v":
+				args.verbose = true;
+				break;
 			case "--help":
 			case "-h":
 				args.autoPrev = true;
@@ -74,6 +81,9 @@ async function main() {
 	const args = parseArgs(process.argv);
 	if (!args.repo) usage("Missing --repo");
 	// config is optional; default will be used if not provided
+
+	// Set verbose mode if requested
+	setVerbose(args.verbose);
 
 	const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 	try {

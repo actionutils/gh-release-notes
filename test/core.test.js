@@ -3,7 +3,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 describe('actionutils/gh-release-notes core', () => {
-  const dist = path.resolve(import.meta.dir, '../dist/index.js')
+  const sourcePath = path.resolve(import.meta.dir, '../src/core.ts')
   const owner = 'acme'
   const repo = 'demo'
 
@@ -108,7 +108,7 @@ describe('actionutils/gh-release-notes core', () => {
       return originalReadFileSync(p, enc)
     })
 
-    const { run } = await import(dist)
+    const { run } = await import(sourcePath)
     const res = await run({ repo: `${owner}/${repo}` })
     expect(res.release.body).toBe('Hello from local config')
   })
@@ -121,7 +121,7 @@ describe('actionutils/gh-release-notes core', () => {
       return originalReadFileSync(p, enc)
     })
 
-    const { run } = await import(dist)
+    const { run } = await import(sourcePath)
     const res = await run({ repo: `${owner}/${repo}`, config: cfgPath })
     expect(res.release.body).toBe('Custom config')
   })
@@ -134,7 +134,7 @@ describe('actionutils/gh-release-notes core', () => {
       return originalReadFileSync(p, enc)
     })
 
-    const { run } = await import(dist)
+    const { run } = await import(sourcePath)
     const res = await run({
       repo: `${owner}/${repo}`,
       config: cfgPath,

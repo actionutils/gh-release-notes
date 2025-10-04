@@ -3,7 +3,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 describe('Full Changelog Link', () => {
-  const dist = path.resolve(import.meta.dir, '../dist/index.js')
+  const sourcePath = path.resolve(import.meta.dir, '../src/core.ts')
 
   test('adds compare link when prevTag is specified', async () => {
     process.env.GITHUB_TOKEN = 'fake-token'
@@ -54,7 +54,7 @@ describe('Full Changelog Link', () => {
     }
 
     try {
-      const { run } = await import(dist)
+      const { run } = await import(sourcePath)
       const res = await run({
         repo: 'owner/repo',
         prevTag: 'v1.0.0',
@@ -119,7 +119,7 @@ describe('Full Changelog Link', () => {
     }
 
     try {
-      const { run } = await import(dist)
+      const { run } = await import(sourcePath)
       const res = await run({
         repo: 'owner/repo',
         tag: 'v1.0.0'
@@ -182,7 +182,7 @@ describe('Full Changelog Link', () => {
     }
 
     try {
-      const { run } = await import(dist)
+      const { run } = await import(sourcePath)
 
       // Test preview mode - should use target
       const res1 = await run({

@@ -3,6 +3,7 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
+import { normalizeConfig } from "./github-config-converter";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -197,19 +198,16 @@ function replaceFullChangelogPlaceholder(
 		? target || tag || defaultBranch
 		: tag || target || defaultBranch;
 
-	// Generate the link if we have enough information
-	if (previousTag || nextTag) {
-		const fullChangelogLink = generateFullChangelogLink({
-			owner,
-			repo,
-			previousTag,
-			nextTag,
-		});
-		return body.replace("$FULL_CHANGELOG", fullChangelogLink);
-	}
+	// Generate the link
+	const fullChangelogLink = generateFullChangelogLink({
+		owner,
+		repo,
+		previousTag,
+		nextTag,
+	});
 
-	// Remove the placeholder if we don't have enough info for a link
-	return body.replace(/\n*\$FULL_CHANGELOG/, "");
+	// Replace all occurrences (template might have multiple)
+	return body.replaceAll("$FULL_CHANGELOG", fullChangelogLink);
 }
 
 export async function run(options: RunOptions) {
@@ -226,23 +224,36 @@ export async function run(options: RunOptions) {
 	const [owner, repo] = repoNameWithOwner.split("/");
 	if (!owner || !repo) throw new Error("Invalid repo, expected owner/repo");
 
-	// Load config (optional). If not provided, try local .github/release-drafter.yml then fallback.
+	// Load config (optional). If not provided, try local configs then fallback.
 	let cfg: any;
 	if (config) {
 		const rawCfg = fs.readFileSync(path.resolve(process.cwd(), config), "utf8");
 		cfg = parseConfigString(rawCfg, config);
 	} else {
-		const localCfgPath = path.resolve(
+		// Try release-drafter.yml first
+		const releaseDrafterPath = path.resolve(
 			process.cwd(),
 			".github/release-drafter.yml",
 		);
-		if (fs.existsSync(localCfgPath)) {
-			const raw = fs.readFileSync(localCfgPath, "utf8");
-			cfg = parseConfigString(raw, localCfgPath);
+		// Then try GitHub's release.yml
+		const githubReleasePath = path.resolve(
+			process.cwd(),
+			".github/release.yml",
+		);
+
+		if (fs.existsSync(releaseDrafterPath)) {
+			const raw = fs.readFileSync(releaseDrafterPath, "utf8");
+			cfg = parseConfigString(raw, releaseDrafterPath);
+		} else if (fs.existsSync(githubReleasePath)) {
+			const raw = fs.readFileSync(githubReleasePath, "utf8");
+			cfg = parseConfigString(raw, githubReleasePath);
 		} else {
 			cfg = { template: DEFAULT_FALLBACK_TEMPLATE };
 		}
 	}
+
+	// Convert GitHub format to release-drafter format if needed
+	cfg = normalizeConfig(cfg);
 
 	const repoInfo: any = await ghRest(`/repos/${owner}/${repo}`, { token });
 	const defaultBranch: string = repoInfo.default_branch as string;
@@ -303,7 +314,7 @@ export async function run(options: RunOptions) {
 			prevTag,
 			lastReleaseTag: lastRelease?.tag_name,
 			tag,
-			target,
+			target: target || targetCommitish,
 			defaultBranch,
 			preview,
 		});
