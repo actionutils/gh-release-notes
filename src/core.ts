@@ -3,6 +3,7 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
+import { normalizeConfig } from "./github-config-converter";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -20,7 +21,7 @@ const {
 } = require("release-drafter/lib/releases");
 
 const DEFAULT_FALLBACK_TEMPLATE =
-	"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG";
+	"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
 
 export type RunOptions = {
 	repo: string;
@@ -158,58 +159,9 @@ function generateFullChangelogLink(params: {
 	const { owner, repo, previousTag, nextTag } = params;
 
 	if (previousTag) {
-		return `**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...${nextTag}`;
+		return `https://github.com/${owner}/${repo}/compare/${previousTag}...${nextTag}`;
 	}
-	return `**Full Changelog**: https://github.com/${owner}/${repo}/commits/${nextTag}`;
-}
-
-function replaceFullChangelogPlaceholder(
-	body: string,
-	params: {
-		owner: string;
-		repo: string;
-		prevTag?: string;
-		lastReleaseTag?: string;
-		tag?: string;
-		target?: string;
-		defaultBranch: string;
-		preview?: boolean;
-	},
-): string {
-	if (!body.includes("$FULL_CHANGELOG")) {
-		return body;
-	}
-
-	const {
-		owner,
-		repo,
-		prevTag,
-		lastReleaseTag,
-		tag,
-		target,
-		defaultBranch,
-		preview,
-	} = params;
-
-	// Determine the previous and next tags for comparison
-	const previousTag = prevTag || lastReleaseTag;
-	const nextTag = preview
-		? target || tag || defaultBranch
-		: tag || target || defaultBranch;
-
-	// Generate the link if we have enough information
-	if (previousTag || nextTag) {
-		const fullChangelogLink = generateFullChangelogLink({
-			owner,
-			repo,
-			previousTag,
-			nextTag,
-		});
-		return body.replace("$FULL_CHANGELOG", fullChangelogLink);
-	}
-
-	// Remove the placeholder if we don't have enough info for a link
-	return body.replace(/\n*\$FULL_CHANGELOG/, "");
+	return `https://github.com/${owner}/${repo}/commits/${nextTag}`;
 }
 
 export async function run(options: RunOptions) {
@@ -226,23 +178,36 @@ export async function run(options: RunOptions) {
 	const [owner, repo] = repoNameWithOwner.split("/");
 	if (!owner || !repo) throw new Error("Invalid repo, expected owner/repo");
 
-	// Load config (optional). If not provided, try local .github/release-drafter.yml then fallback.
+	// Load config (optional). If not provided, try local configs then fallback.
 	let cfg: any;
 	if (config) {
 		const rawCfg = fs.readFileSync(path.resolve(process.cwd(), config), "utf8");
 		cfg = parseConfigString(rawCfg, config);
 	} else {
-		const localCfgPath = path.resolve(
+		// Try release-drafter.yml first
+		const releaseDrafterPath = path.resolve(
 			process.cwd(),
 			".github/release-drafter.yml",
 		);
-		if (fs.existsSync(localCfgPath)) {
-			const raw = fs.readFileSync(localCfgPath, "utf8");
-			cfg = parseConfigString(raw, localCfgPath);
+		// Then try GitHub's release.yml
+		const githubReleasePath = path.resolve(
+			process.cwd(),
+			".github/release.yml",
+		);
+
+		if (fs.existsSync(releaseDrafterPath)) {
+			const raw = fs.readFileSync(releaseDrafterPath, "utf8");
+			cfg = parseConfigString(raw, releaseDrafterPath);
+		} else if (fs.existsSync(githubReleasePath)) {
+			const raw = fs.readFileSync(githubReleasePath, "utf8");
+			cfg = parseConfigString(raw, githubReleasePath);
 		} else {
 			cfg = { template: DEFAULT_FALLBACK_TEMPLATE };
 		}
 	}
+
+	// Convert GitHub format to release-drafter format if needed
+	cfg = normalizeConfig(cfg);
 
 	const repoInfo: any = await ghRest(`/repos/${owner}/${repo}`, { token });
 	const defaultBranch: string = repoInfo.default_branch as string;
@@ -274,6 +239,23 @@ export async function run(options: RunOptions) {
 		lastRelease = lr || null;
 	}
 
+	// Replace $FULL_CHANGELOG_LINK placeholder in template before processing
+	if (rdConfig.template && rdConfig.template.includes("$FULL_CHANGELOG_LINK")) {
+		const previousTag = prevTag || lastRelease?.tag_name;
+		const fullChangelogLink = generateFullChangelogLink({
+			owner,
+			repo,
+			previousTag,
+			nextTag: preview
+				? target || tag || defaultBranch
+				: tag || target || defaultBranch,
+		});
+		rdConfig.template = rdConfig.template.replaceAll(
+			"$FULL_CHANGELOG_LINK",
+			fullChangelogLink,
+		);
+	}
+
 	const targetCommitish: string = target || defaultBranch;
 	const data: any = await findCommitsWithAssociatedPullRequests({
 		context,
@@ -294,20 +276,6 @@ export async function run(options: RunOptions) {
 		shouldDraft: true,
 		targetCommitish,
 	});
-
-	// Replace $FULL_CHANGELOG placeholder if present in the template
-	if (releaseInfo.body) {
-		releaseInfo.body = replaceFullChangelogPlaceholder(releaseInfo.body, {
-			owner,
-			repo,
-			prevTag,
-			lastReleaseTag: lastRelease?.tag_name,
-			tag,
-			target,
-			defaultBranch,
-			preview,
-		});
-	}
 
 	return {
 		release: releaseInfo,
