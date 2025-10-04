@@ -50,6 +50,5 @@
     "type": "git",
     "url": "https://github.com/actionutils/gh-release-notes"
   },
-  "dependencies": {
-  }
+  "dependencies": {}
 }
