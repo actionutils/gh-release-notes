@@ -195,8 +195,8 @@ function replaceFullChangelogPlaceholder(
 	// Determine the previous and next tags for comparison
 	const previousTag = prevTag || lastReleaseTag;
 	const nextTag = preview
-		? (target || tag || defaultBranch)
-		: (tag || target || defaultBranch);
+		? target || tag || defaultBranch
+		: tag || target || defaultBranch;
 
 	// Generate the link
 	const fullChangelogLink = generateFullChangelogLink({

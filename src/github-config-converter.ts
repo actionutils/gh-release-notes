@@ -40,7 +40,9 @@ interface ReleaseDrafterConfig {
 /**
  * Detects if the config is in GitHub's release.yml format
  */
-export function isGitHubReleaseConfig(config: any): config is GitHubReleaseConfig {
+export function isGitHubReleaseConfig(
+	config: any,
+): config is GitHubReleaseConfig {
 	return !!(
 		config &&
 		typeof config === "object" &&
