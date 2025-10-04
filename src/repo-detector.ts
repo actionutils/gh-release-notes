@@ -42,11 +42,6 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 	}
 
 	// Priority 4: Git remotes
-	const authedHosts = await getAuthedHosts();
-	if (authedHosts.length === 0) {
-		throw new Error("No authenticated hosts. Run `gh auth login` first.");
-	}
-
 	const remotes = await readGitRemotes();
 	if (remotes.length === 0) {
 		throw new Error(
@@ -64,26 +59,48 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 		}
 	}
 
-	// Filter by authenticated hosts
-	const ghHost = process.env.GH_HOST;
-	const byAuth = repos.filter((x) =>
-		authedHosts.some((h) => x.repo.host.toLowerCase() === h.toLowerCase()),
-	);
-
-	if (byAuth.length === 0) {
+	if (repos.length === 0) {
 		throw new Error(
-			"No remotes match any authenticated host. Run `gh auth login` or add matching remotes.",
+			"No valid git remotes found. Please check your git remote configuration.",
 		);
 	}
 
-	const filtered = ghHost
-		? byAuth.filter((x) => x.repo.host.toLowerCase() === ghHost.toLowerCase())
-		: byAuth;
+	// Filter by hosts if gh CLI is available
+	const authedHosts = await getAuthedHosts();
+	let filtered = repos;
 
-	if (ghHost && filtered.length === 0) {
-		throw new Error(
-			`No remotes match GH_HOST=${ghHost}. Add a matching remote or unset GH_HOST.`,
+	// If we have authenticated hosts from gh CLI, use them for filtering
+	if (authedHosts.length > 0) {
+		const ghHost = process.env.GH_HOST;
+		const byAuth = repos.filter((x) =>
+			authedHosts.some((h) => x.repo.host.toLowerCase() === h.toLowerCase()),
 		);
+
+		if (byAuth.length > 0) {
+			filtered = ghHost
+				? byAuth.filter((x) => x.repo.host.toLowerCase() === ghHost.toLowerCase())
+				: byAuth;
+
+			if (ghHost && filtered.length === 0) {
+				throw new Error(
+					`No remotes match GH_HOST=${ghHost}. Add a matching remote or unset GH_HOST.`,
+				);
+			}
+		}
+		// If no authenticated hosts match, continue with all repos (fallback)
+	} else {
+		// No gh CLI available, filter by GH_HOST if set
+		const ghHost = process.env.GH_HOST;
+		if (ghHost) {
+			filtered = repos.filter(
+				(x) => x.repo.host.toLowerCase() === ghHost.toLowerCase(),
+			);
+			if (filtered.length === 0) {
+				throw new Error(
+					`No remotes match GH_HOST=${ghHost}. Add a matching remote or unset GH_HOST.`,
+				);
+			}
+		}
 	}
 
 	// Sort by remote name preference and deduplicate
@@ -246,6 +263,16 @@ function normalizeHost(host: string): string {
 
 export async function getAuthedHosts(): Promise<string[]> {
 	try {
+		// Check if gh CLI is available
+		const { stdout: versionStdout } = await execAsync(
+			"gh --version 2>/dev/null || true",
+		);
+
+		if (!versionStdout.includes("gh version")) {
+			// gh CLI is not installed
+			return [];
+		}
+
 		// Try to get authenticated hosts from gh CLI
 		const { stdout } = await execAsync(
 			"gh auth status --show-hosts 2>/dev/null || true",
@@ -269,12 +296,7 @@ export async function getAuthedHosts(): Promise<string[]> {
 			}
 
 			// Default to github.com if gh is installed but no explicit hosts
-			const { stdout: versionStdout } = await execAsync(
-				"gh --version 2>/dev/null || true",
-			);
-			if (versionStdout.includes("gh version")) {
-				return ["github.com"];
-			}
+			return ["github.com"];
 		}
 
 		return hosts.filter(Boolean);
