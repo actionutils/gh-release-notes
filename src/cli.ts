@@ -34,7 +34,8 @@ async function main() {
 		})
 		.option("prev-tag", {
 			type: "string",
-			description: "Previous release tag to generate notes from (disables auto-detection)",
+			description:
+				"Previous release tag to generate notes from (disables auto-detection)",
 			example: "v1.0.0",
 		})
 		.option("tag", {
