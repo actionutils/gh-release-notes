@@ -3,9 +3,10 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { run } from "./core";
 import { setVerbose } from "./logger";
+import { resolveBaseRepo } from "./repo-detector";
 
 interface Args {
-	repo: string;
+	repo?: string;
 	config?: string;
 	"prev-tag"?: string;
 	tag?: string;
@@ -18,12 +19,12 @@ interface Args {
 async function main() {
 	const parser = yargs(hideBin(process.argv))
 		.scriptName("gh-release-notes")
-		.usage("$0 --repo <owner/repo> [options]")
+		.usage("$0 [options]")
 		.option("repo", {
 			alias: "r",
 			type: "string",
-			description: "Repository in owner/repo format",
-			demandOption: true,
+			description:
+				"Repository in owner/repo format (auto-detected if not provided)",
 			example: "octocat/Hello-World",
 		})
 		.option("config", {
@@ -94,7 +95,13 @@ async function main() {
 			"Generate notes for specific branch",
 		)
 		.epilogue(
-			"Authentication:\n" +
+			"Repository Detection:\n" +
+				"  Automatically detects repository in the following order:\n" +
+				"  1. --repo flag\n" +
+				"  2. GITHUB_REPOSITORY env var (GitHub Actions)\n" +
+				"  3. GH_REPO environment variable\n" +
+				"  4. Current directory's git remotes\n\n" +
+				"Authentication:\n" +
 				"  Uses GitHub token in the following order:\n" +
 				"  1. GITHUB_TOKEN environment variable\n" +
 				"  2. GH_TOKEN environment variable\n" +
@@ -115,8 +122,18 @@ async function main() {
 	setVerbose(args.verbose);
 
 	try {
+		// Auto-detect repository if not provided
+		let repoString = args.repo;
+		if (!repoString) {
+			const repo = await resolveBaseRepo({ flagRepo: args.repo });
+			repoString = `${repo.owner}/${repo.name}`;
+			if (args.verbose) {
+				console.error(`Auto-detected repository: ${repoString}`);
+			}
+		}
+
 		const result = await run({
-			repo: args.repo,
+			repo: repoString,
 			config: args.config,
 			prevTag: args["prev-tag"],
 			tag: args.tag,
