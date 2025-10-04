@@ -30,7 +30,7 @@ async function main() {
 		.option("config", {
 			alias: "c",
 			type: "string",
-			description: "Path to release-drafter config file (optional)",
+			description: "Config source: local file, HTTPS URL, or purl (optional)",
 			example: ".github/release-drafter.yml",
 		})
 		.option("prev-tag", {
@@ -80,6 +80,10 @@ async function main() {
 			"Use custom config file",
 		)
 		.example(
+			"$0 --config pkg:github/myorg/.github#.github/release-notes.yaml",
+			"Use remote config from GitHub",
+		)
+		.example(
 			"$0 --preview --tag v2.0.0",
 			"Preview release notes with changelog comparing to current target",
 		)
@@ -102,6 +106,11 @@ async function main() {
 				"  Compatible with both:\n" +
 				"  - Release-drafter: https://github.com/release-drafter/release-drafter\n" +
 				"  - GitHub's release.yml: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes\n\n" +
+				"Remote Config Support:\n" +
+				"  - Local file: ./config.yaml\n" +
+				"  - HTTPS URL: https://example.com/config.yaml\n" +
+				"  - GitHub purl: pkg:github/owner/repo@version#path/to/config.yaml\n" +
+				"  - With checksum: pkg:github/owner/repo@v1.0#config.yaml?checksum=sha256:abc123\n\n" +
 				"More Information:\n" +
 				"  GitHub: https://github.com/actionutils/gh-release-notes",
 		)
