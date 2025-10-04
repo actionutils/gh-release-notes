@@ -70,30 +70,19 @@ async function main() {
 		.help("help")
 		.alias("help", "h")
 		.version(false)
+		.example("$0", "Generate release notes for the latest changes")
 		.example(
-			"$0 --repo octocat/Hello-World",
-			"Generate release notes for the latest changes",
-		)
-		.example(
-			"$0 --repo octocat/Hello-World --prev-tag v1.0.0 --tag v1.1.0",
+			"$0 --prev-tag v1.0.0 --tag v1.1.0",
 			"Generate notes from v1.0.0 to v1.1.0",
 		)
+		.example("$0 --config .github/release-drafter.yml", "Use custom config file")
 		.example(
-			"$0 --repo octocat/Hello-World --config .github/release-drafter.yml",
-			"Use custom config file",
-		)
-		.example(
-			"$0 --repo octocat/Hello-World --preview --tag v2.0.0",
+			"$0 --preview --tag v2.0.0",
 			"Preview release notes with changelog comparing to current target",
 		)
-		.example(
-			"$0 --repo octocat/Hello-World --json",
-			"Output release notes in JSON format",
-		)
-		.example(
-			"$0 --repo octocat/Hello-World --target feature-branch",
-			"Generate notes for specific branch",
-		)
+		.example("$0 --json", "Output release notes in JSON format")
+		.example("$0 --target feature-branch", "Generate notes for specific branch")
+		.example("$0 -R octocat/Hello-World", "Specify repository explicitly")
 		.epilogue(
 			"Repository Detection:\n" +
 				"  Automatically detects repository in the following order:\n" +
