@@ -5,7 +5,6 @@ export interface ConfigLoader {
 export interface ConfigSource {
 	type: "local" | "https" | "purl";
 	location: string;
-	checksum?: Checksum[];
 }
 
 export interface Checksum {

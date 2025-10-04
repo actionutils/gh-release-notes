@@ -44,7 +44,6 @@ describe("detectConfigSource", () => {
 		const result = detectConfigSource("pkg:github/owner/repo#path/config.yaml");
 		expect(result.type).toBe("purl");
 		expect(result.location).toBe("pkg:github/owner/repo#path/config.yaml");
-		expect(result.checksum).toBeUndefined();
 	});
 
 	it("detects purl with checksum", () => {
@@ -52,7 +51,9 @@ describe("detectConfigSource", () => {
 			"pkg:github/owner/repo?checksum=sha256:abc123#path/config.yaml",
 		);
 		expect(result.type).toBe("purl");
-		expect(result.checksum).toEqual([{ algorithm: "sha256", hash: "abc123" }]);
+		expect(result.location).toBe(
+			"pkg:github/owner/repo?checksum=sha256:abc123#path/config.yaml",
+		);
 	});
 });
 

@@ -11,14 +11,9 @@ export function detectConfigSource(source: string): ConfigSource {
 	}
 
 	if (source.startsWith("pkg:")) {
-		const parsed = parsePurl(source);
-		const checksums = parsed.qualifiers?.checksum
-			? parseChecksumQualifier(parsed.qualifiers.checksum)
-			: undefined;
 		return {
 			type: "purl",
 			location: source,
-			checksum: checksums,
 		};
 	}
 
