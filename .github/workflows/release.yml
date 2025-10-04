@@ -154,8 +154,6 @@ jobs:
       id-token: write # Required for OIDC token exchange
     steps:
     - uses: actions/checkout@v5
-      with:
-        persist-credentials: false
     - uses: oven-sh/setup-bun@v2
       with:
         bun-version-file: .bun-version
@@ -163,6 +161,9 @@ jobs:
     - run: bun run build
     # Use npm publish for trusted publishing until bun publish suppports it.
     # ref: https://github.com/oven-sh/bun/issues/15601
+    - run: npm install -g npm@latest # Require >= 11.5.1 for trusted publishing
+    - run: npm --version
     - env:
         DRY_RUN: ${{ fromJSON(needs.release-pr.outputs.release_pr).state != 'release_required' }}
-      run: npm publish --dry-run="${DRY_RUN}"
+      run: |
+        npm publish --dry-run="${DRY_RUN}"
