@@ -9,13 +9,14 @@ type Args = {
 	autoPrev?: boolean;
 	target?: string;
 	json: boolean;
+	preview: boolean;
 };
 
 function usage(msg?: string) {
 	if (msg) console.error(msg);
 	console.error(`
 Usage:
-  gh-release-notes --repo owner/repo [--config config.yml] [--target REF] [--prev-tag TAG | --auto-prev] [--tag NEW_TAG] [--json]
+  gh-release-notes --repo owner/repo [--config config.yml] [--target REF] [--prev-tag TAG | --auto-prev] [--tag NEW_TAG] [--json] [--preview]
 
 Env:
   GITHUB_TOKEN or GH_TOKEN must be set.
@@ -27,6 +28,7 @@ function parseArgs(argv: string[]): Args {
 	const args: Args = {
 		autoPrev: true,
 		json: false,
+		preview: false,
 	};
 	for (let i = 2; i < argv.length; i++) {
 		const a = argv[i];
@@ -56,6 +58,9 @@ function parseArgs(argv: string[]): Args {
 			case "--json":
 				args.json = true;
 				break;
+			case "--preview":
+				args.preview = true;
+				break;
 			case "--help":
 			case "-h":
 				args.autoPrev = true;
@@ -79,6 +84,7 @@ async function main() {
 			tag: args.tag,
 			target: args.target,
 			token: token!,
+			preview: args.preview,
 		});
 		if (args.json) {
 			process.stdout.write(
