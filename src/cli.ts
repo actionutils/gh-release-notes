@@ -1,101 +1,129 @@
 #!/usr/bin/env node
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 import { run } from "./core";
 import { setVerbose } from "./logger";
 
-type Args = {
-	repo?: string;
+interface Args {
+	repo: string;
 	config?: string;
-	prevTag?: string;
+	"prev-tag"?: string;
 	tag?: string;
-	autoPrev?: boolean;
 	target?: string;
 	json: boolean;
 	preview: boolean;
 	verbose: boolean;
-};
-
-function usage(msg?: string) {
-	if (msg) console.error(msg);
-	console.error(`
-Usage:
-  gh-release-notes --repo owner/repo [--config config.yml] [--target REF] [--prev-tag TAG | --auto-prev] [--tag NEW_TAG] [--json] [--preview] [--verbose]
-
-Env:
-  GITHUB_TOKEN or GH_TOKEN must be set.
-`);
-	process.exit(msg ? 1 : 0);
-}
-
-function parseArgs(argv: string[]): Args {
-	const args: Args = {
-		autoPrev: true,
-		json: false,
-		preview: false,
-		verbose: false,
-	};
-	for (let i = 2; i < argv.length; i++) {
-		const a = argv[i];
-		switch (a) {
-			case "--repo":
-			case "-r":
-				args.repo = argv[++i];
-				break;
-			case "--config":
-			case "-c":
-				args.config = argv[++i];
-				break;
-			case "--prev-tag":
-				args.prevTag = argv[++i];
-				args.autoPrev = false;
-				break;
-			case "--tag":
-				args.tag = argv[++i];
-				break;
-			case "--auto-prev":
-				args.autoPrev = true;
-				break;
-			case "--target":
-			case "--ref":
-				args.target = argv[++i];
-				break;
-			case "--json":
-				args.json = true;
-				break;
-			case "--preview":
-				args.preview = true;
-				break;
-			case "--verbose":
-			case "-v":
-				args.verbose = true;
-				break;
-			case "--help":
-			case "-h":
-				args.autoPrev = true;
-				usage();
-		}
-	}
-	return args;
 }
 
 async function main() {
-	const args = parseArgs(process.argv);
-	if (!args.repo) usage("Missing --repo");
-	// config is optional; default will be used if not provided
+	const parser = yargs(hideBin(process.argv))
+		.scriptName("gh-release-notes")
+		.usage("$0 --repo <owner/repo> [options]")
+		.option("repo", {
+			alias: "r",
+			type: "string",
+			description: "Repository in owner/repo format",
+			demandOption: true,
+			example: "octocat/Hello-World",
+		})
+		.option("config", {
+			alias: "c",
+			type: "string",
+			description: "Path to release-drafter config file (optional)",
+			example: ".github/release-drafter.yml",
+		})
+		.option("prev-tag", {
+			type: "string",
+			description:
+				"Previous release tag to generate notes from (disables auto-detection)",
+			example: "v1.0.0",
+		})
+		.option("tag", {
+			type: "string",
+			description: "New release tag",
+			example: "v1.1.0",
+		})
+		.option("target", {
+			type: "string",
+			alias: "ref",
+			description: "Target branch or commit SHA",
+			example: "main",
+		})
+		.option("json", {
+			type: "boolean",
+			description: "Output in JSON format",
+			default: false,
+		})
+		.option("preview", {
+			type: "boolean",
+			description:
+				"Preview mode (uses target instead of tag for changelog comparison)",
+			default: false,
+		})
+		.option("verbose", {
+			alias: "v",
+			type: "boolean",
+			description: "Enable verbose logging",
+			default: false,
+		})
+		.help("help")
+		.alias("help", "h")
+		.version(false)
+		.example(
+			"$0 --repo octocat/Hello-World",
+			"Generate release notes for the latest changes",
+		)
+		.example(
+			"$0 --repo octocat/Hello-World --prev-tag v1.0.0 --tag v1.1.0",
+			"Generate notes from v1.0.0 to v1.1.0",
+		)
+		.example(
+			"$0 --repo octocat/Hello-World --config .github/release-drafter.yml",
+			"Use custom config file",
+		)
+		.example(
+			"$0 --repo octocat/Hello-World --preview --tag v2.0.0",
+			"Preview release notes with changelog comparing to current target",
+		)
+		.example(
+			"$0 --repo octocat/Hello-World --json",
+			"Output release notes in JSON format",
+		)
+		.example(
+			"$0 --repo octocat/Hello-World --target feature-branch",
+			"Generate notes for specific branch",
+		)
+		.epilogue(
+			"Authentication:\n" +
+				"  Uses GitHub token in the following order:\n" +
+				"  1. GITHUB_TOKEN environment variable\n" +
+				"  2. GH_TOKEN environment variable\n" +
+				"  3. gh auth token (from GitHub CLI)\n\n" +
+				"Config File Format:\n" +
+				"  Compatible with both:\n" +
+				"  - Release-drafter: https://github.com/release-drafter/release-drafter\n" +
+				"  - GitHub's release.yml: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes\n\n" +
+				"More Information:\n" +
+				"  GitHub: https://github.com/actionutils/gh-release-notes",
+		)
+		.strict()
+		.wrap(100);
+
+	const args = (await parser.parseAsync()) as Args;
 
 	// Set verbose mode if requested
 	setVerbose(args.verbose);
 
-	const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 	try {
 		const result = await run({
-			repo: args.repo!,
+			repo: args.repo,
 			config: args.config,
-			prevTag: args.prevTag,
+			prevTag: args["prev-tag"],
 			tag: args.tag,
 			target: args.target,
-			token: token!,
 			preview: args.preview,
 		});
+
 		if (args.json) {
 			process.stdout.write(
 				JSON.stringify(

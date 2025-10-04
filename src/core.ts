@@ -4,6 +4,7 @@ import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
+import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -19,9 +20,6 @@ const {
 	generateReleaseInfo: any;
 	findReleases: any;
 } = require("release-drafter/lib/releases");
-
-const DEFAULT_FALLBACK_TEMPLATE =
-	"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
 
 export type RunOptions = {
 	repo: string;
@@ -143,7 +141,7 @@ async function getGitHubToken(providedToken?: string): Promise<string> {
 	try {
 		const token = execSync("gh auth token", { encoding: "utf8" }).trim();
 		if (token) return token;
-	} catch (error) {
+	} catch {
 		// gh auth token failed, fall through to error
 	}
 
@@ -189,20 +187,27 @@ export async function run(options: RunOptions) {
 			process.cwd(),
 			".github/release-drafter.yml",
 		);
-		// Then try GitHub's release.yml
-		const githubReleasePath = path.resolve(
+		// Then try GitHub's release.yml or release.yaml
+		const githubReleaseYmlPath = path.resolve(
 			process.cwd(),
 			".github/release.yml",
+		);
+		const githubReleaseYamlPath = path.resolve(
+			process.cwd(),
+			".github/release.yaml",
 		);
 
 		if (fs.existsSync(releaseDrafterPath)) {
 			const raw = fs.readFileSync(releaseDrafterPath, "utf8");
 			cfg = parseConfigString(raw, releaseDrafterPath);
-		} else if (fs.existsSync(githubReleasePath)) {
-			const raw = fs.readFileSync(githubReleasePath, "utf8");
-			cfg = parseConfigString(raw, githubReleasePath);
+		} else if (fs.existsSync(githubReleaseYmlPath)) {
+			const raw = fs.readFileSync(githubReleaseYmlPath, "utf8");
+			cfg = parseConfigString(raw, githubReleaseYmlPath);
+		} else if (fs.existsSync(githubReleaseYamlPath)) {
+			const raw = fs.readFileSync(githubReleaseYamlPath, "utf8");
+			cfg = parseConfigString(raw, githubReleaseYamlPath);
 		} else {
-			cfg = { template: DEFAULT_FALLBACK_TEMPLATE };
+			cfg = DEFAULT_FALLBACK_CONFIG;
 		}
 	}
 

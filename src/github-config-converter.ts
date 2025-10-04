@@ -3,6 +3,7 @@
  */
 
 import { logVerbose, logWarning } from "./logger";
+import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 
 interface GitHubReleaseCategory {
 	title: string;
@@ -58,7 +59,10 @@ export function isGitHubReleaseConfig(
 export function convertGitHubToReleaseDrafter(
 	githubConfig: GitHubReleaseConfig,
 ): ReleaseDrafterConfig {
-	const releaseDrafterConfig: ReleaseDrafterConfig = {};
+	// Start with the default fallback config as base
+	const releaseDrafterConfig: ReleaseDrafterConfig = {
+		...DEFAULT_FALLBACK_CONFIG,
+	};
 
 	// Convert excluded labels
 	if (githubConfig.changelog.exclude?.labels) {
@@ -110,13 +114,6 @@ export function convertGitHubToReleaseDrafter(
 				return rdCategory;
 			},
 		);
-	}
-
-	// Set a default template if not provided
-	// This matches the default behavior of GitHub's release notes
-	if (!releaseDrafterConfig.template) {
-		releaseDrafterConfig.template =
-			"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
 	}
 
 	return releaseDrafterConfig;
