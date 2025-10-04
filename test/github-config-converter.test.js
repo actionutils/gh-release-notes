@@ -214,7 +214,7 @@ describe("GitHub Config Converter", () => {
 			const result = convertGitHubToReleaseDrafter(githubConfig);
 
 			expect(result.template).toBe(
-				"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG",
+				"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK",
 			);
 		});
 
@@ -234,7 +234,7 @@ describe("GitHub Config Converter", () => {
 			expect(result["exclude-contributors"]).toEqual(["dependabot"]);
 			expect(result.categories).toBeUndefined();
 			expect(result.template).toBe(
-				"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG",
+				"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK",
 			);
 		});
 

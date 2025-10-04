@@ -116,7 +116,7 @@ export function convertGitHubToReleaseDrafter(
 	// This matches the default behavior of GitHub's release notes
 	if (!releaseDrafterConfig.template) {
 		releaseDrafterConfig.template =
-			"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG";
+			"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
 	}
 
 	return releaseDrafterConfig;

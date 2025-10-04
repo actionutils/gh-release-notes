@@ -21,7 +21,7 @@ const {
 } = require("release-drafter/lib/releases");
 
 const DEFAULT_FALLBACK_TEMPLATE =
-	"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG";
+	"## What's Changed\n\n$CHANGES\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
 
 export type RunOptions = {
 	repo: string;
@@ -159,56 +159,11 @@ function generateFullChangelogLink(params: {
 	const { owner, repo, previousTag, nextTag } = params;
 
 	if (previousTag) {
-		return `**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...${nextTag}`;
+		return `https://github.com/${owner}/${repo}/compare/${previousTag}...${nextTag}`;
 	}
-	return `**Full Changelog**: https://github.com/${owner}/${repo}/commits/${nextTag}`;
+	return `https://github.com/${owner}/${repo}/commits/${nextTag}`;
 }
 
-function replaceFullChangelogPlaceholder(
-	body: string,
-	params: {
-		owner: string;
-		repo: string;
-		prevTag?: string;
-		lastReleaseTag?: string;
-		tag?: string;
-		target?: string;
-		defaultBranch: string;
-		preview?: boolean;
-	},
-): string {
-	if (!body.includes("$FULL_CHANGELOG")) {
-		return body;
-	}
-
-	const {
-		owner,
-		repo,
-		prevTag,
-		lastReleaseTag,
-		tag,
-		target,
-		defaultBranch,
-		preview,
-	} = params;
-
-	// Determine the previous and next tags for comparison
-	const previousTag = prevTag || lastReleaseTag;
-	const nextTag = preview
-		? target || tag || defaultBranch
-		: tag || target || defaultBranch;
-
-	// Generate the link
-	const fullChangelogLink = generateFullChangelogLink({
-		owner,
-		repo,
-		previousTag,
-		nextTag,
-	});
-
-	// Replace all occurrences (template might have multiple)
-	return body.replaceAll("$FULL_CHANGELOG", fullChangelogLink);
-}
 
 export async function run(options: RunOptions) {
 	const {
@@ -285,6 +240,20 @@ export async function run(options: RunOptions) {
 		lastRelease = lr || null;
 	}
 
+	// Replace $FULL_CHANGELOG_LINK placeholder in template before processing
+	if (rdConfig.template && rdConfig.template.includes("$FULL_CHANGELOG_LINK")) {
+		const previousTag = prevTag || lastRelease?.tag_name;
+		const fullChangelogLink = generateFullChangelogLink({
+			owner,
+			repo,
+			previousTag,
+			nextTag: preview
+				? target || tag || defaultBranch
+				: tag || target || defaultBranch,
+		});
+		rdConfig.template = rdConfig.template.replaceAll("$FULL_CHANGELOG_LINK", fullChangelogLink);
+	}
+
 	const targetCommitish: string = target || defaultBranch;
 	const data: any = await findCommitsWithAssociatedPullRequests({
 		context,
@@ -305,20 +274,6 @@ export async function run(options: RunOptions) {
 		shouldDraft: true,
 		targetCommitish,
 	});
-
-	// Replace $FULL_CHANGELOG placeholder if present in the template
-	if (releaseInfo.body) {
-		releaseInfo.body = replaceFullChangelogPlaceholder(releaseInfo.body, {
-			owner,
-			repo,
-			prevTag,
-			lastReleaseTag: lastRelease?.tag_name,
-			tag,
-			target: target || targetCommitish,
-			defaultBranch,
-			preview,
-		});
-	}
 
 	return {
 		release: releaseInfo,
