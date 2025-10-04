@@ -54,15 +54,22 @@ describe("ConfigLoader Integration Tests", () => {
 			await expect(factory.load("http://example.com/config")).rejects.toThrow();
 		});
 
-		it("handles purl without subpath", async () => {
+		it("throws when purl is used without token", async () => {
 			const factory = new ConfigLoaderFactory();
+			await expect(factory.load("pkg:github/owner/repo#file.yaml")).rejects.toThrow(
+				"GitHub token required for purl configs",
+			);
+		});
+
+		it("handles purl without subpath when token provided", async () => {
+			const factory = new ConfigLoaderFactory("test-token");
 			await expect(factory.load("pkg:github/owner/repo")).rejects.toThrow(
 				"purl must include a subpath",
 			);
 		});
 
-		it("handles non-github purl", async () => {
-			const factory = new ConfigLoaderFactory();
+		it("handles non-github purl when token provided", async () => {
+			const factory = new ConfigLoaderFactory("test-token");
 			await expect(factory.load("pkg:npm/package#file")).rejects.toThrow(
 				"Unsupported purl type: npm",
 			);

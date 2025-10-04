@@ -1,11 +1,10 @@
-import { execSync } from "node:child_process";
 import type { ConfigLoader } from "./types";
 import { parsePurl, parseChecksumQualifier, validateChecksums } from "./utils";
 
 export class PurlGitHubConfigLoader implements ConfigLoader {
-	private token?: string;
+	private token: string;
 
-	constructor(token?: string) {
+	constructor(token: string) {
 		this.token = token;
 	}
 
@@ -46,32 +45,10 @@ export class PurlGitHubConfigLoader implements ConfigLoader {
 		return content;
 	}
 
-	private async getToken(): Promise<string> {
-		if (this.token) return this.token;
-
-		// Try environment variables
-		if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-		if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
-
-		// Try gh auth token
-		try {
-			const token = execSync("gh auth token", { encoding: "utf8" }).trim();
-			if (token) return token;
-		} catch {
-			// gh auth token failed
-		}
-
-		throw new Error(
-			"GitHub token required for purl. Set GITHUB_TOKEN, GH_TOKEN, or use 'gh auth login'",
-		);
-	}
-
 	private async getDefaultBranch(repo: string): Promise<string> {
-		const token = await this.getToken();
-
 		const response = await fetch(`https://api.github.com/repos/${repo}`, {
 			headers: {
-				Authorization: `Bearer ${token}`,
+				Authorization: `Bearer ${this.token}`,
 				"User-Agent": "gh-release-notes",
 				Accept: "application/vnd.github+json",
 			},
@@ -92,14 +69,12 @@ export class PurlGitHubConfigLoader implements ConfigLoader {
 		ref: string,
 		path: string,
 	): Promise<string> {
-		const token = await this.getToken();
-
 		// Use GitHub Contents API
 		const url = `https://api.github.com/repos/${repo}/contents/${path}?ref=${ref}`;
 
 		const response = await fetch(url, {
 			headers: {
-				Authorization: `Bearer ${token}`,
+				Authorization: `Bearer ${this.token}`,
 				"User-Agent": "gh-release-notes",
 				Accept: "application/vnd.github.v3.raw",
 			},

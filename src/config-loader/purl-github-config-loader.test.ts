@@ -20,7 +20,7 @@ describe("PurlGitHubConfigLoader", () => {
 
 	describe("purl parsing and validation", () => {
 		test("throws on non-GitHub purl", async () => {
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 
 			await expect(loader.load("pkg:npm/package#file.json")).rejects.toThrow(
 				"Unsupported purl type: npm",
@@ -28,7 +28,7 @@ describe("PurlGitHubConfigLoader", () => {
 		});
 
 		test("throws when subpath is missing", async () => {
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 
 			await expect(loader.load("pkg:github/owner/repo")).rejects.toThrow(
 				"purl must include a subpath",
@@ -36,7 +36,7 @@ describe("PurlGitHubConfigLoader", () => {
 		});
 
 		test("throws when subpath is missing with version", async () => {
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 
 			await expect(loader.load("pkg:github/owner/repo@v1.0.0")).rejects.toThrow(
 				"purl must include a subpath",
@@ -70,7 +70,7 @@ describe("PurlGitHubConfigLoader", () => {
 				throw new Error(`Unexpected URL: ${urlStr}`);
 			});
 
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 			const result = await loader.load(
 				"pkg:github/owner/repo#.github/config.yaml",
 			);
@@ -99,7 +99,7 @@ describe("PurlGitHubConfigLoader", () => {
 				throw new Error(`Unexpected URL: ${urlStr}`);
 			});
 
-			const loader = new PurlGitHubConfigLoader();
+			const loader = new PurlGitHubConfigLoader("test-token");
 			const result = await loader.load(
 				"pkg:github/owner/repo@v1.0.0#config/release.yaml",
 			);
@@ -201,46 +201,6 @@ describe("PurlGitHubConfigLoader", () => {
 
 			expect(capturedHeaders.Authorization).toBe("Bearer provided-token");
 		});
-
-		test("uses GITHUB_TOKEN env var", async () => {
-			process.env.GITHUB_TOKEN = "env-token";
-			const loader = new PurlGitHubConfigLoader();
-			let capturedHeaders: any = {};
-
-			global.fetch = mock(async (_url: string | URL, options?: any) => {
-				capturedHeaders = options?.headers || {};
-				return {
-					ok: true,
-					text: async () => "content",
-				} as Response;
-			});
-
-			await loader.load("pkg:github/owner/repo@main#file.yaml");
-
-			expect(capturedHeaders.Authorization).toBe("Bearer env-token");
-		});
-
-		test("uses GH_TOKEN env var", async () => {
-			delete process.env.GITHUB_TOKEN;
-			process.env.GH_TOKEN = "gh-token";
-			const loader = new PurlGitHubConfigLoader();
-			let capturedHeaders: any = {};
-
-			global.fetch = mock(async (_url: string | URL, options?: any) => {
-				capturedHeaders = options?.headers || {};
-				return {
-					ok: true,
-					text: async () => "content",
-				} as Response;
-			});
-
-			await loader.load("pkg:github/owner/repo@main#file.yaml");
-
-			expect(capturedHeaders.Authorization).toBe("Bearer gh-token");
-		});
-
-		// Skip this test - execSync mocking doesn't work properly in Bun
-		// test.skip("throws when no token available", async () => { ... });
 	});
 
 	describe("purl format handling", () => {
