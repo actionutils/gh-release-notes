@@ -4,7 +4,7 @@ import {
 	parsePurl,
 	parseChecksumQualifier,
 	validateChecksums,
-} from "../utils";
+} from "./utils";
 
 describe("detectConfigSource", () => {
 	it("detects local files", () => {

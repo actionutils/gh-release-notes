@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { LocalConfigLoader } from "../local-config-loader";
+import { LocalConfigLoader } from "./local-config-loader";
 import { mock } from "bun:test";
 
 describe("LocalConfigLoader", () => {

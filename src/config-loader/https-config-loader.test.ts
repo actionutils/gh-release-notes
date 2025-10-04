@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
-import { HTTPSConfigLoader } from "../https-config-loader";
+import { HTTPSConfigLoader } from "./https-config-loader";
 
 // Mock global fetch
 global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;

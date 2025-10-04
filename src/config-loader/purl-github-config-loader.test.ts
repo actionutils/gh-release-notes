@@ -6,7 +6,7 @@ import {
 	beforeEach,
 	afterEach,
 } from "@jest/globals";
-import { PurlGitHubConfigLoader } from "../purl-github-config-loader";
+import { PurlGitHubConfigLoader } from "./purl-github-config-loader";
 import { execSync } from "node:child_process";
 import { mock } from "bun:test";
 

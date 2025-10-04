@@ -2,8 +2,8 @@ import { describe, it, expect } from "@jest/globals";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
-import { ConfigLoaderFactory } from "../index";
-import { LocalConfigLoader } from "../local-config-loader";
+import { ConfigLoaderFactory } from "../src/config-loader/index";
+import { LocalConfigLoader } from "../src/config-loader/local-config-loader";
 
 describe("ConfigLoader Integration Tests", () => {
 	describe("LocalConfigLoader", () => {
