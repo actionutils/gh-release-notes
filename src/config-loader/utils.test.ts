@@ -49,7 +49,7 @@ describe("detectConfigSource", () => {
 
 	it("detects purl with checksum", () => {
 		const result = detectConfigSource(
-			"pkg:github/owner/repo#path/config.yaml?checksum=sha256:abc123",
+			"pkg:github/owner/repo?checksum=sha256:abc123#path/config.yaml",
 		);
 		expect(result.type).toBe("purl");
 		expect(result.checksum).toEqual([{ algorithm: "sha256", hash: "abc123" }]);
@@ -83,7 +83,7 @@ describe("parsePurl", () => {
 
 	it("parses GitHub purl with qualifiers", () => {
 		const result = parsePurl(
-			"pkg:github/owner/repo@main#.github/config.yaml?checksum=sha256:abc123&foo=bar",
+			"pkg:github/owner/repo@main?checksum=sha256:abc123&foo=bar#.github/config.yaml",
 		);
 		expect(result).toEqual({
 			type: "github",
@@ -124,7 +124,7 @@ describe("parsePurl", () => {
 
 	it("handles URL-encoded values", () => {
 		const result = parsePurl(
-			"pkg:github/owner/repo#path%20with%20spaces/file.yaml?key=value%20with%20spaces",
+			"pkg:github/owner/repo?key=value%20with%20spaces#path%20with%20spaces/file.yaml",
 		);
 		expect(result.subpath).toBe("path with spaces/file.yaml");
 		expect(result.qualifiers.key).toBe("value with spaces");
@@ -134,11 +134,10 @@ describe("parsePurl", () => {
 		expect(() => parsePurl("not-a-purl")).toThrow(
 			"Invalid purl: must start with 'pkg:'",
 		);
-		expect(() => parsePurl("pkg:")).toThrow(
-			"Invalid purl: empty package specification",
-		);
-		expect(() => parsePurl("pkg:github")).toThrow("Invalid purl: missing name");
-		expect(() => parsePurl("pkg:/name")).toThrow("Invalid purl: missing type");
+		expect(() => parsePurl("pkg:")).toThrow();
+		// packageurl-js throws a different error message
+		expect(() => parsePurl("pkg:github")).toThrow();
+		expect(() => parsePurl("pkg:/name")).toThrow();
 	});
 });
 

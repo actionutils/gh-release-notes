@@ -22,7 +22,7 @@ Enable `--config` flag to load configuration files from remote locations in addi
 - **Note**: For GitHub content, prefer purl format over raw.githubusercontent.com URLs (raw URLs have strict rate limits and cannot use token authentication)
 
 ### 3. Package URL (purl) - GitHub Type
-- **Format**: `--config pkg:github/owner/repo@version#path/to/config.yaml?checksum=sha256:abc123...`
+- **Format**: `--config pkg:github/owner/repo@version?checksum=sha256:abc123...#path/to/config.yaml`
 - **Components**:
   - `pkg:github` - purl type identifier
   - `owner/repo` - GitHub repository
@@ -183,10 +183,10 @@ gh-release-notes --config pkg:github/myorg/.github#.github/release-notes.yaml
 gh-release-notes --config pkg:github/myorg/.github@v2.0.0#configs/release.yaml
 
 # purl - with checksum validation (purl spec compliant)
-gh-release-notes --config "pkg:github/myorg/.github@v2.0.0#configs/release.yaml?checksum=sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+gh-release-notes --config "pkg:github/myorg/.github@v2.0.0?checksum=sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855#configs/release.yaml"
 
 # purl - with multiple checksums (all must match)
-gh-release-notes --config "pkg:github/myorg/.github@v1.0.0#config.yaml?checksum=sha1:ad9503c3e994a4f611a4892f2e67ac82df727086,sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+gh-release-notes --config "pkg:github/myorg/.github@v1.0.0?checksum=sha1:ad9503c3e994a4f611a4892f2e67ac82df727086,sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855#config.yaml"
 
 # purl - using commit SHA for immutability
 gh-release-notes --config pkg:github/myorg/.github@a1b2c3d4#.github/release.yaml

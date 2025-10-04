@@ -122,7 +122,7 @@ describe("PurlGitHubConfigLoader", () => {
 
 			// Correct sha256 hash of "Hello, World!"
 			const result = await loader.load(
-				"pkg:github/owner/repo@main#config.yaml?checksum=sha256:dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f",
+				"pkg:github/owner/repo@main?checksum=sha256:dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f#config.yaml",
 			);
 
 			expect(result).toBe(configContent);
@@ -143,7 +143,7 @@ describe("PurlGitHubConfigLoader", () => {
 
 			await expect(
 				loader.load(
-					"pkg:github/owner/repo@main#config.yaml?checksum=sha256:incorrect",
+					"pkg:github/owner/repo@main?checksum=sha256:incorrect#config.yaml",
 				),
 			).rejects.toThrow("Checksum validation failed");
 		});

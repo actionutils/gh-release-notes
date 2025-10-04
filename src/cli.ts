@@ -110,7 +110,7 @@ async function main() {
 				"  - Local file: ./config.yaml\n" +
 				"  - HTTPS URL: https://example.com/config.yaml\n" +
 				"  - GitHub purl: pkg:github/owner/repo@version#path/to/config.yaml\n" +
-				"  - With checksum: pkg:github/owner/repo@v1.0#config.yaml?checksum=sha256:abc123\n\n" +
+				"  - With checksum: pkg:github/owner/repo@v1.0?checksum=sha256:abc123#config.yaml\n\n" +
 				"More Information:\n" +
 				"  GitHub: https://github.com/actionutils/gh-release-notes",
 		)

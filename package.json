@@ -50,5 +50,7 @@
     "type": "git",
     "url": "https://github.com/actionutils/gh-release-notes"
   },
-  "dependencies": {}
+  "dependencies": {
+    "packageurl-js": "^2.0.1"
+  }
 }
