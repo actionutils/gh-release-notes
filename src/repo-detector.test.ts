@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import {
 	parseRepoRef,
 	normalizeGitURL,
 	remoteScore,
 	type Repo,
-} from "../src/repo-detector";
+} from "./repo-detector";
 
 describe("parseRepoRef", () => {
 	const defaultHost = "github.com";

@@ -1,8 +1,9 @@
-const {
+import { describe, it, expect } from "bun:test";
+import {
 	isGitHubReleaseConfig,
 	convertGitHubToReleaseDrafter,
 	normalizeConfig,
-} = require("../src/github-config-converter.ts");
+} from "./github-config-converter";
 
 describe("GitHub Config Converter", () => {
 	describe("isGitHubReleaseConfig", () => {

@@ -3,7 +3,7 @@ import path from "node:path";
 import fs from "node:fs";
 
 describe("actionutils/gh-release-notes core", () => {
-	const sourcePath = path.resolve(import.meta.dir, "../src/core.ts");
+	const sourcePath = path.resolve(import.meta.dir, "./core.ts");
 	const owner = "acme";
 	const repo = "demo";
 
