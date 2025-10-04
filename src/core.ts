@@ -19,7 +19,8 @@ const {
 	findReleases: any;
 } = require("release-drafter/lib/releases");
 
-const DEFAULT_FALLBACK_TEMPLATE = "## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG";
+const DEFAULT_FALLBACK_TEMPLATE =
+	"## What's Changed\n\n$CHANGES\n\n$FULL_CHANGELOG";
 
 export type RunOptions = {
 	repo: string;
@@ -173,19 +174,28 @@ function replaceFullChangelogPlaceholder(
 		target?: string;
 		defaultBranch: string;
 		preview?: boolean;
-	}
+	},
 ): string {
 	if (!body.includes("$FULL_CHANGELOG")) {
 		return body;
 	}
 
-	const { owner, repo, prevTag, lastReleaseTag, tag, target, defaultBranch, preview } = params;
+	const {
+		owner,
+		repo,
+		prevTag,
+		lastReleaseTag,
+		tag,
+		target,
+		defaultBranch,
+		preview,
+	} = params;
 
 	// Determine the previous and next tags for comparison
 	const previousTag = prevTag || lastReleaseTag;
 	const nextTag = preview
-		? (target || tag || defaultBranch)
-		: (tag || target || defaultBranch);
+		? target || tag || defaultBranch
+		: tag || target || defaultBranch;
 
 	// Generate the link if we have enough information
 	if (previousTag || nextTag) {
@@ -203,7 +213,14 @@ function replaceFullChangelogPlaceholder(
 }
 
 export async function run(options: RunOptions) {
-	const { repo: repoNameWithOwner, config, prevTag, tag, target, preview } = options;
+	const {
+		repo: repoNameWithOwner,
+		config,
+		prevTag,
+		tag,
+		target,
+		preview,
+	} = options;
 	const token = await getGitHubToken(options.token);
 	if (!repoNameWithOwner) throw new Error("Missing repo (owner/repo)");
 	const [owner, repo] = repoNameWithOwner.split("/");
