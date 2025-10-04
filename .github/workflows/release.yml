@@ -148,7 +148,7 @@ jobs:
 
   publish:
     needs: [release-pr, release]
-    if: always()
+    if: always() && fromJSON(needs.release-pr.outputs.release_pr).next_tag != ''
     runs-on: ubuntu-latest
     permissions:
       id-token: write # Required for OIDC token exchange
