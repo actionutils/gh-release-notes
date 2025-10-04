@@ -14,16 +14,22 @@ export class PurlGitHubConfigLoader implements ConfigLoader {
 
 		// Validate it's a GitHub purl
 		if (purl.type !== "github") {
-			throw new Error(`Unsupported purl type: ${purl.type}. Only 'github' is supported`);
+			throw new Error(
+				`Unsupported purl type: ${purl.type}. Only 'github' is supported`,
+			);
 		}
 
 		// Validate subpath is provided
 		if (!purl.subpath) {
-			throw new Error("purl must include a subpath (e.g., #path/to/config.yaml)");
+			throw new Error(
+				"purl must include a subpath (e.g., #path/to/config.yaml)",
+			);
 		}
 
 		// Build the repository path
-		const repoPath = purl.namespace ? `${purl.namespace}/${purl.name}` : purl.name;
+		const repoPath = purl.namespace
+			? `${purl.namespace}/${purl.name}`
+			: purl.name;
 
 		// Get the ref (version or default branch)
 		const ref = purl.version || (await this.getDefaultBranch(repoPath));
@@ -55,7 +61,9 @@ export class PurlGitHubConfigLoader implements ConfigLoader {
 			// gh auth token failed
 		}
 
-		throw new Error("GitHub token required for purl. Set GITHUB_TOKEN, GH_TOKEN, or use 'gh auth login'");
+		throw new Error(
+			"GitHub token required for purl. Set GITHUB_TOKEN, GH_TOKEN, or use 'gh auth login'",
+		);
 	}
 
 	private async getDefaultBranch(repo: string): Promise<string> {

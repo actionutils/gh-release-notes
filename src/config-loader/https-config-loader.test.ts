@@ -52,9 +52,9 @@ describe("HTTPSConfigLoader", () => {
 			statusText: "Not Found",
 		} as Response);
 
-		await expect(loader.load("https://example.com/missing.yaml")).rejects.toThrow(
-			"Failed to fetch config: HTTP 404 Not Found",
-		);
+		await expect(
+			loader.load("https://example.com/missing.yaml"),
+		).rejects.toThrow("Failed to fetch config: HTTP 404 Not Found");
 	});
 
 	it("enforces size limit", async () => {

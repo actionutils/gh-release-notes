@@ -22,9 +22,9 @@ describe("PurlGitHubConfigLoader", () => {
 		test("throws on non-GitHub purl", async () => {
 			const loader = new PurlGitHubConfigLoader();
 
-			await expect(
-				loader.load("pkg:npm/package#file.json"),
-			).rejects.toThrow("Unsupported purl type: npm");
+			await expect(loader.load("pkg:npm/package#file.json")).rejects.toThrow(
+				"Unsupported purl type: npm",
+			);
 		});
 
 		test("throws when subpath is missing", async () => {
@@ -85,7 +85,11 @@ describe("PurlGitHubConfigLoader", () => {
 				const urlStr = url.toString();
 
 				// Mock API call for file content with specific ref
-				if (urlStr.includes("/repos/owner/repo/contents/config/release.yaml?ref=v1.0.0")) {
+				if (
+					urlStr.includes(
+						"/repos/owner/repo/contents/config/release.yaml?ref=v1.0.0",
+					)
+				) {
 					return {
 						ok: true,
 						text: async () => configContent,
@@ -106,10 +110,13 @@ describe("PurlGitHubConfigLoader", () => {
 		test("validates checksum when provided", async () => {
 			const configContent = "Hello, World!";
 
-			global.fetch = mock(async () => ({
-				ok: true,
-				text: async () => configContent,
-			} as Response));
+			global.fetch = mock(
+				async () =>
+					({
+						ok: true,
+						text: async () => configContent,
+					}) as Response,
+			);
 
 			const loader = new PurlGitHubConfigLoader();
 
@@ -124,10 +131,13 @@ describe("PurlGitHubConfigLoader", () => {
 		test("throws on checksum mismatch", async () => {
 			const configContent = "Hello, World!";
 
-			global.fetch = mock(async () => ({
-				ok: true,
-				text: async () => configContent,
-			} as Response));
+			global.fetch = mock(
+				async () =>
+					({
+						ok: true,
+						text: async () => configContent,
+					}) as Response,
+			);
 
 			const loader = new PurlGitHubConfigLoader();
 
@@ -139,11 +149,14 @@ describe("PurlGitHubConfigLoader", () => {
 		});
 
 		test("handles 404 errors", async () => {
-			global.fetch = mock(async () => ({
-				ok: false,
-				status: 404,
-				statusText: "Not Found",
-			} as Response));
+			global.fetch = mock(
+				async () =>
+					({
+						ok: false,
+						status: 404,
+						statusText: "Not Found",
+					}) as Response,
+			);
 
 			const loader = new PurlGitHubConfigLoader();
 
@@ -155,10 +168,13 @@ describe("PurlGitHubConfigLoader", () => {
 		test("enforces size limit", async () => {
 			const largeContent = "x".repeat(1024 * 1024 + 1);
 
-			global.fetch = mock(async () => ({
-				ok: true,
-				text: async () => largeContent,
-			} as Response));
+			global.fetch = mock(
+				async () =>
+					({
+						ok: true,
+						text: async () => largeContent,
+					}) as Response,
+			);
 
 			const loader = new PurlGitHubConfigLoader();
 
@@ -242,7 +258,9 @@ describe("PurlGitHubConfigLoader", () => {
 			const loader = new PurlGitHubConfigLoader();
 			await loader.load("pkg:github/org/team/repo@main#file.yaml");
 
-			expect(capturedUrl).toContain("/repos/org/team/repo/contents/file.yaml?ref=main");
+			expect(capturedUrl).toContain(
+				"/repos/org/team/repo/contents/file.yaml?ref=main",
+			);
 		});
 
 		test("handles URL-encoded paths", async () => {
@@ -261,7 +279,9 @@ describe("PurlGitHubConfigLoader", () => {
 				"pkg:github/owner/repo@main#path%20with%20spaces/file.yaml",
 			);
 
-			expect(capturedUrl).toContain("/repos/owner/repo/contents/path with spaces/file.yaml?ref=main");
+			expect(capturedUrl).toContain(
+				"/repos/owner/repo/contents/path with spaces/file.yaml?ref=main",
+			);
 		});
 
 		test("fetches default branch when version not specified", async () => {

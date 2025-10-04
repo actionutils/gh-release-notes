@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, test, expect } from "bun:test";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as fs from "node:fs/promises";
@@ -40,7 +40,10 @@ describe("LocalConfigLoader", () => {
 
 		test("throws error when file not found", async () => {
 			const loader = new LocalConfigLoader();
-			const nonExistentPath = path.join(os.tmpdir(), "non-existent-" + Date.now() + ".yaml");
+			const nonExistentPath = path.join(
+				os.tmpdir(),
+				"non-existent-" + Date.now() + ".yaml",
+			);
 
 			await expect(loader.load(nonExistentPath)).rejects.toThrow(
 				"Config file not found:",

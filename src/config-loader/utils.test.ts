@@ -31,7 +31,9 @@ describe("detectConfigSource", () => {
 		});
 
 		expect(
-			detectConfigSource("https://raw.githubusercontent.com/org/repo/main/config.yaml"),
+			detectConfigSource(
+				"https://raw.githubusercontent.com/org/repo/main/config.yaml",
+			),
 		).toEqual({
 			type: "https",
 			location: "https://raw.githubusercontent.com/org/repo/main/config.yaml",
@@ -50,9 +52,7 @@ describe("detectConfigSource", () => {
 			"pkg:github/owner/repo#path/config.yaml?checksum=sha256:abc123",
 		);
 		expect(result.type).toBe("purl");
-		expect(result.checksum).toEqual([
-			{ algorithm: "sha256", hash: "abc123" },
-		]);
+		expect(result.checksum).toEqual([{ algorithm: "sha256", hash: "abc123" }]);
 	});
 });
 
@@ -131,8 +131,12 @@ describe("parsePurl", () => {
 	});
 
 	it("throws on invalid purl format", () => {
-		expect(() => parsePurl("not-a-purl")).toThrow("Invalid purl: must start with 'pkg:'");
-		expect(() => parsePurl("pkg:")).toThrow("Invalid purl: empty package specification");
+		expect(() => parsePurl("not-a-purl")).toThrow(
+			"Invalid purl: must start with 'pkg:'",
+		);
+		expect(() => parsePurl("pkg:")).toThrow(
+			"Invalid purl: empty package specification",
+		);
 		expect(() => parsePurl("pkg:github")).toThrow("Invalid purl: missing name");
 		expect(() => parsePurl("pkg:/name")).toThrow("Invalid purl: missing type");
 	});
@@ -141,9 +145,7 @@ describe("parsePurl", () => {
 describe("parseChecksumQualifier", () => {
 	it("parses single checksum", () => {
 		const result = parseChecksumQualifier("sha256:abc123def456");
-		expect(result).toEqual([
-			{ algorithm: "sha256", hash: "abc123def456" },
-		]);
+		expect(result).toEqual([{ algorithm: "sha256", hash: "abc123def456" }]);
 	});
 
 	it("parses multiple checksums", () => {
@@ -191,7 +193,9 @@ describe("validateChecksums", () => {
 			hash: "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f",
 		};
 
-		await expect(validateChecksums(content, [checksum])).resolves.toBeUndefined();
+		await expect(
+			validateChecksums(content, [checksum]),
+		).resolves.toBeUndefined();
 	});
 
 	it("validates correct sha1 checksum", async () => {
@@ -201,7 +205,9 @@ describe("validateChecksums", () => {
 			hash: "0a0a9f2a6772942557ab5355d76af442f8f65e01",
 		};
 
-		await expect(validateChecksums(content, [checksum])).resolves.toBeUndefined();
+		await expect(
+			validateChecksums(content, [checksum]),
+		).resolves.toBeUndefined();
 	});
 
 	it("validates multiple checksums", async () => {
@@ -216,7 +222,9 @@ describe("validateChecksums", () => {
 			},
 		];
 
-		await expect(validateChecksums(content, checksums)).resolves.toBeUndefined();
+		await expect(
+			validateChecksums(content, checksums),
+		).resolves.toBeUndefined();
 	});
 
 	it("throws on incorrect checksum", async () => {

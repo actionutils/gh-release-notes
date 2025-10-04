@@ -33,7 +33,9 @@ export class ConfigLoaderFactory {
 				loader = this.purlLoader;
 				break;
 			default:
-				throw new Error(`Unsupported config source type: ${configSource.type}`);
+				throw new Error(
+					`Unsupported config source type: ${configSource.type as string}`,
+				);
 		}
 
 		return loader.load(configSource.location);
