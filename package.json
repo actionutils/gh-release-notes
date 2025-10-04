@@ -21,7 +21,7 @@
     "format": "biome format --write src",
     "format:check": "biome format src",
     "check": "bun run lint && bun run format:check && bun run test",
-    "dev": "bun run build && node dist/cli.cjs",
+    "dev": "bun run src/cli.ts",
     "clean": "rm -rf dist",
     "typecheck": "bunx tsc --noEmit"
   },
