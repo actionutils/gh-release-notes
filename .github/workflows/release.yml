@@ -67,6 +67,7 @@ jobs:
         env:
           PREV_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
           TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
             --target main \
