@@ -218,7 +218,6 @@ jobs:
 
   publish:
     needs: [release-pr, release]
-    if: always() && fromJSON(needs.release-pr.outputs.release_pr).next_tag != ''
     runs-on: ubuntu-latest
     permissions:
       id-token: write # Required for OIDC token exchange
@@ -236,7 +235,4 @@ jobs:
       with:
         node-version: 24
     - run: npm --version
-    - env:
-        DRY_RUN: ${{ fromJSON(needs.release-pr.outputs.release_pr).state != 'release_required' }}
-      run: |
-        npm publish --dry-run="${DRY_RUN}"
+    - run: npm publish
