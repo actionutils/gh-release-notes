@@ -61,6 +61,7 @@ jobs:
         with:
           bun-version-file: .bun-version
 
+      - run: bun install
 
       - id: release-notes
         env:
