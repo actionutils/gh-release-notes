@@ -183,7 +183,15 @@ export async function run(options: RunOptions) {
 		// Use config loader for remote config support
 		const configLoader = new ConfigLoaderFactory(token);
 		const rawCfg = await configLoader.load(config);
-		cfg = parseConfigString(rawCfg, config);
+		// For purl sources, extract the filename from the subpath
+		let configFilename = config;
+		if (config.startsWith("pkg:")) {
+			const match = config.match(/#([^?]+)/);
+			if (match) {
+				configFilename = match[1];
+			}
+		}
+		cfg = parseConfigString(rawCfg, configFilename);
 	} else {
 		// Try release-drafter.yml first
 		const releaseDrafterPath = path.resolve(
