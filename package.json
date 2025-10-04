@@ -15,7 +15,7 @@
     "build:cli": "bun build src/cli.ts --target=node --outfile=dist/cli.js",
     "build": "bun run build:lib && bun run build:cli",
     "prepublishOnly": "bun run build",
-    "test": "bun run build && bun test",
+    "test": "bun test",
     "lint": "oxlint --type-aware src",
     "lint:fix": "oxlint --type-aware --fix src",
     "format": "biome format --write src",
