@@ -64,9 +64,6 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			// GraphQL endpoint for PR data
-
-			// (no REST fallback for avatars)
-
 			if (u.includes("/graphql")) {
 				return {
 					ok: true,
