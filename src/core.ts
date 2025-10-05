@@ -330,10 +330,19 @@ export async function run(options: RunOptions) {
 
 		// Replace $NEW_CONTRIBUTORS placeholder in the release body
 		if (releaseInfo.body && rdConfig.template?.includes("$NEW_CONTRIBUTORS")) {
-			releaseInfo.body = releaseInfo.body.replace(
-				"$NEW_CONTRIBUTORS",
-				newContributorsSection,
-			);
+			// If new contributors section is empty, also remove the preceding newline
+			// to avoid excessive empty lines in the output
+			if (newContributorsSection === "") {
+				releaseInfo.body = releaseInfo.body.replace(
+					/\n\$NEW_CONTRIBUTORS/g,
+					"",
+				);
+			} else {
+				releaseInfo.body = releaseInfo.body.replace(
+					"$NEW_CONTRIBUTORS",
+					newContributorsSection,
+				);
+			}
 		}
 	}
 
