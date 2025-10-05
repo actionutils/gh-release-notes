@@ -22,25 +22,25 @@ describe("PurlGitHubConfigLoader", () => {
 		test("throws on non-GitHub purl", async () => {
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			(await expect(loader.load("pkg:npm/package#file.json")).rejects.toThrow(
+			expect(loader.load("pkg:npm/package#file.json")).rejects.toThrow(
 				"Unsupported purl type: npm",
-			)) as any;
+			);
 		});
 
 		test("throws when subpath is missing", async () => {
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			(await expect(loader.load("pkg:github/owner/repo")).rejects.toThrow(
+			expect(loader.load("pkg:github/owner/repo")).rejects.toThrow(
 				"purl must include a subpath",
-			)) as any;
+			);
 		});
 
 		test("throws when subpath is missing with version", async () => {
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			(await expect(
-				loader.load("pkg:github/owner/repo@v1.0.0"),
-			).rejects.toThrow("purl must include a subpath")) as any;
+			expect(loader.load("pkg:github/owner/repo@v1.0.0")).rejects.toThrow(
+				"purl must include a subpath",
+			);
 		});
 	});
 
@@ -141,7 +141,7 @@ describe("PurlGitHubConfigLoader", () => {
 
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			await expect(
+			expect(
 				loader.load(
 					"pkg:github/owner/repo@main?checksum=sha256:incorrect#config.yaml",
 				),
@@ -160,7 +160,7 @@ describe("PurlGitHubConfigLoader", () => {
 
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			await expect(
+			expect(
 				loader.load("pkg:github/owner/repo@main#missing.yaml"),
 			).rejects.toThrow("File not found: missing.yaml");
 		});
@@ -178,7 +178,7 @@ describe("PurlGitHubConfigLoader", () => {
 
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			await expect(
+			expect(
 				loader.load("pkg:github/owner/repo@main#large.yaml"),
 			).rejects.toThrow("Config file too large");
 		});

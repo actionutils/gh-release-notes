@@ -55,9 +55,7 @@ describe("HTTPSConfigLoader", () => {
 
 		global.fetch = mockFetch as any;
 
-		await expect(
-			loader.load("https://example.com/nonexistent.yaml"),
-		).rejects.toThrow(
+		expect(loader.load("https://example.com/nonexistent.yaml")).rejects.toThrow(
 			"Failed to fetch config from https://example.com/nonexistent.yaml: Failed to fetch config: HTTP 404 Not Found",
 		);
 	});
@@ -69,21 +67,21 @@ describe("HTTPSConfigLoader", () => {
 
 		global.fetch = mockFetch as any;
 
-		await expect(
-			loader.load("https://example.com/config.yaml"),
-		).rejects.toThrow("Network error");
+		expect(loader.load("https://example.com/config.yaml")).rejects.toThrow(
+			"Network error",
+		);
 	});
 
 	it("only accepts HTTPS URLs", async () => {
-		await expect(loader.load("http://example.com/config.yaml")).rejects.toThrow(
+		expect(loader.load("http://example.com/config.yaml")).rejects.toThrow(
 			"URL must use HTTPS protocol",
 		);
 
-		await expect(loader.load("ftp://example.com/config.yaml")).rejects.toThrow(
+		expect(loader.load("ftp://example.com/config.yaml")).rejects.toThrow(
 			"URL must use HTTPS protocol",
 		);
 
-		await expect(loader.load("file:///local/config.yaml")).rejects.toThrow(
+		expect(loader.load("file:///local/config.yaml")).rejects.toThrow(
 			"URL must use HTTPS protocol",
 		);
 	});
