@@ -11,6 +11,10 @@ import {
 	formatNewContributorsSection,
 } from "./new-contributors";
 import { logVerbose } from "./logger";
+import {
+	buildMinimalContributors,
+	enrichContributorAvatars,
+} from "./contributors";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -414,13 +418,34 @@ export async function run(options: RunOptions) {
 		}
 	}
 
+	// Build and enrich minimal contributors (like release-drafter's $CONTRIBUTORS)
+	const minimalContributors = buildMinimalContributors(
+		data.pullRequests,
+		Array.isArray(rdConfig["exclude-contributors"])
+			? rdConfig["exclude-contributors"]
+			: [],
+	);
+	const contributors = await enrichContributorAvatars(
+		minimalContributors,
+		(pathname) => ghRest(pathname, { token }),
+	);
+
 	// Transform new contributors data for JSON output (remove internal details)
+	// Also attach avatar_url/html_url by reusing the already-resolved contributors list
+	const avatarMap = new Map<string, string>();
+	const htmlMap = new Map<string, string>();
+	for (const c of contributors) {
+		if (c.avatar_url) avatarMap.set(c.login, c.avatar_url);
+		if ((c as any).html_url) htmlMap.set(c.login, (c as any).html_url);
+	}
 	const newContributorsOutput = newContributorsData
 		? {
 				newContributors: newContributorsData.newContributors.map((c) => ({
 					login: c.login,
 					isBot: c.isBot,
 					firstPullRequest: c.firstPullRequest,
+					avatar_url: avatarMap.get(c.login),
+					html_url: htmlMap.get(c.login),
 				})),
 				totalContributors: newContributorsData.totalContributors,
 			}
@@ -431,6 +456,7 @@ export async function run(options: RunOptions) {
 		release: releaseInfo,
 		commits: data.commits,
 		pullRequests: data.pullRequests,
+		contributors,
 		newContributors: newContributorsOutput,
 		lastRelease: lastRelease
 			? {

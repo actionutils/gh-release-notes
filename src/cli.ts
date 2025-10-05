@@ -186,6 +186,7 @@ async function main() {
 						defaultBranch: result.defaultBranch,
 						lastRelease: result.lastRelease,
 						mergedPullRequests: result.pullRequests,
+						contributors: result.contributors,
 						newContributors: shapedNewContributors,
 						release: allowlistedRelease,
 					},

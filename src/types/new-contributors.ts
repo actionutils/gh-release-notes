@@ -26,6 +26,8 @@ export interface NewContributorOutput {
 	login: string;
 	isBot: boolean;
 	firstPullRequest: PullRequestInfo;
+	avatar_url?: string;
+	html_url?: string;
 }
 
 export interface ContributorCheckResult {

@@ -526,6 +526,22 @@ describe("actionutils/gh-release-notes core", () => {
 				}
 			}
 
+			// REST for bot avatar (placed outside GraphQL condition)
+			if (u.endsWith("/users/github-actions%5Bbot%5D")) {
+				const user = {
+					login: "github-actions[bot]",
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4",
+					type: "Bot",
+				};
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => user,
+					text: async () => JSON.stringify(user),
+				};
+			}
+
 			throw new Error("Unexpected fetch: " + u);
 		}) as any;
 
@@ -545,6 +561,15 @@ describe("actionutils/gh-release-notes core", () => {
 				"github-actions",
 			);
 			expect(res.newContributors?.newContributors[0].isBot).toBe(true);
+
+			// Should include minimal contributors list in run() result
+			expect(res.contributors).toBeDefined();
+			expect(res.contributors.length).toBe(1);
+			expect(res.contributors[0].login).toBe("github-actions");
+			expect(res.contributors[0].isBot).toBe(true);
+			expect(res.contributors[0].avatar_url).toBe(
+				"https://avatars.githubusercontent.com/in/15368?v=4&s=64",
+			);
 		} finally {
 			// Cleanup
 			await fsPromises.rm(tmpDir, { recursive: true });
