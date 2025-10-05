@@ -6,6 +6,11 @@ import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 import { ConfigLoaderFactory } from "./config-loader";
+import {
+	findNewContributors,
+	formatNewContributorsSection,
+} from "./new-contributors";
+import { logVerbose } from "./logger";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -30,6 +35,7 @@ export type RunOptions = {
 	target?: string;
 	token?: string;
 	preview?: boolean;
+	includeNewContributors?: boolean;
 };
 
 async function ghRest(
@@ -293,10 +299,74 @@ export async function run(options: RunOptions) {
 		targetCommitish,
 	});
 
+	// Check for $NEW_CONTRIBUTORS placeholder in template
+	let newContributorsSection = "";
+	let newContributorsData = null;
+	if (
+		rdConfig.template &&
+		(rdConfig.template.includes("$NEW_CONTRIBUTORS") ||
+			options.includeNewContributors)
+	) {
+		// Get the date of the previous release if available
+		const prevReleaseDate =
+			lastRelease?.published_at || lastRelease?.created_at;
+
+		// Skip new contributors detection if no previous release exists
+		// Without a baseline, all contributors would be marked as "new"
+		if (prevReleaseDate) {
+			const newContributorsResult = await findNewContributors({
+				owner,
+				repo,
+				pullRequests: data.pullRequests,
+				token,
+				prevReleaseDate,
+			});
+			newContributorsSection = formatNewContributorsSection(
+				newContributorsResult.newContributors,
+			);
+			newContributorsData = newContributorsResult;
+		} else {
+			logVerbose(
+				"[New Contributors] Skipping detection - no previous release tag found",
+			);
+		}
+
+		// Replace $NEW_CONTRIBUTORS placeholder in the release body
+		if (releaseInfo.body && rdConfig.template?.includes("$NEW_CONTRIBUTORS")) {
+			// If new contributors section is empty, also remove the preceding whitespace/newline
+			// to avoid excessive empty lines in the output
+			if (newContributorsSection === "") {
+				// Remove optional preceding whitespace and newline
+				releaseInfo.body = releaseInfo.body.replace(
+					/\n?\s*\$NEW_CONTRIBUTORS/g,
+					"",
+				);
+			} else {
+				releaseInfo.body = releaseInfo.body.replace(
+					"$NEW_CONTRIBUTORS",
+					newContributorsSection,
+				);
+			}
+		}
+	}
+
+	// Transform new contributors data for JSON output (remove internal details)
+	const newContributorsOutput = newContributorsData
+		? {
+				newContributors: newContributorsData.newContributors.map((c) => ({
+					login: c.login,
+					isBot: c.isBot,
+					firstPullRequest: c.firstPullRequest,
+				})),
+				totalContributors: newContributorsData.totalContributors,
+			}
+		: null;
+
 	return {
 		release: releaseInfo,
 		commits: data.commits,
 		pullRequests: data.pullRequests,
+		newContributors: newContributorsOutput,
 		lastRelease: lastRelease
 			? {
 					id: lastRelease.id,

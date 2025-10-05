@@ -14,6 +14,7 @@ interface Args {
 	json: boolean;
 	preview: boolean;
 	verbose: boolean;
+	"include-new-contributors"?: boolean;
 }
 
 async function main() {
@@ -65,6 +66,12 @@ async function main() {
 			alias: "v",
 			type: "boolean",
 			description: "Enable verbose logging",
+			default: false,
+		})
+		.option("include-new-contributors", {
+			type: "boolean",
+			description:
+				"Force include new contributors data (mainly for JSON output)",
 			default: false,
 		})
 		.help("help")
@@ -140,6 +147,7 @@ async function main() {
 			tag: args.tag,
 			target: args.target,
 			preview: args.preview,
+			includeNewContributors: args["include-new-contributors"],
 		});
 
 		if (args.json) {
@@ -152,6 +160,7 @@ async function main() {
 						targetCommitish: result.targetCommitish,
 						lastRelease: result.lastRelease,
 						mergedPullRequests: result.pullRequests,
+						newContributors: result.newContributors,
 						release: result.release,
 					},
 					null,

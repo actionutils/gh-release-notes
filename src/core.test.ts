@@ -1,6 +1,8 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import path from "node:path";
 import fs from "node:fs";
+import * as os from "node:os";
+import * as fsPromises from "node:fs/promises";
 
 describe("actionutils/gh-release-notes core", () => {
 	const sourcePath = path.resolve(import.meta.dir, "./core.ts");
@@ -26,6 +28,7 @@ describe("actionutils/gh-release-notes core", () => {
 				return {
 					ok: true,
 					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
 					json: async () => ({ default_branch: "main" }),
 				};
 			}
@@ -144,5 +147,407 @@ describe("actionutils/gh-release-notes core", () => {
 		expect(res.release.body).toBe("Test template");
 		// Just verify the tag was used (it affects the release generation)
 		expect(res.release.name).toBeDefined();
+	});
+
+	test("detects new contributors when $NEW_CONTRIBUTORS placeholder exists", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "test-nc-"));
+		const cfgPath = path.join(tmpDir, "test-nc-config.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			'template: "## New Contributors\n$NEW_CONTRIBUTORS"\n',
+		);
+
+		// Override fetch mock to include PR data with authors
+		let graphqlCallCount = 0;
+		global.fetch = mock(async (url: any) => {
+			const u = url.toString();
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Get release by tag
+			if (u.includes("/releases/tags/v1.0.0")) {
+				const releaseData = {
+					tag_name: "v1.0.0",
+					published_at: "2023-12-01T00:00:00Z",
+					created_at: "2023-12-01T00:00:00Z",
+				};
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => releaseData,
+					text: async () => JSON.stringify(releaseData),
+				};
+			}
+
+			// Releases list - return a previous release for baseline
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [
+						{
+							tag_name: "v1.0.0",
+							published_at: "2023-12-01T00:00:00Z",
+							created_at: "2023-12-01T00:00:00Z",
+						},
+					],
+				};
+			}
+
+			// GraphQL endpoint - return different responses based on call order
+			if (u.includes("/graphql")) {
+				graphqlCallCount++;
+
+				// First call: release-drafter's commit/PR fetch
+				if (graphqlCallCount === 1) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								repository: {
+									object: {
+										history: {
+											nodes: [
+												{
+													author: {
+														user: null,
+													},
+													associatedPullRequests: {
+														nodes: [
+															{
+																number: 10,
+																title: "First PR",
+																url: "https://github.com/owner/repo/pull/10",
+																merged_at: "2024-01-01T00:00:00Z",
+																merged: true,
+																author: {
+																	login: "newuser",
+																	__typename: "User",
+																},
+																labels: { nodes: [] },
+																baseRepository: {
+																	nameWithOwner: `${owner}/${repo}`,
+																},
+															},
+														],
+													},
+												},
+											],
+											pageInfo: {
+												hasNextPage: false,
+												endCursor: null,
+											},
+										},
+									},
+								},
+							},
+						}),
+					};
+				}
+
+				// Second call: Batch contributor check (searching for PRs before 2023-12-01)
+				// Since newuser has no PRs before the date, they are a new contributor
+				if (graphqlCallCount === 2) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								newuser: {
+									issueCount: 0, // No PRs before the previous release date
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				prevTag: "v1.0.0",
+			});
+
+			expect(res.release.body).toContain("## New Contributors");
+			expect(res.release.body).toContain(
+				"@newuser made their first contribution",
+			);
+			expect(res.newContributors).toBeDefined();
+			expect(res.newContributors?.newContributors).toHaveLength(1);
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("skips new contributors when no previous release exists", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-no-prev-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-no-prev-config.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			'template: "## Release\n$CHANGES\n$NEW_CONTRIBUTORS"\n',
+		);
+
+		let graphqlCallCount = 0;
+		global.fetch = mock(async (url: any) => {
+			const u = url.toString();
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list - return empty (no previous releases)
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			if (u.includes("/graphql")) {
+				graphqlCallCount++;
+
+				// First call: release-drafter's commit/PR fetch
+				if (graphqlCallCount === 1) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								repository: {
+									object: {
+										history: {
+											nodes: [
+												{
+													author: { user: null },
+													associatedPullRequests: {
+														nodes: [
+															{
+																number: 1,
+																title: "Initial commit",
+																url: "https://github.com/owner/repo/pull/1",
+																merged_at: "2024-01-01T00:00:00Z",
+																merged: true,
+																author: { login: "user1", __typename: "User" },
+																labels: { nodes: [] },
+																baseRepository: {
+																	nameWithOwner: `${owner}/${repo}`,
+																},
+															},
+														],
+													},
+												},
+											],
+											pageInfo: { hasNextPage: false, endCursor: null },
+										},
+									},
+								},
+							},
+						}),
+					};
+				}
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+			});
+
+			// Should NOT contain new contributors section when no previous release
+			expect(res.release.body).not.toContain("## New Contributors");
+			expect(res.release.body).not.toContain("made their first contribution");
+			expect(res.newContributors).toBeNull();
+
+			// Should have made only 1 GraphQL call (for commits), not 2 (commits + contributors)
+			expect(graphqlCallCount).toBe(1);
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("includes new contributors when includeNewContributors flag is set", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-basic-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-basic-config.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			'template: "## Changes\n$PULL_REQUESTS"\n',
+		);
+
+		// Override fetch mock to include PR data
+		let graphqlCallCount = 0;
+		global.fetch = mock(async (url: any) => {
+			const u = url.toString();
+
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Get release by tag for v0.9.0
+			if (u.includes("/releases/tags/v0.9.0")) {
+				const releaseData = {
+					tag_name: "v0.9.0",
+					published_at: "2023-11-01T00:00:00Z",
+					created_at: "2023-11-01T00:00:00Z",
+				};
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => releaseData,
+					text: async () => JSON.stringify(releaseData),
+				};
+			}
+
+			// Releases list - return a previous release for baseline
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [
+						{
+							tag_name: "v0.9.0",
+							published_at: "2023-11-01T00:00:00Z",
+							created_at: "2023-11-01T00:00:00Z",
+						},
+					],
+				};
+			}
+
+			if (u.includes("/graphql")) {
+				graphqlCallCount++;
+
+				// First call: release-drafter's commit/PR fetch
+				if (graphqlCallCount === 1) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								repository: {
+									object: {
+										history: {
+											nodes: [
+												{
+													author: {
+														user: null,
+													},
+													associatedPullRequests: {
+														nodes: [
+															{
+																number: 20,
+																title: "Bot PR",
+																url: "https://github.com/owner/repo/pull/20",
+																merged_at: "2024-01-02T00:00:00Z",
+																merged: true,
+																author: {
+																	login: "github-actions",
+																	__typename: "Bot",
+																},
+																labels: { nodes: [] },
+																baseRepository: {
+																	nameWithOwner: `${owner}/${repo}`,
+																},
+															},
+														],
+													},
+												},
+											],
+											pageInfo: {
+												hasNextPage: false,
+												endCursor: null,
+											},
+										},
+									},
+								},
+							},
+						}),
+					};
+				}
+
+				// Second call: Batch contributor check (searching for PRs before 2023-11-01)
+				if (graphqlCallCount === 2) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								github_actions: {
+									// The alias for github-actions becomes github_actions
+									issueCount: 0, // No PRs before the previous release date
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				includeNewContributors: true,
+				prevTag: "v0.9.0",
+			});
+
+			// Should have new contributors data even without placeholder
+			expect(res.newContributors).toBeDefined();
+			expect(res.newContributors?.newContributors).toHaveLength(1);
+			expect(res.newContributors?.newContributors[0].login).toBe(
+				"github-actions",
+			);
+			expect(res.newContributors?.newContributors[0].isBot).toBe(true);
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
 	});
 });
