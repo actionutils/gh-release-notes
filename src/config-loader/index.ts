@@ -2,6 +2,7 @@ import { LocalConfigLoader } from "./local-config-loader";
 import { HTTPSConfigLoader } from "./https-config-loader";
 import { PurlGitHubConfigLoader } from "./purl-github-config-loader";
 import { detectConfigSource } from "./utils";
+import { logVerbose } from "../logger";
 import type { ConfigLoader } from "./types";
 
 export * from "./types";
@@ -25,6 +26,9 @@ export class ConfigLoaderFactory {
 
 	async load(source: string): Promise<string> {
 		const configSource = detectConfigSource(source);
+		logVerbose(
+			`[ConfigLoader] Detected source type: ${configSource.type} (${configSource.location})`,
+		);
 
 		let loader: ConfigLoader;
 		switch (configSource.type) {
@@ -48,6 +52,11 @@ export class ConfigLoaderFactory {
 				);
 		}
 
-		return loader.load(configSource.location);
+		logVerbose(`[ConfigLoader] Loading configuration...`);
+		const content = await loader.load(configSource.location);
+		logVerbose(
+			`[ConfigLoader] Loaded configuration (${Math.min(content.length, 1024)} bytes shown, total ${content.length} bytes)`,
+		);
+		return content;
 	}
 }

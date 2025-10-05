@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import { logVerbose } from "./logger";
 
 const execAsync = promisify(exec);
 
@@ -19,6 +20,7 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 
 	// Priority 1: --repo flag
 	if (opts.flagRepo) {
+		logVerbose("[RepoDetect] Using --repo flag");
 		const r = parseRepoRef(opts.flagRepo, defaultHost);
 		if (!r) throw new Error(`Invalid --repo value: ${opts.flagRepo}`);
 		return r;
@@ -26,6 +28,7 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 
 	// Priority 2: GITHUB_REPOSITORY (GitHub Actions environment variable)
 	if (process.env.GITHUB_REPOSITORY) {
+		logVerbose("[RepoDetect] Using GITHUB_REPOSITORY env var");
 		const r = parseRepoRef(process.env.GITHUB_REPOSITORY, defaultHost);
 		if (!r)
 			throw new Error(
@@ -36,18 +39,21 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 
 	// Priority 3: GH_REPO environment variable
 	if (process.env.GH_REPO) {
+		logVerbose("[RepoDetect] Using GH_REPO env var");
 		const r = parseRepoRef(process.env.GH_REPO, defaultHost);
 		if (!r) throw new Error(`Invalid GH_REPO value: ${process.env.GH_REPO}`);
 		return r;
 	}
 
 	// Priority 4: Git remotes
+	logVerbose("[RepoDetect] Reading git remotes");
 	const remotes = await readGitRemotes();
 	if (remotes.length === 0) {
 		throw new Error(
 			"No git remotes found. Please run this command in a git repository.",
 		);
 	}
+	logVerbose(`[RepoDetect] Found ${remotes.length} remotes`);
 
 	// Collect normalized repo candidates from fetch/push URLs
 	const repos: Array<{ name: string; repo: Repo }> = [];
@@ -71,6 +77,9 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 
 	// If we have authenticated hosts from gh CLI, use them for filtering
 	if (authedHosts.length > 0) {
+		logVerbose(
+			`[RepoDetect] gh authenticated hosts detected: ${authedHosts.join(", ")}`,
+		);
 		const ghHost = process.env.GH_HOST;
 		const byAuth = repos.filter((x) =>
 			authedHosts.some((h) => x.repo.host.toLowerCase() === h.toLowerCase()),
@@ -83,6 +92,10 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 					)
 				: byAuth;
 
+			logVerbose(
+				`[RepoDetect] Filtered by auth/GH_HOST -> ${filtered.length} candidates`,
+			);
+
 			if (ghHost && filtered.length === 0) {
 				throw new Error(
 					`No remotes match GH_HOST=${ghHost}. Add a matching remote or unset GH_HOST.`,
@@ -94,6 +107,7 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 		// No gh CLI available, filter by GH_HOST if set
 		const ghHost = process.env.GH_HOST;
 		if (ghHost) {
+			logVerbose(`[RepoDetect] Filtering by GH_HOST=${ghHost}`);
 			filtered = repos.filter(
 				(x) => x.repo.host.toLowerCase() === ghHost.toLowerCase(),
 			);
@@ -122,7 +136,9 @@ export async function resolveBaseRepo(opts: ResolveOptions): Promise<Repo> {
 	if (scored.length === 0) {
 		throw new Error("No valid git remotes found after filtering.");
 	}
-
+	logVerbose(
+		`[RepoDetect] Selected ${scored[0].repo.owner}/${scored[0].repo.name} on ${scored[0].repo.host}`,
+	);
 	return scored[0].repo;
 }
 

@@ -1,4 +1,5 @@
 import type { ConfigLoader } from "./types";
+import { logVerbose } from "../logger";
 
 export class HTTPSConfigLoader implements ConfigLoader {
 	private timeout: number;
@@ -11,6 +12,8 @@ export class HTTPSConfigLoader implements ConfigLoader {
 		if (!source.startsWith("https://")) {
 			throw new Error("URL must use HTTPS protocol");
 		}
+
+		logVerbose(`[ConfigLoader:https] Fetching: ${source}`);
 
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -32,6 +35,9 @@ export class HTTPSConfigLoader implements ConfigLoader {
 			}
 
 			const text = await response.text();
+			logVerbose(
+				`[ConfigLoader:https] Fetched ${text.length} bytes from ${source}`,
+			);
 
 			// Check for reasonable size limit (1MB)
 			if (text.length > 1024 * 1024) {

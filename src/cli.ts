@@ -2,7 +2,7 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { run } from "./core";
-import { setVerbose } from "./logger";
+import { setVerbose, logVerbose } from "./logger";
 import { resolveBaseRepo } from "./repo-detector";
 
 interface Args {
@@ -126,8 +126,10 @@ async function main() {
 
 	const args = (await parser.parseAsync()) as Args;
 
-	// Set verbose mode if requested
+	// Set verbose mode if requested (timestamps included by default)
 	setVerbose(args.verbose);
+
+	logVerbose("[CLI] Verbose mode enabled");
 
 	try {
 		// Auto-detect repository if not provided
@@ -135,11 +137,10 @@ async function main() {
 		if (!repoString) {
 			const repo = await resolveBaseRepo({ flagRepo: args.repo });
 			repoString = `${repo.owner}/${repo.name}`;
-			if (args.verbose) {
-				console.error(`Auto-detected repository: ${repoString}`);
-			}
+			logVerbose(`[CLI] Auto-detected repository: ${repoString}`);
 		}
 
+		logVerbose("[CLI] Starting run() with provided options");
 		const result = await run({
 			repo: repoString,
 			config: args.config,
@@ -176,6 +177,7 @@ async function main() {
 				? { newContributors: result.newContributors.newContributors }
 				: null;
 
+			logVerbose("[CLI] Output mode: JSON");
 			process.stdout.write(
 				JSON.stringify(
 					{
@@ -192,6 +194,7 @@ async function main() {
 				) + "\n",
 			);
 		} else {
+			logVerbose("[CLI] Output mode: Markdown body");
 			process.stdout.write(String((result.release as any).body || "") + "\n");
 		}
 	} catch (e) {

@@ -120,7 +120,11 @@ function parseConfigString(source: string, filename = ""): any {
 	const lower = filename.toLowerCase();
 	if (lower.endsWith(".yml") || lower.endsWith(".yaml")) {
 		try {
-			return yaml.load(source);
+			const parsed = yaml.load(source);
+			logVerbose(
+				`[Config] Parsed YAML config${filename ? ` from ${filename}` : ""}`,
+			);
+			return parsed;
 		} catch (error) {
 			throw new Error(
 				"Failed to parse YAML config: " + (error as Error).message,
@@ -128,7 +132,11 @@ function parseConfigString(source: string, filename = ""): any {
 		}
 	}
 	try {
-		return JSON.parse(source);
+		const parsed = JSON.parse(source);
+		logVerbose(
+			`[Config] Parsed JSON config${filename ? ` from ${filename}` : ""}`,
+		);
+		return parsed;
 	} catch (error) {
 		throw new Error(
 			"Config is neither valid JSON nor YAML: " + (error as Error).message,
@@ -138,16 +146,28 @@ function parseConfigString(source: string, filename = ""): any {
 
 async function getGitHubToken(providedToken?: string): Promise<string> {
 	// First try provided token
-	if (providedToken) return providedToken;
+	if (providedToken) {
+		logVerbose("[Auth] Using provided GitHub token");
+		return providedToken;
+	}
 
 	// Then try environment variables
-	if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-	if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
+	if (process.env.GITHUB_TOKEN) {
+		logVerbose("[Auth] Using GITHUB_TOKEN from environment");
+		return process.env.GITHUB_TOKEN;
+	}
+	if (process.env.GH_TOKEN) {
+		logVerbose("[Auth] Using GH_TOKEN from environment");
+		return process.env.GH_TOKEN;
+	}
 
 	// Finally try gh auth token
 	try {
 		const token = execSync("gh auth token", { encoding: "utf8" }).trim();
-		if (token) return token;
+		if (token) {
+			logVerbose("[Auth] Using token from gh auth");
+			return token;
+		}
 	} catch {
 		// gh auth token failed, fall through to error
 	}
@@ -178,7 +198,9 @@ export async function run(options: RunOptions) {
 		target,
 		preview,
 	} = options;
+	logVerbose("[Run] Resolving GitHub token...");
 	const token = await getGitHubToken(options.token);
+	logVerbose("[Run] GitHub token resolved");
 	if (!repoNameWithOwner) throw new Error("Missing repo (owner/repo)");
 	const [owner, repo] = repoNameWithOwner.split("/");
 	if (!owner || !repo) throw new Error("Invalid repo, expected owner/repo");
@@ -186,6 +208,7 @@ export async function run(options: RunOptions) {
 	// Load config (optional). If not provided, try local configs then fallback.
 	let cfg: any;
 	if (config) {
+		logVerbose(`[Config] Loading config from: ${config}`);
 		// Use config loader for remote config support
 		const configLoader = new ConfigLoaderFactory(token);
 		const rawCfg = await configLoader.load(config);
@@ -199,6 +222,7 @@ export async function run(options: RunOptions) {
 		}
 		cfg = parseConfigString(rawCfg, configFilename);
 	} else {
+		logVerbose("[Config] No config specified; searching default locations");
 		// Try release-drafter.yml first
 		const releaseDrafterPath = path.resolve(
 			process.cwd(),
@@ -216,29 +240,41 @@ export async function run(options: RunOptions) {
 
 		if (fs.existsSync(releaseDrafterPath)) {
 			const raw = fs.readFileSync(releaseDrafterPath, "utf8");
+			logVerbose(`[Config] Using ${releaseDrafterPath}`);
 			cfg = parseConfigString(raw, releaseDrafterPath);
 		} else if (fs.existsSync(githubReleaseYmlPath)) {
 			const raw = fs.readFileSync(githubReleaseYmlPath, "utf8");
+			logVerbose(`[Config] Using ${githubReleaseYmlPath}`);
 			cfg = parseConfigString(raw, githubReleaseYmlPath);
 		} else if (fs.existsSync(githubReleaseYamlPath)) {
 			const raw = fs.readFileSync(githubReleaseYamlPath, "utf8");
+			logVerbose(`[Config] Using ${githubReleaseYamlPath}`);
 			cfg = parseConfigString(raw, githubReleaseYamlPath);
 		} else {
+			logVerbose(
+				"[Config] No local config found; using default fallback config",
+			);
 			cfg = DEFAULT_FALLBACK_CONFIG;
 		}
 	}
 
 	// Convert GitHub format to release-drafter format if needed
+	logVerbose(
+		"[Config] Normalizing config (GitHub release.yml vs release-drafter)",
+	);
 	cfg = normalizeConfig(cfg);
 
+	logVerbose(`[GitHub] Fetching repository info for ${owner}/${repo}`);
 	const repoInfo: any = await ghRest(`/repos/${owner}/${repo}`, { token });
 	const defaultBranch: string = repoInfo.default_branch as string;
+	logVerbose(`[GitHub] Default branch: ${defaultBranch}`);
 
 	const context: any = buildContext({ owner, repo, token, defaultBranch });
 	const rdConfig: any = validateSchema(context, cfg);
 
 	let lastRelease: any = null;
 	if (prevTag) {
+		logVerbose(`[Releases] Using explicit previous tag: ${prevTag}`);
 		const rel: any = await context.octokit.repos.getReleaseByTag({
 			owner,
 			repo,
@@ -246,6 +282,9 @@ export async function run(options: RunOptions) {
 		});
 		lastRelease = rel.data;
 	} else {
+		logVerbose(
+			`[Releases] Auto-detecting previous release (target=${target || defaultBranch})`,
+		);
 		// TODO: Support --no-auto-prev flag to disable automatic previous release detection
 		// When autoPrev is false, should generate changelog from the beginning of commit history
 		// (matching GitHub's "Generate release notes" behavior when no previous tag exists)
@@ -259,6 +298,11 @@ export async function run(options: RunOptions) {
 				tagPrefix: String(rdConfig["tag-prefix"] || ""),
 			});
 		lastRelease = lr || null;
+		if (lastRelease?.tag_name) {
+			logVerbose(`[Releases] Detected last release: ${lastRelease.tag_name}`);
+		} else {
+			logVerbose("[Releases] No previous release detected");
+		}
 	}
 
 	// Replace $FULL_CHANGELOG_LINK placeholder in template before processing
@@ -272,6 +316,9 @@ export async function run(options: RunOptions) {
 				? target || tag || defaultBranch
 				: tag || target || defaultBranch,
 		});
+		logVerbose(
+			`[Template] Injecting FULL_CHANGELOG_LINK: ${fullChangelogLink}`,
+		);
 		rdConfig.template = rdConfig.template.replaceAll(
 			"$FULL_CHANGELOG_LINK",
 			fullChangelogLink,
@@ -279,13 +326,18 @@ export async function run(options: RunOptions) {
 	}
 
 	const targetCommitish: string = target || defaultBranch;
+	logVerbose("[GitHub] Resolving commits and associated pull requests...");
 	const data: any = await findCommitsWithAssociatedPullRequests({
 		context,
 		targetCommitish,
 		lastRelease,
 		config: rdConfig,
 	});
+	logVerbose(
+		`[GitHub] Found ${data.pullRequests?.length ?? 0} PRs and ${data.commits?.length ?? 0} commits`,
+	);
 
+	logVerbose("[Release] Generating release info from commits/PRs...");
 	const releaseInfo: any = generateReleaseInfo({
 		context,
 		commits: data.commits,
@@ -298,6 +350,11 @@ export async function run(options: RunOptions) {
 		shouldDraft: true,
 		targetCommitish,
 	});
+	logVerbose(
+		`[Release] Generated release: name=${String(releaseInfo.name || "")} tag=${String(
+			releaseInfo.tag || tag || "",
+		)}`,
+	);
 
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
@@ -314,6 +371,7 @@ export async function run(options: RunOptions) {
 		// Skip new contributors detection if no previous release exists
 		// Without a baseline, all contributors would be marked as "new"
 		if (prevReleaseDate) {
+			logVerbose("[New Contributors] Detecting new contributors...");
 			const newContributorsResult = await findNewContributors({
 				owner,
 				repo,
@@ -341,10 +399,16 @@ export async function run(options: RunOptions) {
 					/\n?\s*\$NEW_CONTRIBUTORS/g,
 					"",
 				);
+				logVerbose(
+					"[Template] Removed $NEW_CONTRIBUTORS placeholder (no new contributors)",
+				);
 			} else {
 				releaseInfo.body = releaseInfo.body.replace(
 					"$NEW_CONTRIBUTORS",
 					newContributorsSection,
+				);
+				logVerbose(
+					"[Template] Replaced $NEW_CONTRIBUTORS placeholder with generated section",
 				);
 			}
 		}
@@ -362,6 +426,7 @@ export async function run(options: RunOptions) {
 			}
 		: null;
 
+	logVerbose("[Run] Completed successfully");
 	return {
 		release: releaseInfo,
 		commits: data.commits,
