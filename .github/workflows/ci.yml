@@ -20,8 +20,11 @@ jobs:
     - name: Install dependencies
       run: bun install
 
+    - uses: reviewdog/action-setup@v1.4.0
     - name: Run lint
-      run: bun run lint
+      run: |
+        bun run lint --format=checkstyle |
+          reviewdog -f=checkstyle -name=oxlint -reporter=github-pr-review -fail-level=any -filter-mode file
 
     - name: Run format check
       run: bun run format:check
