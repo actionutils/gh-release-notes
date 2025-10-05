@@ -151,17 +151,37 @@ async function main() {
 		});
 
 		if (args.json) {
+			// Remove fields that don't make sense for this CLI's output
+			// Unlike release-drafter, this tool doesn't create releases, so
+			// fields like `draft` and `make_latest` are meaningless in --json output.
+			// Allowlist only fields meaningful for consumers of this CLI
+			// This avoids leaking release-creation specific or internal fields
+			// from release-drafter internals (e.g., draft, make_latest, prerelease,
+			// resolvedVersion, majorVersion, minorVersion, patchVersion, etc.).
+			const { name, tag, body, targetCommitish: releaseTargetCommitish } =
+				(result.release as any) as Record<string, any>;
+			const allowlistedRelease = {
+				name,
+				tag,
+				body,
+				targetCommitish: releaseTargetCommitish,
+			} as Record<string, any>;
+
+			// Shape newContributors without the confusing totalContributors field
+			const shapedNewContributors = result.newContributors
+				? { newContributors: result.newContributors.newContributors }
+				: null;
+
 			process.stdout.write(
 				JSON.stringify(
 					{
 						owner: result.owner,
 						repo: result.repo,
 						defaultBranch: result.defaultBranch,
-						targetCommitish: result.targetCommitish,
 						lastRelease: result.lastRelease,
 						mergedPullRequests: result.pullRequests,
-						newContributors: result.newContributors,
-						release: result.release,
+						newContributors: shapedNewContributors,
+						release: allowlistedRelease,
 					},
 					null,
 					2,
