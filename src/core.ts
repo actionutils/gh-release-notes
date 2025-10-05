@@ -11,6 +11,10 @@ import {
 	formatNewContributorsSection,
 } from "./new-contributors";
 import { logVerbose } from "./logger";
+import {
+	buildMinimalContributors,
+	enrichContributorAvatars,
+} from "./contributors";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -414,6 +418,18 @@ export async function run(options: RunOptions) {
 		}
 	}
 
+	// Build and enrich minimal contributors (like release-drafter's $CONTRIBUTORS)
+	const minimalContributors = buildMinimalContributors(
+		data.pullRequests,
+		Array.isArray(rdConfig["exclude-contributors"])
+			? rdConfig["exclude-contributors"]
+			: [],
+	);
+	const contributors = await enrichContributorAvatars(
+		minimalContributors,
+		(pathname) => ghRest(pathname, { token }),
+	);
+
 	// Transform new contributors data for JSON output (remove internal details)
 	const newContributorsOutput = newContributorsData
 		? {
@@ -431,6 +447,7 @@ export async function run(options: RunOptions) {
 		release: releaseInfo,
 		commits: data.commits,
 		pullRequests: data.pullRequests,
+		contributors,
 		newContributors: newContributorsOutput,
 		lastRelease: lastRelease
 			? {
