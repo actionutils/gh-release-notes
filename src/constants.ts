@@ -16,7 +16,7 @@ export const GITHUB_STYLE_CATEGORY_TEMPLATE = "### $TITLE";
  * Default template for release notes body
  */
 export const DEFAULT_RELEASE_TEMPLATE =
-	"## What's Changed\n\n$CHANGES\n\n## New Contributors\n$NEW_CONTRIBUTORS\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
+	"## What's Changed\n\n$CHANGES\n\n$NEW_CONTRIBUTORS\n\n**Full Changelog**: $FULL_CHANGELOG_LINK";
 
 /**
  * Default fallback config for release-drafter when no config is provided
