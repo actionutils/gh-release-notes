@@ -8,6 +8,10 @@ This document outlines the design for implementing a "New Contributors" section 
 
 GitHub's official Release Note generation API includes a "New Contributors" section that shows users who made their first contribution with links to their PRs. However, the author association field (`authorAssociation`) changes from `FIRST_TIME_CONTRIBUTOR` to `CONTRIBUTOR` after a PR is merged, making it impossible to determine first-time contributors using this field at release note generation time.
 
+## Implementation Status
+
+✅ **Implemented** - This feature has been successfully implemented in PR #42.
+
 ## Proposed Solution
 
 ### Core Approach (Recommended)
@@ -48,22 +52,23 @@ gh search commits --repo owner/repo --author USERNAME --limit 1
 - If no commits found → true first-time contributor
 - Most accurate but requires individual API calls per contributor
 
-**Option B: Check for prior PRs** (Recommended for performance)
+**Option B: Check for prior PRs** (✅ Implemented)
 ```graphql
 # Batch check multiple contributors in one GraphQL query
 query {
-  user1: search(query: "repo:owner/repo is:pr is:merged author:user1", type: ISSUE, first: 2) {
+  user1: search(query: "repo:owner/repo is:pr is:merged author:user1 merged:<2024-01-01", type: ISSUE, first: 1) {
     issueCount
     nodes { ... on PullRequest { number, mergedAt } }
   }
-  user2: search(query: "repo:owner/repo is:pr is:merged author:user2[bot]", type: ISSUE, first: 2) {
+  user2: search(query: "repo:owner/repo is:pr is:merged author:user2[bot] merged:<2024-01-01", type: ISSUE, first: 1) {
     issueCount
     nodes { ... on PullRequest { number, mergedAt } }
   }
   # ... up to 10 users per query
 }
 ```
-- Check if `issueCount` > current release PRs
+- When `--prev-tag` is available: Check if user has any PRs before that tag's date
+- When no previous release: Check if all user's PRs are in current release
 - Process in batches of 10 contributors
 - Much faster than commit checking
 
@@ -94,30 +99,30 @@ query {
 
 See implementation: [`scripts/investigation/test-batch-contributors.sh`](../scripts/investigation/test-batch-contributors.sh#L141-L146)
 
-#### 3. Algorithm for Batch Checking
+#### 3. Algorithm for Batch Checking (Implemented)
 
 ```javascript
-// Pseudocode for the batch checking algorithm
-function checkNewContributors(releaseContributors) {
+// Actual implementation approach
+function checkNewContributors(releaseContributors, prevReleaseDate) {
   const newContributors = []
 
   // Process in batches of 10 for efficiency
   for (const batch of chunk(releaseContributors, 10)) {
-    const query = buildBatchQuery(batch)
+    const query = buildBatchQuery(batch, prevReleaseDate)
     const results = await graphqlQuery(query)
 
     for (const contributor of batch) {
-      const prCount = results[contributor.alias].issueCount
-
-      if (prCount === 1) {
-        // Only 1 PR total = new contributor
-        newContributors.push(contributor)
-      } else if (prCount > 1) {
-        // Check if current PR is actually their first
-        const firstPR = results[contributor.alias].nodes[0]
-        if (firstPR.number === contributor.currentPR.number) {
+      if (prevReleaseDate) {
+        // Check if user has any PRs before the previous release date
+        const prsBeforeDate = results[contributor.alias].issueCount
+        if (prsBeforeDate === 0) {
+          // No PRs before prev release = new contributor
           newContributors.push(contributor)
         }
+      } else {
+        // No previous release - skip detection entirely
+        // (All contributors would appear as "new" without a baseline)
+        return []
       }
     }
   }
@@ -126,16 +131,21 @@ function checkNewContributors(releaseContributors) {
 }
 ```
 
-#### 4. Template Integration
+**Key Implementation Decisions:**
+- When no previous release exists, skip detection entirely to avoid marking everyone as new
+- Use date-based filtering when `--prev-tag` is available for accurate detection
+- Sort PRs by merge date to identify the earliest contribution
+
+#### 4. Template Integration (Implemented)
 
 ```markdown
 ## What's Changed
-$PULL_REQUESTS
 
-## New Contributors
+$CHANGES
+
 $NEW_CONTRIBUTORS
 
-**Full Changelog**: $CHANGELOG_URL
+**Full Changelog**: $FULL_CHANGELOG_LINK
 ```
 
 Generated output:
@@ -145,26 +155,44 @@ Generated output:
 * @another-user made their first contribution in https://github.com/org/repo/pull/456
 ```
 
-#### 5. JSON Output Structure
+**Special Behaviors:**
+- Empty placeholder is removed along with preceding whitespace/newline to avoid excessive empty lines
+- When no previous release exists, the section is omitted entirely
+- Bot accounts are properly marked with `isBot: true` in JSON output
+
+#### 5. JSON Output Structure (Implemented)
 
 ```json
 {
   "tag": "v1.0.0",
   "previousTag": "v0.9.0",
   "pullRequests": [...],
-  "newContributors": [
-    {
-      "login": "username",
-      "isBot": false,
-      "firstPullRequest": {
-        "number": 123,
-        "title": "Add new feature",
-        "url": "https://github.com/org/repo/pull/123"
+  "newContributors": {
+    "newContributors": [
+      {
+        "login": "username",
+        "isBot": false,
+        "firstPullRequest": {
+          "number": 123,
+          "title": "Add new feature",
+          "url": "https://github.com/org/repo/pull/123",
+          "mergedAt": "2024-01-15T10:00:00Z",
+          "author": {
+            "login": "username",
+            "__typename": "User"
+          }
+        }
       }
-    }
-  ]
+    ],
+    "totalContributors": 42
+  }
 }
 ```
+
+**Note:**
+- `pullRequests` array is NOT included in individual contributor objects (only `firstPullRequest`)
+- `apiCallsUsed` metric is logged in verbose mode but NOT included in JSON output
+- Returns `null` when no previous release exists
 
 ## Performance Analysis
 
@@ -195,13 +223,15 @@ Generated output:
 
 ## Implementation Considerations
 
-### Edge Cases
+### Edge Cases (All Handled)
 
-1. **Bot Accounts**: Must use `__typename` to detect and add `[bot]` suffix
-2. **Deleted Users**: Handle null author gracefully
-3. **Usernames with Numbers**: Prefix GraphQL aliases with `u_` (e.g., `0xFANGO` → `u_0xFANGO`)
-4. **Rate Limiting**: Implement exponential backoff
-5. **Large Releases**: May need to increase batch size or parallelize
+1. **Bot Accounts**: ✅ Uses `__typename` to detect and add `[bot]` suffix
+2. **Deleted Users**: ✅ Handles null author gracefully
+3. **Usernames with Numbers**: ✅ Prefix GraphQL aliases with `u_` (e.g., `0xFANGO` → `u_0xFANGO`)
+4. **Rate Limiting**: Standard GitHub API rate limiting applies
+5. **Large Releases**: ✅ Batch processing handles efficiently
+6. **No Previous Release**: ✅ Skips detection entirely (avoids marking all as new)
+7. **Empty Results**: ✅ Removes placeholder and preceding whitespace
 
 ### Configuration Options
 
@@ -249,13 +279,15 @@ All investigation scripts are located in [`scripts/investigation/`](../scripts/i
 
 4. **Search API Limitations**: The search API has a 1000 result limit, but this isn't an issue for our approach since we only check individual contributors.
 
-## Recommendations
+## Implementation Highlights
 
-1. **Use PR checking mode** for production (better performance)
-2. Always fetch `__typename` to properly handle bot accounts
-3. **Batch in groups of 10** for optimal API usage
-4. **Implement as opt-in feature** via template placeholder
-5. **Cache results** within a release generation session (not across sessions)
+1. ✅ **PR checking mode implemented** for optimal performance
+2. ✅ **`__typename` fetching** properly handles bot accounts
+3. ✅ **Batch processing** in groups of 10 for optimal API usage
+4. ✅ **Opt-in feature** via `$NEW_CONTRIBUTORS` template placeholder
+5. ✅ **Clean JSON output** without internal metrics (apiCallsUsed in verbose logs only)
+6. ✅ **Date-based filtering** when `--prev-tag` is available
+7. ✅ **Automatic skipping** when no previous release exists
 
 ## Future Enhancements
 
@@ -274,4 +306,11 @@ All investigation scripts are located in [`scripts/investigation/`](../scripts/i
 
 ## Conclusion
 
-The batch contributor checking approach provides an efficient, scalable solution for identifying new contributors. With proper bot handling and batching, it achieves excellent performance (1-5 seconds for typical releases) while maintaining accuracy. The investigation scripts demonstrate the superiority of this approach over alternatives and provide a solid foundation for implementation.
+The batch contributor checking approach has been successfully implemented, providing an efficient and scalable solution for identifying new contributors. Key achievements include:
+
+- **Performance**: 1-5 seconds for typical releases with hundreds of contributors
+- **Accuracy**: Proper handling of bot accounts, date-based filtering, and edge cases
+- **User Experience**: Clean JSON output, automatic placeholder removal, and intelligent skipping
+- **Scalability**: Batch processing ensures consistent performance regardless of repository age
+
+The implementation follows the design closely while adding refinements discovered during development, such as skipping detection when no baseline exists and cleaning up empty placeholders to improve output quality.
