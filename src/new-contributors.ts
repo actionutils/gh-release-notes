@@ -190,6 +190,7 @@ export async function findNewContributors(
 
 	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests);
 	const contributors = Array.from(contributorsMap.values());
+	logVerbose(`[New Contributors] Extracted ${contributors.length} unique contributors from PRs`);
 
 	const prNumbers = pullRequests.map((pr) => pr.number);
 	const releasePRNumbers = new Set(prNumbers);

@@ -10,6 +10,7 @@ import {
 	findNewContributors,
 	formatNewContributorsSection,
 } from "./new-contributors";
+import { logVerbose } from "./logger";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -309,17 +310,23 @@ export async function run(options: RunOptions) {
 		// Get the date of the previous release if available
 		const prevReleaseDate = lastRelease?.published_at || lastRelease?.created_at;
 
-		const newContributorsResult = await findNewContributors({
-			owner,
-			repo,
-			pullRequests: data.pullRequests,
-			token,
-			prevReleaseDate,
-		});
-		newContributorsSection = formatNewContributorsSection(
-			newContributorsResult.newContributors,
-		);
-		newContributorsData = newContributorsResult;
+		// Skip new contributors detection if no previous release exists
+		// Without a baseline, all contributors would be marked as "new"
+		if (prevReleaseDate) {
+			const newContributorsResult = await findNewContributors({
+				owner,
+				repo,
+				pullRequests: data.pullRequests,
+				token,
+				prevReleaseDate,
+			});
+			newContributorsSection = formatNewContributorsSection(
+				newContributorsResult.newContributors,
+			);
+			newContributorsData = newContributorsResult;
+		} else {
+			logVerbose("[New Contributors] Skipping detection - no previous release tag found");
+		}
 
 		// Replace $NEW_CONTRIBUTORS placeholder in the release body
 		if (releaseInfo.body && rdConfig.template?.includes("$NEW_CONTRIBUTORS")) {
