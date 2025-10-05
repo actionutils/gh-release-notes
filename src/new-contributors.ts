@@ -220,6 +220,8 @@ export async function findNewContributors(
 		Math.ceil(prNumbers.length / 50) +
 		Math.ceil(contributors.length / DEFAULT_BATCH_SIZE);
 
+	logVerbose(`[New Contributors] Total API calls used: ${apiCallsUsed}`);
+
 	return {
 		newContributors,
 		totalContributors: contributors.length,

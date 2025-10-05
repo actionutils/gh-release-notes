@@ -21,6 +21,13 @@ export interface NewContributor extends Contributor {
 	firstPullRequest: PullRequestInfo;
 }
 
+// Simplified version for JSON output (without internal details)
+export interface NewContributorOutput {
+	login: string;
+	isBot: boolean;
+	firstPullRequest: PullRequestInfo;
+}
+
 export interface ContributorCheckResult {
 	login: string;
 	isBot: boolean;
@@ -48,4 +55,10 @@ export interface NewContributorsResult {
 	newContributors: NewContributor[];
 	totalContributors: number;
 	apiCallsUsed: number;
+}
+
+// Result for JSON output (without internal metrics)
+export interface NewContributorsOutputResult {
+	newContributors: NewContributorOutput[];
+	totalContributors: number;
 }

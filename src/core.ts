@@ -347,11 +347,23 @@ export async function run(options: RunOptions) {
 		}
 	}
 
+	// Transform new contributors data for JSON output (remove internal details)
+	const newContributorsOutput = newContributorsData
+		? {
+				newContributors: newContributorsData.newContributors.map(c => ({
+					login: c.login,
+					isBot: c.isBot,
+					firstPullRequest: c.firstPullRequest,
+				})),
+				totalContributors: newContributorsData.totalContributors,
+		  }
+		: null;
+
 	return {
 		release: releaseInfo,
 		commits: data.commits,
 		pullRequests: data.pullRequests,
-		newContributors: newContributorsData,
+		newContributors: newContributorsOutput,
 		lastRelease: lastRelease
 			? {
 					id: lastRelease.id,
