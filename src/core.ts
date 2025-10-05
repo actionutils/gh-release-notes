@@ -308,7 +308,8 @@ export async function run(options: RunOptions) {
 			options.includeNewContributors)
 	) {
 		// Get the date of the previous release if available
-		const prevReleaseDate = lastRelease?.published_at || lastRelease?.created_at;
+		const prevReleaseDate =
+			lastRelease?.published_at || lastRelease?.created_at;
 
 		// Skip new contributors detection if no previous release exists
 		// Without a baseline, all contributors would be marked as "new"
@@ -325,7 +326,9 @@ export async function run(options: RunOptions) {
 			);
 			newContributorsData = newContributorsResult;
 		} else {
-			logVerbose("[New Contributors] Skipping detection - no previous release tag found");
+			logVerbose(
+				"[New Contributors] Skipping detection - no previous release tag found",
+			);
 		}
 
 		// Replace $NEW_CONTRIBUTORS placeholder in the release body
@@ -350,13 +353,13 @@ export async function run(options: RunOptions) {
 	// Transform new contributors data for JSON output (remove internal details)
 	const newContributorsOutput = newContributorsData
 		? {
-				newContributors: newContributorsData.newContributors.map(c => ({
+				newContributors: newContributorsData.newContributors.map((c) => ({
 					login: c.login,
 					isBot: c.isBot,
 					firstPullRequest: c.firstPullRequest,
 				})),
 				totalContributors: newContributorsData.totalContributors,
-		  }
+			}
 		: null;
 
 	return {

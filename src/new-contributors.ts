@@ -26,7 +26,6 @@ function generateAlias(login: string): string {
 	return login.replace(/[^a-zA-Z0-9_]/g, "_");
 }
 
-
 async function batchCheckContributors(
 	owner: string,
 	repo: string,
@@ -37,15 +36,26 @@ async function batchCheckContributors(
 ): Promise<ContributorCheckResult[]> {
 	const results: ContributorCheckResult[] = [];
 
-	logVerbose(`[New Contributors] Checking ${contributors.length} contributors for first-time contributions`);
+	logVerbose(
+		`[New Contributors] Checking ${contributors.length} contributors for first-time contributions`,
+	);
 	if (prevReleaseDate) {
-		logVerbose(`[New Contributors] Using previous release date: ${prevReleaseDate}`);
+		logVerbose(
+			`[New Contributors] Using previous release date: ${prevReleaseDate}`,
+		);
 	}
 
 	const batches = chunk(contributors, DEFAULT_BATCH_SIZE);
 	for (const batch of batches) {
-		const query = buildBatchContributorQuery(owner, repo, batch, prevReleaseDate);
-		logVerbose(`[New Contributors] Checking batch of ${batch.length} contributors: ${batch.map(c => c.login).join(', ')}`);
+		const query = buildBatchContributorQuery(
+			owner,
+			repo,
+			batch,
+			prevReleaseDate,
+		);
+		logVerbose(
+			`[New Contributors] Checking batch of ${batch.length} contributors: ${batch.map((c) => c.login).join(", ")}`,
+		);
 		const response = await graphqlFn(query);
 
 		for (const contributor of batch) {
@@ -53,7 +63,9 @@ async function batchCheckContributors(
 			const searchResult = response[alias];
 
 			if (!searchResult) {
-				logVerbose(`[New Contributors] No search result for ${contributor.login} (alias: ${alias})`);
+				logVerbose(
+					`[New Contributors] No search result for ${contributor.login} (alias: ${alias})`,
+				);
 				continue;
 			}
 
@@ -73,20 +85,27 @@ async function batchCheckContributors(
 					// Use the earliest PR from current release as their first contribution
 					isNewContributor = true;
 					// Sort PRs by mergedAt date to get the earliest one
-					const sortedPRs = [...contributorReleasePRs].sort((a, b) =>
-						new Date(a.mergedAt).getTime() - new Date(b.mergedAt).getTime()
+					const sortedPRs = [...contributorReleasePRs].sort(
+						(a, b) =>
+							new Date(a.mergedAt).getTime() - new Date(b.mergedAt).getTime(),
 					);
 					firstPullRequest = sortedPRs[0];
-					logVerbose(`[New Contributors] ${contributor.login} is a new contributor (0 PRs before ${prevReleaseDate})`);
+					logVerbose(
+						`[New Contributors] ${contributor.login} is a new contributor (0 PRs before ${prevReleaseDate})`,
+					);
 				} else {
-					logVerbose(`[New Contributors] ${contributor.login} is NOT new (${prsBeforeDate} PRs before ${prevReleaseDate})`);
+					logVerbose(
+						`[New Contributors] ${contributor.login} is NOT new (${prsBeforeDate} PRs before ${prevReleaseDate})`,
+					);
 				}
 			} else {
 				// When we don't have a previous release date, check if all PRs are in current release
 				const totalPRCount = searchResult.issueCount;
 				const releasePRCount = contributorReleasePRs.length;
 
-				logVerbose(`[New Contributors] ${contributor.login}: ${totalPRCount} total PRs found, ${releasePRCount} in current release`);
+				logVerbose(
+					`[New Contributors] ${contributor.login}: ${totalPRCount} total PRs found, ${releasePRCount} in current release`,
+				);
 
 				if (totalPRCount === 0) {
 					// No PRs found at all (shouldn't happen)
@@ -95,13 +114,18 @@ async function batchCheckContributors(
 					// All of user's PRs are in this release = new contributor
 					isNewContributor = true;
 					// Sort PRs by mergedAt date to get the earliest one
-					const sortedPRs = [...contributorReleasePRs].sort((a, b) =>
-						new Date(a.mergedAt).getTime() - new Date(b.mergedAt).getTime()
+					const sortedPRs = [...contributorReleasePRs].sort(
+						(a, b) =>
+							new Date(a.mergedAt).getTime() - new Date(b.mergedAt).getTime(),
 					);
 					firstPullRequest = sortedPRs[0];
-					logVerbose(`[New Contributors] ${contributor.login} is a new contributor (all ${totalPRCount} PRs are in this release)`);
+					logVerbose(
+						`[New Contributors] ${contributor.login} is a new contributor (all ${totalPRCount} PRs are in this release)`,
+					);
 				} else {
-					logVerbose(`[New Contributors] ${contributor.login} is NOT new (${totalPRCount} total PRs, only ${releasePRCount} in this release)`);
+					logVerbose(
+						`[New Contributors] ${contributor.login} is NOT new (${totalPRCount} total PRs, only ${releasePRCount} in this release)`,
+					);
 				}
 			}
 
@@ -160,7 +184,9 @@ export async function findNewContributors(
 	options: NewContributorsOptions,
 ): Promise<NewContributorsResult> {
 	const { owner, repo, pullRequests, token, prevReleaseDate } = options;
-	logVerbose(`[New Contributors] Starting detection for ${pullRequests.length} PRs in ${owner}/${repo}`);
+	logVerbose(
+		`[New Contributors] Starting detection for ${pullRequests.length} PRs in ${owner}/${repo}`,
+	);
 
 	const graphqlFn = async (query: string, variables?: any): Promise<any> => {
 		const res = await fetch("https://api.github.com/graphql", {
@@ -190,7 +216,9 @@ export async function findNewContributors(
 
 	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests);
 	const contributors = Array.from(contributorsMap.values());
-	logVerbose(`[New Contributors] Extracted ${contributors.length} unique contributors from PRs`);
+	logVerbose(
+		`[New Contributors] Extracted ${contributors.length} unique contributors from PRs`,
+	);
 
 	const prNumbers = pullRequests.map((pr) => pr.number);
 	const releasePRNumbers = new Set(prNumbers);
@@ -204,7 +232,9 @@ export async function findNewContributors(
 		prevReleaseDate,
 	);
 
-	logVerbose(`[New Contributors] Found ${checkResults.filter(r => r.isNewContributor).length} new contributors out of ${contributors.length} total`);
+	logVerbose(
+		`[New Contributors] Found ${checkResults.filter((r) => r.isNewContributor).length} new contributors out of ${contributors.length} total`,
+	);
 
 	const newContributors: NewContributor[] = checkResults
 		.filter((result) => result.isNewContributor && result.firstPullRequest)

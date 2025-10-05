@@ -195,11 +195,13 @@ describe("actionutils/gh-release-notes core", () => {
 					ok: true,
 					status: 200,
 					headers: new Map([["content-type", "application/json"]]),
-					json: async () => [{
-						tag_name: "v1.0.0",
-						published_at: "2023-12-01T00:00:00Z",
-						created_at: "2023-12-01T00:00:00Z",
-					}],
+					json: async () => [
+						{
+							tag_name: "v1.0.0",
+							published_at: "2023-12-01T00:00:00Z",
+							created_at: "2023-12-01T00:00:00Z",
+						},
+					],
 				};
 			}
 
@@ -230,7 +232,10 @@ describe("actionutils/gh-release-notes core", () => {
 																url: "https://github.com/owner/repo/pull/10",
 																merged_at: "2024-01-01T00:00:00Z",
 																merged: true,
-																author: { login: "newuser", __typename: "User" },
+																author: {
+																	login: "newuser",
+																	__typename: "User",
+																},
 																labels: { nodes: [] },
 																baseRepository: {
 																	nameWithOwner: `${owner}/${repo}`,
@@ -281,7 +286,6 @@ describe("actionutils/gh-release-notes core", () => {
 				prevTag: "v1.0.0",
 			});
 
-
 			expect(res.release.body).toContain("## New Contributors");
 			expect(res.release.body).toContain(
 				"@newuser made their first contribution",
@@ -329,7 +333,6 @@ describe("actionutils/gh-release-notes core", () => {
 				};
 			}
 
-
 			if (u.includes("/graphql")) {
 				graphqlCallCount++;
 
@@ -356,7 +359,9 @@ describe("actionutils/gh-release-notes core", () => {
 																merged: true,
 																author: { login: "user1", __typename: "User" },
 																labels: { nodes: [] },
-																baseRepository: { nameWithOwner: `${owner}/${repo}` },
+																baseRepository: {
+																	nameWithOwner: `${owner}/${repo}`,
+																},
 															},
 														],
 													},
@@ -442,14 +447,15 @@ describe("actionutils/gh-release-notes core", () => {
 					ok: true,
 					status: 200,
 					headers: new Map([["content-type", "application/json"]]),
-					json: async () => [{
-						tag_name: "v0.9.0",
-						published_at: "2023-11-01T00:00:00Z",
-						created_at: "2023-11-01T00:00:00Z",
-					}],
+					json: async () => [
+						{
+							tag_name: "v0.9.0",
+							published_at: "2023-11-01T00:00:00Z",
+							created_at: "2023-11-01T00:00:00Z",
+						},
+					],
 				};
 			}
-
 
 			if (u.includes("/graphql")) {
 				graphqlCallCount++;
@@ -477,7 +483,10 @@ describe("actionutils/gh-release-notes core", () => {
 																url: "https://github.com/owner/repo/pull/20",
 																merged_at: "2024-01-02T00:00:00Z",
 																merged: true,
-																author: { login: "github-actions", __typename: "Bot" },
+																author: {
+																	login: "github-actions",
+																	__typename: "Bot",
+																},
 																labels: { nodes: [] },
 																baseRepository: {
 																	nameWithOwner: `${owner}/${repo}`,
@@ -506,7 +515,8 @@ describe("actionutils/gh-release-notes core", () => {
 						status: 200,
 						json: async () => ({
 							data: {
-								github_actions: {  // The alias for github-actions becomes github_actions
+								github_actions: {
+									// The alias for github-actions becomes github_actions
 									issueCount: 0, // No PRs before the previous release date
 									nodes: [],
 								},
@@ -527,7 +537,6 @@ describe("actionutils/gh-release-notes core", () => {
 				includeNewContributors: true,
 				prevTag: "v0.9.0",
 			});
-
 
 			// Should have new contributors data even without placeholder
 			expect(res.newContributors).toBeDefined();
