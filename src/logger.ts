@@ -10,7 +10,8 @@ export function setVerbose(enabled: boolean): void {
 
 export function logVerbose(message: string): void {
 	if (verboseEnabled) {
-		process.stderr.write(`${message}\n`);
+		const prefix = `[${new Date().toISOString()}] `;
+		process.stderr.write(`${prefix}${message}\n`);
 	}
 }
 
