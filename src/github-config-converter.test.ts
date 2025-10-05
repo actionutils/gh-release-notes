@@ -237,6 +237,12 @@ describe("GitHub Config Converter", () => {
 		});
 
 		it("should warn about category-level exclusions", () => {
+			// Import setVerbose
+			const { setVerbose } = require("./logger");
+
+			// Enable verbose mode for this test
+			setVerbose(true);
+
 			// Capture stderr output
 			const originalStderr = process.stderr.write.bind(process.stderr);
 			let stderrOutput = "";
@@ -261,11 +267,13 @@ describe("GitHub Config Converter", () => {
 
 			convertGitHubToReleaseDrafter(githubConfig);
 
-			// Restore stderr
+			// Restore stderr and verbose mode
 			process.stderr.write = originalStderr;
+			setVerbose(false);
 
 			expect(stderrOutput).toContain("Other Changes");
-			expect(stderrOutput).toContain("Warning:");
+			// No longer expect "Warning:" prefix since it's now a verbose log
+			expect(stderrOutput).toContain("has exclusions which are not directly supported");
 		});
 	});
 
