@@ -5,6 +5,7 @@ export type ContributorWithAvatar = {
 	login: string;
 	isBot: boolean;
 	avatar_url: string;
+	html_url: string;
 };
 
 // Build minimal contributors list from merged PRs
@@ -39,13 +40,20 @@ export async function enrichContributorAvatars(
 	contributors: MinimalContributor[],
 	rest: (pathname: string) => Promise<any>,
 ): Promise<ContributorWithAvatar[]> {
-	const result: ContributorWithAvatar[] = contributors.map((c) => ({
-		login: c.login,
-		isBot: c.isBot,
-		avatar_url: c.isBot
-			? ""
-			: `https://github.com/${encodeURIComponent(c.login)}.png?size=64`,
-	}));
+	const result: ContributorWithAvatar[] = contributors.map((c) => {
+		const isBot = c.isBot;
+		const login = c.login;
+		const baseUserUrl = `https://github.com/${encodeURIComponent(login)}`;
+		const appLogin = login.replace(/\[bot\]$/i, "");
+		const baseAppUrl = `https://github.com/apps/${encodeURIComponent(appLogin)}`;
+
+		return {
+			login,
+			isBot,
+			avatar_url: isBot ? "" : `${baseUserUrl}.png?size=64`,
+			html_url: isBot ? baseAppUrl : baseUserUrl,
+		};
+	});
 
 	const botContributors = result.filter((c) => c.isBot);
 	if (botContributors.length === 0) return result;
