@@ -145,4 +145,176 @@ describe("actionutils/gh-release-notes core", () => {
 		// Just verify the tag was used (it affects the release generation)
 		expect(res.release.name).toBeDefined();
 	});
+
+	test("detects new contributors when $NEW_CONTRIBUTORS placeholder exists", async () => {
+		const cfgPath = path.resolve(import.meta.dir, "test-nc-config.yml");
+
+		fs.readFileSync = mock((p: any, enc: any) => {
+			if (p === cfgPath) return 'template: "## New Contributors\n$NEW_CONTRIBUTORS"\n';
+			return originalReadFileSync(p, enc);
+		}) as any;
+
+		// Override fetch mock to include PR data with authors
+		global.fetch = mock(async (url: any) => {
+			const u = url.toString();
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// GraphQL endpoint
+			if (u.includes("/graphql")) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							repository: {
+								object: {
+									history: {
+										nodes: [{
+											associatedPullRequests: {
+												nodes: [{
+													number: 10,
+													title: "First PR",
+													url: "https://github.com/owner/repo/pull/10",
+													merged_at: "2024-01-01T00:00:00Z",
+													author: { login: "newuser" },
+													labels: { nodes: [] },
+												}],
+											},
+										}],
+										pageInfo: {
+											hasNextPage: false,
+											endCursor: null,
+										},
+									},
+								},
+								pr10: {
+									number: 10,
+									title: "First PR",
+									url: "https://github.com/owner/repo/pull/10",
+									mergedAt: "2024-01-01T00:00:00Z",
+									author: { login: "newuser", __typename: "User" },
+								},
+							},
+							newuser: {
+								issueCount: 1,
+								nodes: [{
+									number: 10,
+									title: "First PR",
+									url: "https://github.com/owner/repo/pull/10",
+									mergedAt: "2024-01-01T00:00:00Z",
+								}],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		const { run } = await import(sourcePath);
+		const res = await run({
+			repo: `${owner}/${repo}`,
+			config: cfgPath,
+		});
+
+		expect(res.release.body).toContain("## New Contributors");
+		expect(res.release.body).toContain("@newuser made their first contribution");
+		expect(res.newContributors).toBeDefined();
+		expect(res.newContributors?.newContributors).toHaveLength(1);
+	});
+
+	test("includes new contributors when includeNewContributors flag is set", async () => {
+		const cfgPath = path.resolve(import.meta.dir, "test-basic-config.yml");
+
+		fs.readFileSync = mock((p: any, enc: any) => {
+			if (p === cfgPath) return 'template: "## Changes\n$PULL_REQUESTS"\n';
+			return originalReadFileSync(p, enc);
+		}) as any;
+
+		// Override fetch mock to include PR data
+		global.fetch = mock(async (url: any) => {
+			const u = url.toString();
+
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			if (u.includes("/graphql")) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							repository: {
+								object: {
+									history: {
+										nodes: [{
+											associatedPullRequests: {
+												nodes: [{
+													number: 20,
+													title: "Bot PR",
+													url: "https://github.com/owner/repo/pull/20",
+													merged_at: "2024-01-02T00:00:00Z",
+													author: { login: "github-actions" },
+													labels: { nodes: [] },
+												}],
+											},
+										}],
+										pageInfo: {
+											hasNextPage: false,
+											endCursor: null,
+										},
+									},
+								},
+								pr20: {
+									number: 20,
+									title: "Bot PR",
+									url: "https://github.com/owner/repo/pull/20",
+									mergedAt: "2024-01-02T00:00:00Z",
+									author: { login: "github-actions", __typename: "Bot" },
+								},
+							},
+							github_actions: {
+								issueCount: 1,
+								nodes: [{
+									number: 20,
+									title: "Bot PR",
+									url: "https://github.com/owner/repo/pull/20",
+									mergedAt: "2024-01-02T00:00:00Z",
+								}],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		const { run } = await import(sourcePath);
+		const res = await run({
+			repo: `${owner}/${repo}`,
+			config: cfgPath,
+			includeNewContributors: true,
+		});
+
+		// Should have new contributors data even without placeholder
+		expect(res.newContributors).toBeDefined();
+		expect(res.newContributors?.newContributors).toHaveLength(1);
+		expect(res.newContributors?.newContributors[0].login).toBe("github-actions");
+		expect(res.newContributors?.newContributors[0].isBot).toBe(true);
+	});
 });
