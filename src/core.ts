@@ -251,13 +251,17 @@ export async function run(options: RunOptions) {
 			logVerbose(`[Config] Using ${githubReleaseYamlPath}`);
 			cfg = parseConfigString(raw, githubReleaseYamlPath);
 		} else {
-			logVerbose("[Config] No local config found; using default fallback config");
+			logVerbose(
+				"[Config] No local config found; using default fallback config",
+			);
 			cfg = DEFAULT_FALLBACK_CONFIG;
 		}
 	}
 
 	// Convert GitHub format to release-drafter format if needed
-	logVerbose("[Config] Normalizing config (GitHub release.yml vs release-drafter)");
+	logVerbose(
+		"[Config] Normalizing config (GitHub release.yml vs release-drafter)",
+	);
 	cfg = normalizeConfig(cfg);
 
 	logVerbose(`[GitHub] Fetching repository info for ${owner}/${repo}`);
@@ -312,7 +316,9 @@ export async function run(options: RunOptions) {
 				? target || tag || defaultBranch
 				: tag || target || defaultBranch,
 		});
-		logVerbose(`[Template] Injecting FULL_CHANGELOG_LINK: ${fullChangelogLink}`);
+		logVerbose(
+			`[Template] Injecting FULL_CHANGELOG_LINK: ${fullChangelogLink}`,
+		);
 		rdConfig.template = rdConfig.template.replaceAll(
 			"$FULL_CHANGELOG_LINK",
 			fullChangelogLink,
