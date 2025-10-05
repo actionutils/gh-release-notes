@@ -14,50 +14,25 @@ describe("new-contributors", () => {
 					title: "Add new feature",
 					url: "https://github.com/owner/repo/pull/100",
 					merged_at: "2024-01-15T10:00:00Z",
-					author: { login: "user1" },
+					author: { login: "user1", __typename: "User" },
 				},
 				{
 					number: 101,
 					title: "Fix bug",
 					url: "https://github.com/owner/repo/pull/101",
 					merged_at: "2024-01-16T10:00:00Z",
-					author: { login: "existing-user" },
+					author: { login: "existing-user", __typename: "User" },
 				},
 				{
 					number: 102,
 					title: "Update docs",
 					url: "https://github.com/owner/repo/pull/102",
 					merged_at: "2024-01-17T10:00:00Z",
-					author: { login: "github-actions" },
+					author: { login: "github-actions", __typename: "Bot" },
 				},
 			];
 
 			const mockGraphQLResponses = [
-				{
-					repository: {
-						pr100: {
-							number: 100,
-							title: "Add new feature",
-							url: "https://github.com/owner/repo/pull/100",
-							mergedAt: "2024-01-15T10:00:00Z",
-							author: { login: "user1", __typename: "User" },
-						},
-						pr101: {
-							number: 101,
-							title: "Fix bug",
-							url: "https://github.com/owner/repo/pull/101",
-							mergedAt: "2024-01-16T10:00:00Z",
-							author: { login: "existing-user", __typename: "User" },
-						},
-						pr102: {
-							number: 102,
-							title: "Update docs",
-							url: "https://github.com/owner/repo/pull/102",
-							mergedAt: "2024-01-17T10:00:00Z",
-							author: { login: "github-actions", __typename: "Bot" },
-						},
-					},
-				},
 				{
 					user1: {
 						issueCount: 1,
@@ -159,22 +134,11 @@ describe("new-contributors", () => {
 					title: "Numeric user PR",
 					url: "https://github.com/owner/repo/pull/200",
 					merged_at: "2024-01-20T10:00:00Z",
-					author: { login: "0xFANGO" },
+					author: { login: "0xFANGO", __typename: "User" },
 				},
 			];
 
 			const mockGraphQLResponses = [
-				{
-					repository: {
-						pr200: {
-							number: 200,
-							title: "Numeric user PR",
-							url: "https://github.com/owner/repo/pull/200",
-							mergedAt: "2024-01-20T10:00:00Z",
-							author: { login: "0xFANGO", __typename: "User" },
-						},
-					},
-				},
 				{
 					u_0xFANGO: {
 						issueCount: 1,

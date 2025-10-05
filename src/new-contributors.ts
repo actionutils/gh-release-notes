@@ -1,7 +1,4 @@
-import {
-	buildBatchContributorQuery,
-	buildPullRequestAuthorQuery,
-} from "./graphql/new-contributors-queries";
+import { buildBatchContributorQuery } from "./graphql/new-contributors-queries";
 import type {
 	Contributor,
 	ContributorCheckResult,
@@ -29,33 +26,6 @@ function generateAlias(login: string): string {
 	return login.replace(/[^a-zA-Z0-9_]/g, "_");
 }
 
-async function fetchPullRequestAuthors(
-	owner: string,
-	repo: string,
-	prNumbers: number[],
-	graphqlFn: (query: string, variables?: any) => Promise<any>,
-): Promise<Map<number, { login: string; isBot: boolean }>> {
-	const authorsMap = new Map<number, { login: string; isBot: boolean }>();
-
-	logVerbose(`[New Contributors] Fetching author information for ${prNumbers.length} PRs`);
-	const batches = chunk(prNumbers, 50);
-	for (const batch of batches) {
-		const query = buildPullRequestAuthorQuery(owner, repo, batch);
-		const response = await graphqlFn(query);
-
-		for (const prNumber of batch) {
-			const pr = response.repository[`pr${prNumber}`];
-			if (pr?.author) {
-				authorsMap.set(prNumber, {
-					login: pr.author.login,
-					isBot: pr.author.__typename === "Bot",
-				});
-			}
-		}
-	}
-
-	return authorsMap;
-}
 
 async function batchCheckContributors(
 	owner: string,
@@ -121,24 +91,19 @@ function extractContributorsFromPRs(
 	owner: string,
 	repo: string,
 	pullRequests: any[],
-	authorsMap: Map<number, { login: string; isBot: boolean }>,
 ): Map<string, Contributor> {
 	const contributorsMap = new Map<string, Contributor>();
 
 	for (const pr of pullRequests) {
 		if (!pr.author?.login) continue;
 
-		const prNumber = pr.number;
-		const authorInfo = authorsMap.get(prNumber) || {
-			login: pr.author.login,
-			isBot: false,
-		};
+		const login = pr.author.login;
+		const isBot = pr.author.__typename === "Bot";
 
-		const login = authorInfo.login;
 		if (!contributorsMap.has(login)) {
 			contributorsMap.set(login, {
 				login,
-				isBot: authorInfo.isBot,
+				isBot,
 				pullRequests: [],
 			});
 		}
@@ -152,7 +117,7 @@ function extractContributorsFromPRs(
 			mergedAt: pr.merged_at || pr.mergedAt,
 			author: {
 				login,
-				__typename: authorInfo.isBot ? "Bot" : "User",
+				__typename: isBot ? "Bot" : "User",
 			},
 		});
 	}
@@ -192,17 +157,10 @@ export async function findNewContributors(
 		return payload.data;
 	};
 
-	const prNumbers = pullRequests.map((pr) => pr.number);
-	const authorsMap = await fetchPullRequestAuthors(
-		owner,
-		repo,
-		prNumbers,
-		graphqlFn,
-	);
-
-	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests, authorsMap);
+	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests);
 	const contributors = Array.from(contributorsMap.values());
 
+	const prNumbers = pullRequests.map((pr) => pr.number);
 	const releasePRNumbers = new Set(prNumbers);
 
 	const checkResults = await batchCheckContributors(

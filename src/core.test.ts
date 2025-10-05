@@ -208,7 +208,7 @@ describe("actionutils/gh-release-notes core", () => {
 																url: "https://github.com/owner/repo/pull/10",
 																merged_at: "2024-01-01T00:00:00Z",
 																merged: true,
-																author: { login: "newuser" },
+																author: { login: "newuser", __typename: "User" },
 																labels: { nodes: [] },
 																baseRepository: {
 																	nameWithOwner: `${owner}/${repo}`,
@@ -230,29 +230,8 @@ describe("actionutils/gh-release-notes core", () => {
 					};
 				}
 
-				// Second call: PR author fetch
+				// Second call: Batch contributor check
 				if (graphqlCallCount === 2) {
-					return {
-						ok: true,
-						status: 200,
-						json: async () => ({
-							data: {
-								repository: {
-									pr10: {
-										number: 10,
-										title: "First PR",
-										url: "https://github.com/owner/repo/pull/10",
-										mergedAt: "2024-01-01T00:00:00Z",
-										author: { login: "newuser", __typename: "User" },
-									},
-								},
-							},
-						}),
-					};
-				}
-
-				// Third call: Batch contributor check
-				if (graphqlCallCount === 3) {
 					return {
 						ok: true,
 						status: 200,
@@ -357,7 +336,7 @@ describe("actionutils/gh-release-notes core", () => {
 																url: "https://github.com/owner/repo/pull/20",
 																merged_at: "2024-01-02T00:00:00Z",
 																merged: true,
-																author: { login: "github-actions" },
+																author: { login: "github-actions", __typename: "Bot" },
 																labels: { nodes: [] },
 																baseRepository: {
 																	nameWithOwner: `${owner}/${repo}`,
@@ -379,29 +358,8 @@ describe("actionutils/gh-release-notes core", () => {
 					};
 				}
 
-				// Second call: PR author fetch
+				// Second call: Batch contributor check
 				if (graphqlCallCount === 2) {
-					return {
-						ok: true,
-						status: 200,
-						json: async () => ({
-							data: {
-								repository: {
-									pr20: {
-										number: 20,
-										title: "Bot PR",
-										url: "https://github.com/owner/repo/pull/20",
-										mergedAt: "2024-01-02T00:00:00Z",
-										author: { login: "github-actions", __typename: "Bot" },
-									},
-								},
-							},
-						}),
-					};
-				}
-
-				// Third call: Batch contributor check
-				if (graphqlCallCount === 3) {
 					return {
 						ok: true,
 						status: 200,
