@@ -273,7 +273,9 @@ describe("GitHub Config Converter", () => {
 
 			expect(stderrOutput).toContain("Other Changes");
 			// No longer expect "Warning:" prefix since it's now a verbose log
-			expect(stderrOutput).toContain("has exclusions which are not directly supported");
+			expect(stderrOutput).toContain(
+				"has exclusions which are not directly supported",
+			);
 		});
 	});
 
