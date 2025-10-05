@@ -45,7 +45,7 @@ describe("LocalConfigLoader", () => {
 				"non-existent-" + Date.now() + ".yaml",
 			);
 
-			await expect(loader.load(nonExistentPath)).rejects.toThrow(
+			expect(loader.load(nonExistentPath)).rejects.toThrow(
 				"Config file not found:",
 			);
 		});
@@ -56,7 +56,7 @@ describe("LocalConfigLoader", () => {
 			const loader = new LocalConfigLoader();
 
 			// Try to read a directory as a file
-			await expect(loader.load(tmpDir)).rejects.toThrow(
+			expect(loader.load(tmpDir)).rejects.toThrow(
 				"Failed to read config file:",
 			);
 
