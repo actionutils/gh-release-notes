@@ -70,7 +70,8 @@ async function main() {
 		})
 		.option("include-new-contributors", {
 			type: "boolean",
-			description: "Include new contributors section (overrides template)",
+			description:
+				"Force include new contributors data (mainly for JSON output)",
 			default: false,
 		})
 		.help("help")

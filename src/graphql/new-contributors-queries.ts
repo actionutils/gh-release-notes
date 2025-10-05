@@ -28,7 +28,7 @@ export function buildBatchContributorQuery(
 			return `
     ${alias}: search(
       query: "repo:${owner}/${repo} is:pr is:merged author:${searchLogin}${dateFilter}"
-      type: ISSUE
+      type: ISSUE  # GitHub GraphQL uses ISSUE type for both issues and PRs (is:pr filters for PRs)
       first: ${firstCount}
     ) {
       issueCount
