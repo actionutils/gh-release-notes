@@ -6,7 +6,10 @@ import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 import { ConfigLoaderFactory } from "./config-loader";
-import { findNewContributors, formatNewContributorsSection } from "./new-contributors";
+import {
+	findNewContributors,
+	formatNewContributorsSection,
+} from "./new-contributors";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -298,19 +301,28 @@ export async function run(options: RunOptions) {
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
 	let newContributorsData = null;
-	if (rdConfig.template && (rdConfig.template.includes("$NEW_CONTRIBUTORS") || options.includeNewContributors)) {
+	if (
+		rdConfig.template &&
+		(rdConfig.template.includes("$NEW_CONTRIBUTORS") ||
+			options.includeNewContributors)
+	) {
 		const newContributorsResult = await findNewContributors({
 			owner,
 			repo,
 			pullRequests: data.pullRequests,
 			token,
 		});
-		newContributorsSection = formatNewContributorsSection(newContributorsResult.newContributors);
+		newContributorsSection = formatNewContributorsSection(
+			newContributorsResult.newContributors,
+		);
 		newContributorsData = newContributorsResult;
 
 		// Replace $NEW_CONTRIBUTORS placeholder in the release body
 		if (releaseInfo.body && rdConfig.template?.includes("$NEW_CONTRIBUTORS")) {
-			releaseInfo.body = releaseInfo.body.replace("$NEW_CONTRIBUTORS", newContributorsSection);
+			releaseInfo.body = releaseInfo.body.replace(
+				"$NEW_CONTRIBUTORS",
+				newContributorsSection,
+			);
 		}
 	}
 

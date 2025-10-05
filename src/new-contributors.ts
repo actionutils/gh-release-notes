@@ -145,7 +145,9 @@ function extractContributorsFromPRs(
 		contributor.pullRequests.push({
 			number: pr.number,
 			title: pr.title,
-			url: pr.url || `https://github.com/${pr.base?.repo?.full_name}/pull/${pr.number}`,
+			url:
+				pr.url ||
+				`https://github.com/${pr.base?.repo?.full_name}/pull/${pr.number}`,
 			mergedAt: pr.merged_at || pr.mergedAt,
 			author: {
 				login,
@@ -181,7 +183,9 @@ export async function findNewContributors(
 
 		const payload: any = await res.json();
 		if (payload.errors) {
-			throw new Error(`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`);
+			throw new Error(
+				`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`,
+			);
 		}
 		return payload.data;
 	};
@@ -217,7 +221,9 @@ export async function findNewContributors(
 		}))
 		.sort((a, b) => a.login.localeCompare(b.login));
 
-	const apiCallsUsed = Math.ceil(prNumbers.length / 50) + Math.ceil(contributors.length / DEFAULT_BATCH_SIZE);
+	const apiCallsUsed =
+		Math.ceil(prNumbers.length / 50) +
+		Math.ceil(contributors.length / DEFAULT_BATCH_SIZE);
 
 	return {
 		newContributors,

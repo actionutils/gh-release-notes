@@ -105,7 +105,8 @@ describe("new-contributors", () => {
 			const mockFetch = mock(() => {
 				return Promise.resolve({
 					ok: true,
-					json: () => Promise.resolve({ data: mockGraphQLResponses[callIndex++] }),
+					json: () =>
+						Promise.resolve({ data: mockGraphQLResponses[callIndex++] }),
 					text: () => Promise.resolve(""),
 				});
 			});
@@ -193,7 +194,8 @@ describe("new-contributors", () => {
 			const mockFetch = mock(() => {
 				return Promise.resolve({
 					ok: true,
-					json: () => Promise.resolve({ data: mockGraphQLResponses[callIndex++] }),
+					json: () =>
+						Promise.resolve({ data: mockGraphQLResponses[callIndex++] }),
 					text: () => Promise.resolve(""),
 				});
 			});
@@ -244,8 +246,12 @@ describe("new-contributors", () => {
 			const formatted = formatNewContributorsSection(newContributors);
 
 			expect(formatted).toContain("## New Contributors");
-			expect(formatted).toContain("@user1 made their first contribution in https://github.com/owner/repo/pull/100");
-			expect(formatted).toContain("@bot-user made their first contribution in https://github.com/owner/repo/pull/101");
+			expect(formatted).toContain(
+				"@user1 made their first contribution in https://github.com/owner/repo/pull/100",
+			);
+			expect(formatted).toContain(
+				"@bot-user made their first contribution in https://github.com/owner/repo/pull/101",
+			);
 		});
 
 		it("should return empty string for no new contributors", () => {

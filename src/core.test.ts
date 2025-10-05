@@ -152,7 +152,10 @@ describe("actionutils/gh-release-notes core", () => {
 		// Create a real temp file for the config
 		const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "test-nc-"));
 		const cfgPath = path.join(tmpDir, "test-nc-config.yml");
-		await fsPromises.writeFile(cfgPath, 'template: "## New Contributors\n$NEW_CONTRIBUTORS"\n');
+		await fsPromises.writeFile(
+			cfgPath,
+			'template: "## New Contributors\n$NEW_CONTRIBUTORS"\n',
+		);
 
 		// Override fetch mock to include PR data with authors
 		let graphqlCallCount = 0;
@@ -192,25 +195,29 @@ describe("actionutils/gh-release-notes core", () => {
 								repository: {
 									object: {
 										history: {
-											nodes: [{
-												author: {
-													user: null,
+											nodes: [
+												{
+													author: {
+														user: null,
+													},
+													associatedPullRequests: {
+														nodes: [
+															{
+																number: 10,
+																title: "First PR",
+																url: "https://github.com/owner/repo/pull/10",
+																merged_at: "2024-01-01T00:00:00Z",
+																merged: true,
+																author: { login: "newuser" },
+																labels: { nodes: [] },
+																baseRepository: {
+																	nameWithOwner: `${owner}/${repo}`,
+																},
+															},
+														],
+													},
 												},
-												associatedPullRequests: {
-													nodes: [{
-														number: 10,
-														title: "First PR",
-														url: "https://github.com/owner/repo/pull/10",
-														merged_at: "2024-01-01T00:00:00Z",
-														merged: true,
-														author: { login: "newuser" },
-														labels: { nodes: [] },
-														baseRepository: {
-															nameWithOwner: `${owner}/${repo}`,
-														},
-													}],
-												},
-											}],
+											],
 											pageInfo: {
 												hasNextPage: false,
 												endCursor: null,
@@ -253,12 +260,14 @@ describe("actionutils/gh-release-notes core", () => {
 							data: {
 								newuser: {
 									issueCount: 1,
-									nodes: [{
-										number: 10,
-										title: "First PR",
-										url: "https://github.com/owner/repo/pull/10",
-										mergedAt: "2024-01-01T00:00:00Z",
-									}],
+									nodes: [
+										{
+											number: 10,
+											title: "First PR",
+											url: "https://github.com/owner/repo/pull/10",
+											mergedAt: "2024-01-01T00:00:00Z",
+										},
+									],
 								},
 							},
 						}),
@@ -277,7 +286,9 @@ describe("actionutils/gh-release-notes core", () => {
 			});
 
 			expect(res.release.body).toContain("## New Contributors");
-			expect(res.release.body).toContain("@newuser made their first contribution");
+			expect(res.release.body).toContain(
+				"@newuser made their first contribution",
+			);
 			expect(res.newContributors).toBeDefined();
 			expect(res.newContributors?.newContributors).toHaveLength(1);
 		} finally {
@@ -288,9 +299,14 @@ describe("actionutils/gh-release-notes core", () => {
 
 	test("includes new contributors when includeNewContributors flag is set", async () => {
 		// Create a real temp file for the config
-		const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "test-basic-"));
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-basic-"),
+		);
 		const cfgPath = path.join(tmpDir, "test-basic-config.yml");
-		await fsPromises.writeFile(cfgPath, 'template: "## Changes\n$PULL_REQUESTS"\n');
+		await fsPromises.writeFile(
+			cfgPath,
+			'template: "## Changes\n$PULL_REQUESTS"\n',
+		);
 
 		// Override fetch mock to include PR data
 		let graphqlCallCount = 0;
@@ -328,25 +344,29 @@ describe("actionutils/gh-release-notes core", () => {
 								repository: {
 									object: {
 										history: {
-											nodes: [{
-												author: {
-													user: null,
+											nodes: [
+												{
+													author: {
+														user: null,
+													},
+													associatedPullRequests: {
+														nodes: [
+															{
+																number: 20,
+																title: "Bot PR",
+																url: "https://github.com/owner/repo/pull/20",
+																merged_at: "2024-01-02T00:00:00Z",
+																merged: true,
+																author: { login: "github-actions" },
+																labels: { nodes: [] },
+																baseRepository: {
+																	nameWithOwner: `${owner}/${repo}`,
+																},
+															},
+														],
+													},
 												},
-												associatedPullRequests: {
-													nodes: [{
-														number: 20,
-														title: "Bot PR",
-														url: "https://github.com/owner/repo/pull/20",
-														merged_at: "2024-01-02T00:00:00Z",
-														merged: true,
-														author: { login: "github-actions" },
-														labels: { nodes: [] },
-														baseRepository: {
-															nameWithOwner: `${owner}/${repo}`,
-														},
-													}],
-												},
-											}],
+											],
 											pageInfo: {
 												hasNextPage: false,
 												endCursor: null,
@@ -389,12 +409,14 @@ describe("actionutils/gh-release-notes core", () => {
 							data: {
 								github_actions: {
 									issueCount: 1,
-									nodes: [{
-										number: 20,
-										title: "Bot PR",
-										url: "https://github.com/owner/repo/pull/20",
-										mergedAt: "2024-01-02T00:00:00Z",
-									}],
+									nodes: [
+										{
+											number: 20,
+											title: "Bot PR",
+											url: "https://github.com/owner/repo/pull/20",
+											mergedAt: "2024-01-02T00:00:00Z",
+										},
+									],
 								},
 							},
 						}),
@@ -416,7 +438,9 @@ describe("actionutils/gh-release-notes core", () => {
 			// Should have new contributors data even without placeholder
 			expect(res.newContributors).toBeDefined();
 			expect(res.newContributors?.newContributors).toHaveLength(1);
-			expect(res.newContributors?.newContributors[0].login).toBe("github-actions");
+			expect(res.newContributors?.newContributors[0].login).toBe(
+				"github-actions",
+			);
 			expect(res.newContributors?.newContributors[0].isBot).toBe(true);
 		} finally {
 			// Cleanup
