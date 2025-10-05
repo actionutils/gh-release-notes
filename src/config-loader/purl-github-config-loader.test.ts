@@ -38,9 +38,9 @@ describe("PurlGitHubConfigLoader", () => {
 		test("throws when subpath is missing with version", async () => {
 			const loader = new PurlGitHubConfigLoader("test-token");
 
-			expect(
-				loader.load("pkg:github/owner/repo@v1.0.0"),
-			).rejects.toThrow("purl must include a subpath");
+			expect(loader.load("pkg:github/owner/repo@v1.0.0")).rejects.toThrow(
+				"purl must include a subpath",
+			);
 		});
 	});
 
