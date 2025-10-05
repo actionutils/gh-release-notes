@@ -329,6 +329,7 @@ describe("actionutils/gh-release-notes core", () => {
 				};
 			}
 
+
 			if (u.includes("/graphql")) {
 				graphqlCallCount++;
 
@@ -419,20 +420,6 @@ describe("actionutils/gh-release-notes core", () => {
 				};
 			}
 
-			// Releases list - return a previous release for baseline
-			if (u.includes("/releases")) {
-				return {
-					ok: true,
-					status: 200,
-					headers: new Map([["content-type", "application/json"]]),
-					json: async () => [{
-						tag_name: "v0.9.0",
-						published_at: "2023-11-01T00:00:00Z",
-						created_at: "2023-11-01T00:00:00Z",
-					}],
-				};
-			}
-
 			// Get release by tag for v0.9.0
 			if (u.includes("/releases/tags/v0.9.0")) {
 				const releaseData = {
@@ -448,6 +435,21 @@ describe("actionutils/gh-release-notes core", () => {
 					text: async () => JSON.stringify(releaseData),
 				};
 			}
+
+			// Releases list - return a previous release for baseline
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [{
+						tag_name: "v0.9.0",
+						published_at: "2023-11-01T00:00:00Z",
+						created_at: "2023-11-01T00:00:00Z",
+					}],
+				};
+			}
+
 
 			if (u.includes("/graphql")) {
 				graphqlCallCount++;
@@ -525,6 +527,7 @@ describe("actionutils/gh-release-notes core", () => {
 				includeNewContributors: true,
 				prevTag: "v0.9.0",
 			});
+
 
 			// Should have new contributors data even without placeholder
 			expect(res.newContributors).toBeDefined();
