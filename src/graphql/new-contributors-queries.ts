@@ -15,16 +15,21 @@ export function buildBatchContributorQuery(
 	owner: string,
 	repo: string,
 	contributors: Contributor[],
+	beforeDate?: string,
 ): string {
 	const searchQueries = contributors
 		.map((contributor) => {
 			const alias = generateAlias(contributor.login);
 			const searchLogin = getSearchLogin(contributor);
+			// If we have a beforeDate, search for PRs merged before that date
+			// Otherwise, search for all merged PRs (for detecting first-time contributors)
+			const dateFilter = beforeDate ? ` merged:<${beforeDate}` : "";
+			const firstCount = beforeDate ? 1 : 2; // We only need to know if they have ANY PRs before the date
 			return `
     ${alias}: search(
-      query: "repo:${owner}/${repo} is:pr is:merged author:${searchLogin}"
+      query: "repo:${owner}/${repo} is:pr is:merged author:${searchLogin}${dateFilter}"
       type: ISSUE
-      first: 2
+      first: ${firstCount}
     ) {
       issueCount
       nodes {

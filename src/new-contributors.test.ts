@@ -127,6 +127,72 @@ describe("new-contributors", () => {
 			expect(result.apiCallsUsed).toBe(0);
 		});
 
+		it("should identify new contributors with prev release date", async () => {
+			const mockPullRequests = [
+				{
+					number: 200,
+					title: "New feature from new contributor",
+					url: "https://github.com/owner/repo/pull/200",
+					merged_at: "2024-02-15T10:00:00Z",
+					author: { login: "newuser", __typename: "User" },
+				},
+				{
+					number: 201,
+					title: "Another PR from existing user",
+					url: "https://github.com/owner/repo/pull/201",
+					merged_at: "2024-02-16T10:00:00Z",
+					author: { login: "olduser", __typename: "User" },
+				},
+			];
+
+			const mockGraphQLResponses = [
+				{
+					newuser: {
+						issueCount: 0, // No PRs before the prev release date
+						nodes: [],
+					},
+					olduser: {
+						issueCount: 3, // Has PRs before the prev release date
+						nodes: [
+							{
+								number: 150,
+								title: "Old PR",
+								url: "https://github.com/owner/repo/pull/150",
+								mergedAt: "2024-01-05T10:00:00Z",
+							},
+						],
+					},
+				},
+			];
+
+			let callIndex = 0;
+			const mockFetch = mock(() => {
+				return Promise.resolve({
+					ok: true,
+					json: () =>
+						Promise.resolve({ data: mockGraphQLResponses[callIndex++] }),
+					text: () => Promise.resolve(""),
+				});
+			});
+
+			global.fetch = mockFetch as any;
+
+			const result = await findNewContributors({
+				owner: "owner",
+				repo: "repo",
+				pullRequests: mockPullRequests,
+				token: "test-token",
+				prevReleaseDate: "2024-02-01T00:00:00Z",
+			});
+
+			expect(result.newContributors).toHaveLength(1);
+			expect(result.newContributors[0].login).toBe("newuser");
+			expect(result.newContributors[0].isBot).toBe(false);
+			expect(result.newContributors[0].firstPullRequest.number).toBe(200);
+			expect(result.totalContributors).toBe(2);
+			expect(result.apiCallsUsed).toBe(2);
+		});
+
 		it("should handle contributors with numeric usernames", async () => {
 			const mockPullRequests = [
 				{

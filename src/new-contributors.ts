@@ -33,13 +33,18 @@ async function batchCheckContributors(
 	contributors: Contributor[],
 	releasePRNumbers: Set<number>,
 	graphqlFn: (query: string, variables?: any) => Promise<any>,
+	prevReleaseDate?: string,
 ): Promise<ContributorCheckResult[]> {
 	const results: ContributorCheckResult[] = [];
 
 	logVerbose(`[New Contributors] Checking ${contributors.length} contributors for first-time contributions`);
+	if (prevReleaseDate) {
+		logVerbose(`[New Contributors] Using previous release date: ${prevReleaseDate}`);
+	}
+
 	const batches = chunk(contributors, DEFAULT_BATCH_SIZE);
 	for (const batch of batches) {
-		const query = buildBatchContributorQuery(owner, repo, batch);
+		const query = buildBatchContributorQuery(owner, repo, batch, prevReleaseDate);
 		logVerbose(`[New Contributors] Checking batch of ${batch.length} contributors: ${batch.map(c => c.login).join(', ')}`);
 		const response = await graphqlFn(query);
 
@@ -52,33 +57,59 @@ async function batchCheckContributors(
 				continue;
 			}
 
-			const totalPRCount = searchResult.issueCount;
-			logVerbose(`[New Contributors] ${contributor.login}: ${totalPRCount} total PRs found`);
 			const contributorReleasePRs = contributor.pullRequests.filter((pr) =>
 				releasePRNumbers.has(pr.number),
 			);
-			const releasePRCount = contributorReleasePRs.length;
 
 			let isNewContributor = false;
 			let firstPullRequest: PullRequestInfo | undefined;
 
-			if (totalPRCount === 0) {
-				// No PRs found at all (shouldn't happen)
-				continue;
-			} else if (totalPRCount === releasePRCount) {
-				// All of user's PRs are in this release = new contributor
-				isNewContributor = true;
-				firstPullRequest = contributorReleasePRs[0];
-				logVerbose(`[New Contributors] ${contributor.login} is a new contributor (${totalPRCount} total PRs, all in this release)`);
-			} else if (totalPRCount > releasePRCount) {
-				logVerbose(`[New Contributors] ${contributor.login} is NOT new (${totalPRCount} total PRs, ${releasePRCount} in this release)`);
+			if (prevReleaseDate) {
+				// When we have a previous release date, check if user has any PRs before that date
+				const prsBeforeDate = searchResult.issueCount;
+
+				if (prsBeforeDate === 0) {
+					// No PRs before the prev release = new contributor
+					// Use the earliest PR from current release as their first contribution
+					isNewContributor = true;
+					// Sort PRs by mergedAt date to get the earliest one
+					const sortedPRs = [...contributorReleasePRs].sort((a, b) =>
+						new Date(a.mergedAt).getTime() - new Date(b.mergedAt).getTime()
+					);
+					firstPullRequest = sortedPRs[0];
+					logVerbose(`[New Contributors] ${contributor.login} is a new contributor (0 PRs before ${prevReleaseDate})`);
+				} else {
+					logVerbose(`[New Contributors] ${contributor.login} is NOT new (${prsBeforeDate} PRs before ${prevReleaseDate})`);
+				}
+			} else {
+				// When we don't have a previous release date, check if all PRs are in current release
+				const totalPRCount = searchResult.issueCount;
+				const releasePRCount = contributorReleasePRs.length;
+
+				logVerbose(`[New Contributors] ${contributor.login}: ${totalPRCount} total PRs found, ${releasePRCount} in current release`);
+
+				if (totalPRCount === 0) {
+					// No PRs found at all (shouldn't happen)
+					continue;
+				} else if (totalPRCount === releasePRCount) {
+					// All of user's PRs are in this release = new contributor
+					isNewContributor = true;
+					// Sort PRs by mergedAt date to get the earliest one
+					const sortedPRs = [...contributorReleasePRs].sort((a, b) =>
+						new Date(a.mergedAt).getTime() - new Date(b.mergedAt).getTime()
+					);
+					firstPullRequest = sortedPRs[0];
+					logVerbose(`[New Contributors] ${contributor.login} is a new contributor (all ${totalPRCount} PRs are in this release)`);
+				} else {
+					logVerbose(`[New Contributors] ${contributor.login} is NOT new (${totalPRCount} total PRs, only ${releasePRCount} in this release)`);
+				}
 			}
 
 			results.push({
 				login: contributor.login,
 				isBot: contributor.isBot,
 				isNewContributor,
-				prCount: totalPRCount,
+				prCount: searchResult.issueCount,
 				firstPullRequest,
 			});
 		}
@@ -128,7 +159,7 @@ function extractContributorsFromPRs(
 export async function findNewContributors(
 	options: NewContributorsOptions,
 ): Promise<NewContributorsResult> {
-	const { owner, repo, pullRequests, token } = options;
+	const { owner, repo, pullRequests, token, prevReleaseDate } = options;
 	logVerbose(`[New Contributors] Starting detection for ${pullRequests.length} PRs in ${owner}/${repo}`);
 
 	const graphqlFn = async (query: string, variables?: any): Promise<any> => {
@@ -169,6 +200,7 @@ export async function findNewContributors(
 		contributors,
 		releasePRNumbers,
 		graphqlFn,
+		prevReleaseDate,
 	);
 
 	logVerbose(`[New Contributors] Found ${checkResults.filter(r => r.isNewContributor).length} new contributors out of ${contributors.length} total`);

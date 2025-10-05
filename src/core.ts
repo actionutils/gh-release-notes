@@ -306,11 +306,15 @@ export async function run(options: RunOptions) {
 		(rdConfig.template.includes("$NEW_CONTRIBUTORS") ||
 			options.includeNewContributors)
 	) {
+		// Get the date of the previous release if available
+		const prevReleaseDate = lastRelease?.published_at || lastRelease?.created_at;
+
 		const newContributorsResult = await findNewContributors({
 			owner,
 			repo,
 			pullRequests: data.pullRequests,
 			token,
+			prevReleaseDate,
 		});
 		newContributorsSection = formatNewContributorsSection(
 			newContributorsResult.newContributors,

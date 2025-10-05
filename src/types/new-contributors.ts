@@ -41,6 +41,7 @@ export interface NewContributorsOptions {
 	repo: string;
 	pullRequests: any[];
 	token: string;
+	prevReleaseDate?: string;
 }
 
 export interface NewContributorsResult {
