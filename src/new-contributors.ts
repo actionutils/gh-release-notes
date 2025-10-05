@@ -10,6 +10,7 @@ import type {
 	NewContributorsResult,
 	PullRequestInfo,
 } from "./types/new-contributors";
+import { logVerbose } from "./logger";
 
 const DEFAULT_BATCH_SIZE = 10;
 
@@ -36,6 +37,7 @@ async function fetchPullRequestAuthors(
 ): Promise<Map<number, { login: string; isBot: boolean }>> {
 	const authorsMap = new Map<number, { login: string; isBot: boolean }>();
 
+	logVerbose(`[New Contributors] Fetching author information for ${prNumbers.length} PRs`);
 	const batches = chunk(prNumbers, 50);
 	for (const batch of batches) {
 		const query = buildPullRequestAuthorQuery(owner, repo, batch);
@@ -64,9 +66,11 @@ async function batchCheckContributors(
 ): Promise<ContributorCheckResult[]> {
 	const results: ContributorCheckResult[] = [];
 
+	logVerbose(`[New Contributors] Checking ${contributors.length} contributors for first-time contributions`);
 	const batches = chunk(contributors, DEFAULT_BATCH_SIZE);
 	for (const batch of batches) {
 		const query = buildBatchContributorQuery(owner, repo, batch);
+		logVerbose(`[New Contributors] Checking batch of ${batch.length} contributors: ${batch.map(c => c.login).join(', ')}`);
 		const response = await graphqlFn(query);
 
 		for (const contributor of batch) {
@@ -74,10 +78,12 @@ async function batchCheckContributors(
 			const searchResult = response[alias];
 
 			if (!searchResult) {
+				logVerbose(`[New Contributors] No search result for ${contributor.login} (alias: ${alias})`);
 				continue;
 			}
 
 			const totalPRCount = searchResult.issueCount;
+			logVerbose(`[New Contributors] ${contributor.login}: ${totalPRCount} total PRs found`);
 			const contributorReleasePRs = contributor.pullRequests.filter((pr) =>
 				releasePRNumbers.has(pr.number),
 			);
@@ -87,21 +93,15 @@ async function batchCheckContributors(
 			let firstPullRequest: PullRequestInfo | undefined;
 
 			if (totalPRCount === 0) {
+				// No PRs found at all (shouldn't happen)
 				continue;
 			} else if (totalPRCount === releasePRCount) {
+				// All of user's PRs are in this release = new contributor
 				isNewContributor = true;
 				firstPullRequest = contributorReleasePRs[0];
-			} else if (searchResult.nodes && searchResult.nodes.length > 0) {
-				const historicalPRs = searchResult.nodes;
-				const allPRNumbers = new Set([
-					...historicalPRs.map((pr: any) => pr.number),
-					...contributorReleasePRs.map((pr) => pr.number),
-				]);
-
-				if (allPRNumbers.size === releasePRCount) {
-					isNewContributor = true;
-					firstPullRequest = contributorReleasePRs[0];
-				}
+				logVerbose(`[New Contributors] ${contributor.login} is a new contributor (${totalPRCount} total PRs, all in this release)`);
+			} else if (totalPRCount > releasePRCount) {
+				logVerbose(`[New Contributors] ${contributor.login} is NOT new (${totalPRCount} total PRs, ${releasePRCount} in this release)`);
 			}
 
 			results.push({
@@ -164,6 +164,7 @@ export async function findNewContributors(
 	options: NewContributorsOptions,
 ): Promise<NewContributorsResult> {
 	const { owner, repo, pullRequests, token } = options;
+	logVerbose(`[New Contributors] Starting detection for ${pullRequests.length} PRs in ${owner}/${repo}`);
 
 	const graphqlFn = async (query: string, variables?: any): Promise<any> => {
 		const res = await fetch("https://api.github.com/graphql", {
@@ -211,6 +212,8 @@ export async function findNewContributors(
 		releasePRNumbers,
 		graphqlFn,
 	);
+
+	logVerbose(`[New Contributors] Found ${checkResults.filter(r => r.isNewContributor).length} new contributors out of ${contributors.length} total`);
 
 	const newContributors: NewContributor[] = checkResults
 		.filter((result) => result.isNewContributor && result.firstPullRequest)
