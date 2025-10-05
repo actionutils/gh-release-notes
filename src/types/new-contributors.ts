@@ -23,9 +23,10 @@ export interface NewContributor extends Contributor {
 
 // Simplified version for JSON output (without internal details)
 export interface NewContributorOutput {
-	login: string;
-	isBot: boolean;
-	firstPullRequest: PullRequestInfo;
+    login: string;
+    isBot: boolean;
+    firstPullRequest: PullRequestInfo;
+    avatar_url?: string;
 }
 
 export interface ContributorCheckResult {

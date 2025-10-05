@@ -430,17 +430,23 @@ export async function run(options: RunOptions) {
 		(pathname) => ghRest(pathname, { token }),
 	);
 
-	// Transform new contributors data for JSON output (remove internal details)
-	const newContributorsOutput = newContributorsData
-		? {
-				newContributors: newContributorsData.newContributors.map((c) => ({
-					login: c.login,
-					isBot: c.isBot,
-					firstPullRequest: c.firstPullRequest,
-				})),
-				totalContributors: newContributorsData.totalContributors,
-			}
-		: null;
+    // Transform new contributors data for JSON output (remove internal details)
+    // Also attach avatar_url by reusing the already-resolved contributors list
+    const avatarMap = new Map<string, string>();
+    for (const c of contributors) {
+        if (c.avatar_url) avatarMap.set(c.login, c.avatar_url);
+    }
+    const newContributorsOutput = newContributorsData
+        ? {
+                newContributors: newContributorsData.newContributors.map((c) => ({
+                    login: c.login,
+                    isBot: c.isBot,
+                    firstPullRequest: c.firstPullRequest,
+                    avatar_url: avatarMap.get(c.login),
+                })),
+                totalContributors: newContributorsData.totalContributors,
+            }
+        : null;
 
 	logVerbose("[Run] Completed successfully");
 	return {
