@@ -158,8 +158,12 @@ async function main() {
 			// This avoids leaking release-creation specific or internal fields
 			// from release-drafter internals (e.g., draft, make_latest, prerelease,
 			// resolvedVersion, majorVersion, minorVersion, patchVersion, etc.).
-			const { name, tag, body, targetCommitish: releaseTargetCommitish } =
-				(result.release as any) as Record<string, any>;
+			const {
+				name,
+				tag,
+				body,
+				targetCommitish: releaseTargetCommitish,
+			} = result.release as any as Record<string, any>;
 			const allowlistedRelease = {
 				name,
 				tag,
