@@ -2,7 +2,7 @@
  * Converts GitHub's official release.yml format to release-drafter format
  */
 
-import { logVerbose, logWarning } from "./logger";
+import { logVerbose } from "./logger";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 
 interface GitHubReleaseCategory {
@@ -102,7 +102,7 @@ export function convertGitHubToReleaseDrafter(
 				// However, for wildcard categories, release-drafter's behavior of only including
 				// uncategorized items effectively provides similar filtering
 				if (category.exclude?.labels || category.exclude?.authors) {
-					logWarning(
+					logVerbose(
 						`Category "${category.title}" has exclusions which are not directly supported by release-drafter. ` +
 							"Global exclusions will be applied instead. " +
 							(category.labels?.includes("*")
