@@ -118,6 +118,8 @@ async function batchCheckContributors(
 }
 
 function extractContributorsFromPRs(
+	owner: string,
+	repo: string,
 	pullRequests: any[],
 	authorsMap: Map<number, { login: string; isBot: boolean }>,
 ): Map<string, Contributor> {
@@ -142,12 +144,11 @@ function extractContributorsFromPRs(
 		}
 
 		const contributor = contributorsMap.get(login)!;
+		const repoName = pr.baseRepository?.nameWithOwner || `${owner}/${repo}`;
 		contributor.pullRequests.push({
 			number: pr.number,
 			title: pr.title,
-			url:
-				pr.url ||
-				`https://github.com/${pr.base?.repo?.full_name}/pull/${pr.number}`,
+			url: pr.url || `https://github.com/${repoName}/pull/${pr.number}`,
 			mergedAt: pr.merged_at || pr.mergedAt,
 			author: {
 				login,
@@ -198,7 +199,7 @@ export async function findNewContributors(
 		graphqlFn,
 	);
 
-	const contributorsMap = extractContributorsFromPRs(pullRequests, authorsMap);
+	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests, authorsMap);
 	const contributors = Array.from(contributorsMap.values());
 
 	const releasePRNumbers = new Set(prNumbers);
