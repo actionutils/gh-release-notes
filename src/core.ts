@@ -15,6 +15,11 @@ import {
 	buildMinimalContributors,
 	enrichContributorAvatars,
 } from "./contributors";
+import {
+	categorizePullRequests,
+	type MinimalPullRequest,
+	type CategorizeConfig,
+} from "./categorize";
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
@@ -451,11 +456,18 @@ export async function run(options: RunOptions) {
 			}
 		: null;
 
+	// Build categorized pull requests for JSON output using local workaround
+	const categorizedPullRequests = categorizePullRequests(
+		(data.pullRequests || []) as MinimalPullRequest[],
+		rdConfig as CategorizeConfig,
+	);
+
 	logVerbose("[Run] Completed successfully");
 	return {
 		release: releaseInfo,
 		commits: data.commits,
 		pullRequests: data.pullRequests,
+		categorizedPullRequests,
 		contributors,
 		newContributors: newContributorsOutput,
 		lastRelease: lastRelease
