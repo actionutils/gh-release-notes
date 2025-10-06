@@ -30,4 +30,5 @@ export const DEFAULT_FALLBACK_CONFIG = {
 	template: DEFAULT_RELEASE_TEMPLATE,
 	"change-template": GITHUB_STYLE_CHANGE_TEMPLATE,
 	"category-template": GITHUB_STYLE_CATEGORY_TEMPLATE,
+	"sort-direction": "ascending", // Aligned with GitHub Generate Release Note API
 };
