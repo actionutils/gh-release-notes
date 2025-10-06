@@ -36,6 +36,13 @@ const {
 	findReleases: any;
 } = require("release-drafter/lib/releases");
 
+// release-drafter exports sortPullRequests; rely on it being present
+const {
+	sortPullRequests,
+}: {
+	sortPullRequests: any;
+} = require("release-drafter/lib/sort-pull-requests");
+
 export type RunOptions = {
 	repo: string;
 	config?: string;
@@ -346,13 +353,22 @@ export async function run(options: RunOptions) {
 		`[GitHub] Found ${data.pullRequests?.length ?? 0} PRs and ${data.commits?.length ?? 0} commits`,
 	);
 
+	// Align PR order with release-drafter by applying its exported sorter
+	const mergedPullRequestsSorted = Array.isArray(data.pullRequests)
+		? (sortPullRequests as any)(
+				data.pullRequests,
+				rdConfig["sort-by"],
+				rdConfig["sort-direction"],
+			)
+		: data.pullRequests;
+
 	logVerbose("[Release] Generating release info from commits/PRs...");
 	const releaseInfo: any = generateReleaseInfo({
 		context,
 		commits: data.commits,
 		config: rdConfig,
 		lastRelease,
-		mergedPullRequests: data.pullRequests,
+		mergedPullRequests: mergedPullRequestsSorted,
 		tag,
 		isPreRelease: rdConfig.prerelease,
 		latest: rdConfig.latest,
@@ -425,7 +441,7 @@ export async function run(options: RunOptions) {
 
 	// Build and enrich minimal contributors (like release-drafter's $CONTRIBUTORS)
 	const minimalContributors = buildMinimalContributors(
-		data.pullRequests,
+		mergedPullRequestsSorted,
 		Array.isArray(rdConfig["exclude-contributors"])
 			? rdConfig["exclude-contributors"]
 			: [],
@@ -458,7 +474,7 @@ export async function run(options: RunOptions) {
 
 	// Build categorized pull requests for JSON output using local workaround
 	const categorizedPullRequests = categorizePullRequests(
-		(data.pullRequests || []) as MinimalPullRequest[],
+		(mergedPullRequestsSorted || []) as MinimalPullRequest[],
 		rdConfig as CategorizeConfig,
 	);
 
@@ -466,7 +482,7 @@ export async function run(options: RunOptions) {
 	return {
 		release: releaseInfo,
 		commits: data.commits,
-		pullRequests: data.pullRequests,
+		pullRequests: mergedPullRequestsSorted,
 		categorizedPullRequests,
 		contributors,
 		newContributors: newContributorsOutput,
