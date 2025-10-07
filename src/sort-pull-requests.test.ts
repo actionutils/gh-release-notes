@@ -60,52 +60,32 @@ describe("PR sorting via release-drafter", () => {
 					"2024-01-02T00:00:00Z",
 					"2024-01-01T00:00:00Z",
 				];
-				// Two PRs with different merged_at and labels
 				return {
 					ok: true,
 					status: 200,
 					headers: new Map([["content-type", "application/json"]]),
 					json: async () => ({
 						data: {
-							repository: {
-								object: {
-									history: {
-										nodes: [
-											{
-												author: { user: null },
-												associatedPullRequests: {
-													nodes: [
-														{
-															number: 2,
-															title: title2,
-															url: "https://github.com/owner/repo/pull/2",
-															mergedAt: mergedAt2,
-															merged: true,
-															author: { login: "user", __typename: "User" },
-															labels: { nodes: [{ name: "cat" }] },
-															baseRepository: {
-																nameWithOwner: `${owner}/${repo}`,
-															},
-														},
-														{
-															number: 1,
-															title: title1,
-															url: "https://github.com/owner/repo/pull/1",
-															mergedAt: mergedAt1,
-															merged: true,
-															author: { login: "user", __typename: "User" },
-															labels: { nodes: [{ name: "cat" }] },
-															baseRepository: {
-																nameWithOwner: `${owner}/${repo}`,
-															},
-														},
-													],
-												},
-											},
-										],
-										pageInfo: { hasNextPage: false, endCursor: null },
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [
+									{
+										number: 2,
+										title: title2,
+										url: "https://github.com/owner/repo/pull/2",
+										mergedAt: mergedAt2,
+										labels: { nodes: [{ name: "cat" }] },
+										author: { login: "user", __typename: "User", url: "" },
 									},
-								},
+									{
+										number: 1,
+										title: title1,
+										url: "https://github.com/owner/repo/pull/1",
+										mergedAt: mergedAt1,
+										labels: { nodes: [{ name: "cat" }] },
+										author: { login: "user", __typename: "User", url: "" },
+									},
+								],
 							},
 						},
 					}),
