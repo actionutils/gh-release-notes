@@ -344,7 +344,6 @@ export async function run(options: RunOptions) {
 	);
 
 	const needBody = String(rdConfig["change-template"] || "").includes("$BODY");
-	const needURL = String(rdConfig["change-template"] || "").includes("$URL");
 	const needBase = String(rdConfig["change-template"] || "").includes(
 		"$BASE_REF_NAME",
 	);
@@ -363,7 +362,6 @@ export async function run(options: RunOptions) {
 		baseBranch: baseBranchName,
 		graphqlFn: context.octokit.graphql,
 		withBody: needBody,
-		withURL: needURL,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
 	});

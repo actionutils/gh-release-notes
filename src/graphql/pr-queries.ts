@@ -5,7 +5,6 @@ export type SearchPRParams = {
 	baseBranch?: string;
 	graphqlFn: (query: string, variables?: any) => Promise<any>;
 	withBody: boolean;
-	withURL: boolean;
 	withBaseRefName: boolean;
 	withHeadRefName: boolean;
 };
@@ -15,7 +14,6 @@ function buildSearchQuery(): string {
     query SearchMergedPRs(
       $q: String!
       $withBody: Boolean!
-      $withURL: Boolean!
       $withBase: Boolean!
       $withHead: Boolean!
       $after: String
@@ -27,7 +25,7 @@ function buildSearchQuery(): string {
             number
             title
             mergedAt
-            url @include(if: $withURL)
+            url
             body @include(if: $withBody)
             baseRefName @include(if: $withBase)
             headRefName @include(if: $withHead)
@@ -57,7 +55,6 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 		baseBranch,
 		graphqlFn,
 		withBody,
-		withURL,
 		withBaseRefName,
 		withHeadRefName,
 	} = params;
@@ -78,7 +75,6 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 		{
 			q,
 			withBody,
-			withURL,
 			withBase: withBaseRefName,
 			withHead: withHeadRefName,
 			after: null,
