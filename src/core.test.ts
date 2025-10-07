@@ -69,7 +69,14 @@ describe("actionutils/gh-release-notes core", () => {
 					ok: true,
 					status: 200,
 					headers: new Map([["content-type", "application/json"]]),
-					json: async () => ({ data: { search: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } }),
+					json: async () => ({
+						data: {
+							search: {
+								nodes: [],
+								pageInfo: { hasNextPage: false, endCursor: null },
+							},
+						},
+					}),
 				};
 			}
 

@@ -45,7 +45,9 @@ function buildSearchQuery(): string {
   `;
 }
 
-const { paginate }: { paginate: any } = require("release-drafter/lib/pagination");
+const {
+	paginate,
+}: { paginate: any } = require("release-drafter/lib/pagination");
 
 export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 	const {
@@ -73,7 +75,14 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 	const data = await paginate(
 		graphqlFn,
 		query,
-		{ q, withBody, withURL, withBase: withBaseRefName, withHead: withHeadRefName, after: null },
+		{
+			q,
+			withBody,
+			withURL,
+			withBase: withBaseRefName,
+			withHead: withHeadRefName,
+			after: null,
+		},
 		["search"],
 	);
 	const nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];

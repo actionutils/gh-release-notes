@@ -353,12 +353,14 @@ export async function run(options: RunOptions) {
 	);
 
 	const sinceDate: string | undefined = lastRelease?.created_at || undefined;
-	const targetCommitishName = targetCommitish.replace(/^refs\/heads\//, "");
+	// Use the repository default branch for base filtering to avoid issues when
+	// targetCommitish is a tag or non-branch ref.
+	const baseBranchName = String(defaultBranch).replace(/^refs\/heads\//, "");
 	let pullRequests: any[] = await fetchMergedPRs({
 		owner,
 		repo,
 		sinceDate,
-		baseBranch: targetCommitishName,
+		baseBranch: baseBranchName,
 		graphqlFn: context.octokit.graphql,
 		withBody: needBody,
 		withURL: needURL,
@@ -511,7 +513,6 @@ export async function run(options: RunOptions) {
 	logVerbose("[Run] Completed successfully");
 	return {
 		release: releaseInfo,
-		commits: [],
 		pullRequests: mergedPullRequestsSorted,
 		categorizedPullRequests,
 		contributors,
