@@ -24,11 +24,6 @@ const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
 const {
-	findCommitsWithAssociatedPullRequests,
-}: {
-	findCommitsWithAssociatedPullRequests: any;
-} = require("release-drafter/lib/commits");
-const {
 	generateReleaseInfo,
 	findReleases,
 }: {
@@ -342,30 +337,65 @@ export async function run(options: RunOptions) {
 	}
 
 	const targetCommitish: string = target || defaultBranch;
-	logVerbose("[GitHub] Resolving commits and associated pull requests...");
-	const data: any = await findCommitsWithAssociatedPullRequests({
-		context,
-		targetCommitish,
-		lastRelease,
-		config: rdConfig,
-	});
-	logVerbose(
-		`[GitHub] Found ${data.pullRequests?.length ?? 0} PRs and ${data.commits?.length ?? 0} commits`,
+	logVerbose("[GitHub] Resolving merged pull requests via GraphQL search...");
+	const { fetchMergedPRs } = await import("./graphql/pr-queries");
+	const { filterByChangedFilesGraphQL } = await import(
+		"./graphql/pr-files-queries"
 	);
 
+	const needBody = String(rdConfig["change-template"] || "").includes("$BODY");
+	const needBase = String(rdConfig["change-template"] || "").includes(
+		"$BASE_REF_NAME",
+	);
+	const needHead = String(rdConfig["change-template"] || "").includes(
+		"$HEAD_REF_NAME",
+	);
+
+	const sinceDate: string | undefined = lastRelease?.created_at || undefined;
+	// Use the repository default branch for base filtering to avoid issues when
+	// targetCommitish is a tag or non-branch ref.
+	const baseBranchName = String(defaultBranch).replace(/^refs\/heads\//, "");
+	let pullRequests: any[] = await fetchMergedPRs({
+		owner,
+		repo,
+		sinceDate,
+		baseBranch: baseBranchName,
+		graphqlFn: context.octokit.graphql,
+		withBody: needBody,
+		withBaseRefName: needBase,
+		withHeadRefName: needHead,
+	});
+
+	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
+		? rdConfig["include-paths"]
+		: [];
+	if (includePaths.length > 0 && pullRequests.length > 0) {
+		logVerbose(
+			`[GitHub] Filtering ${pullRequests.length} PRs by include-paths (${includePaths.length}) via GraphQL files`,
+		);
+		pullRequests = await filterByChangedFilesGraphQL({
+			owner,
+			repo,
+			pullRequests,
+			includePaths,
+			graphqlFn: context.octokit.graphql,
+		});
+	}
+	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
+
 	// Align PR order with release-drafter by applying its exported sorter
-	const mergedPullRequestsSorted = Array.isArray(data.pullRequests)
+	const mergedPullRequestsSorted = Array.isArray(pullRequests)
 		? (sortPullRequests as any)(
-				data.pullRequests,
+				pullRequests,
 				rdConfig["sort-by"],
 				rdConfig["sort-direction"],
 			)
-		: data.pullRequests;
+		: pullRequests;
 
 	logVerbose("[Release] Generating release info from commits/PRs...");
 	const releaseInfo: any = generateReleaseInfo({
 		context,
-		commits: data.commits,
+		commits: [],
 		config: rdConfig,
 		lastRelease,
 		mergedPullRequests: mergedPullRequestsSorted,
@@ -400,7 +430,7 @@ export async function run(options: RunOptions) {
 			const newContributorsResult = await findNewContributors({
 				owner,
 				repo,
-				pullRequests: data.pullRequests,
+				pullRequests: pullRequests,
 				token,
 				prevReleaseDate,
 			});
@@ -481,7 +511,6 @@ export async function run(options: RunOptions) {
 	logVerbose("[Run] Completed successfully");
 	return {
 		release: releaseInfo,
-		commits: data.commits,
 		pullRequests: mergedPullRequestsSorted,
 		categorizedPullRequests,
 		contributors,

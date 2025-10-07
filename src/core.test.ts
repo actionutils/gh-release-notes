@@ -71,16 +71,9 @@ describe("actionutils/gh-release-notes core", () => {
 					headers: new Map([["content-type", "application/json"]]),
 					json: async () => ({
 						data: {
-							repository: {
-								object: {
-									history: {
-										nodes: [],
-										pageInfo: {
-											hasNextPage: false,
-											endCursor: null,
-										},
-									},
-								},
+							search: {
+								nodes: [],
+								pageInfo: { hasNextPage: false, endCursor: null },
 							},
 						},
 					}),
@@ -209,48 +202,25 @@ describe("actionutils/gh-release-notes core", () => {
 			if (u.includes("/graphql")) {
 				graphqlCallCount++;
 
-				// First call: release-drafter's commit/PR fetch
+				// First call: PR search
 				if (graphqlCallCount === 1) {
 					return {
 						ok: true,
 						status: 200,
 						json: async () => ({
 							data: {
-								repository: {
-									object: {
-										history: {
-											nodes: [
-												{
-													author: {
-														user: null,
-													},
-													associatedPullRequests: {
-														nodes: [
-															{
-																number: 10,
-																title: "First PR",
-																url: "https://github.com/owner/repo/pull/10",
-																merged_at: "2024-01-01T00:00:00Z",
-																merged: true,
-																author: {
-																	login: "newuser",
-																	__typename: "User",
-																},
-																labels: { nodes: [] },
-																baseRepository: {
-																	nameWithOwner: `${owner}/${repo}`,
-																},
-															},
-														],
-													},
-												},
-											],
-											pageInfo: {
-												hasNextPage: false,
-												endCursor: null,
-											},
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 10,
+											title: "First PR",
+											url: "https://github.com/owner/repo/pull/10",
+											mergedAt: "2024-01-01T00:00:00Z",
+											labels: { nodes: [] },
+											author: { login: "newuser", __typename: "User", url: "" },
 										},
-									},
+									],
 								},
 							},
 						}),
@@ -336,40 +306,25 @@ describe("actionutils/gh-release-notes core", () => {
 			if (u.includes("/graphql")) {
 				graphqlCallCount++;
 
-				// First call: release-drafter's commit/PR fetch
+				// First call: PR search
 				if (graphqlCallCount === 1) {
 					return {
 						ok: true,
 						status: 200,
 						json: async () => ({
 							data: {
-								repository: {
-									object: {
-										history: {
-											nodes: [
-												{
-													author: { user: null },
-													associatedPullRequests: {
-														nodes: [
-															{
-																number: 1,
-																title: "Initial commit",
-																url: "https://github.com/owner/repo/pull/1",
-																merged_at: "2024-01-01T00:00:00Z",
-																merged: true,
-																author: { login: "user1", __typename: "User" },
-																labels: { nodes: [] },
-																baseRepository: {
-																	nameWithOwner: `${owner}/${repo}`,
-																},
-															},
-														],
-													},
-												},
-											],
-											pageInfo: { hasNextPage: false, endCursor: null },
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 1,
+											title: "Initial commit",
+											url: "https://github.com/owner/repo/pull/1",
+											mergedAt: "2024-01-01T00:00:00Z",
+											labels: { nodes: [] },
+											author: { login: "user1", __typename: "User", url: "" },
 										},
-									},
+									],
 								},
 							},
 						}),
@@ -392,7 +347,7 @@ describe("actionutils/gh-release-notes core", () => {
 			expect(res.release.body).not.toContain("made their first contribution");
 			expect(res.newContributors).toBeNull();
 
-			// Should have made only 1 GraphQL call (for commits), not 2 (commits + contributors)
+			// Should have made only 1 GraphQL call (for PR search)
 			expect(graphqlCallCount).toBe(1);
 		} finally {
 			// Cleanup
@@ -460,48 +415,29 @@ describe("actionutils/gh-release-notes core", () => {
 			if (u.includes("/graphql")) {
 				graphqlCallCount++;
 
-				// First call: release-drafter's commit/PR fetch
+				// First call: PR search
 				if (graphqlCallCount === 1) {
 					return {
 						ok: true,
 						status: 200,
 						json: async () => ({
 							data: {
-								repository: {
-									object: {
-										history: {
-											nodes: [
-												{
-													author: {
-														user: null,
-													},
-													associatedPullRequests: {
-														nodes: [
-															{
-																number: 20,
-																title: "Bot PR",
-																url: "https://github.com/owner/repo/pull/20",
-																merged_at: "2024-01-02T00:00:00Z",
-																merged: true,
-																author: {
-																	login: "github-actions",
-																	__typename: "Bot",
-																},
-																labels: { nodes: [] },
-																baseRepository: {
-																	nameWithOwner: `${owner}/${repo}`,
-																},
-															},
-														],
-													},
-												},
-											],
-											pageInfo: {
-												hasNextPage: false,
-												endCursor: null,
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 20,
+											title: "Bot PR",
+											url: "https://github.com/owner/repo/pull/20",
+											mergedAt: "2024-01-02T00:00:00Z",
+											labels: { nodes: [] },
+											author: {
+												login: "github-actions",
+												__typename: "Bot",
+												url: "",
 											},
 										},
-									},
+									],
 								},
 							},
 						}),
