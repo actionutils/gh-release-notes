@@ -1,0 +1,76 @@
+## What's Changed
+
+### Summary
+| Category | PRs |
+| -- | --: |{{nl}}
+{{- range $_, $category := .categorizedPullRequests.categories -}}
+{{- $count := len $category.pullRequests -}}
+{{- if gt $count 0 -}}
+{{ $category.title }} | {{ $count }}{{nl}}
+{{- end -}}
+{{- end }}
+
+Total PRs: {{ len .mergedPullRequests }}{{nl}}
+
+<!-- Single table with category separators -->
+{{- $collapseAt := 3000 -}}
+<table>
+  <thead>
+    <tr>
+      <th align="right">#</th>
+      <th align="left">Title</th>
+      <th align="center">:octocat:</th>
+      <th align="left">Author</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{- range $_, $category := .categorizedPullRequests.categories -}}
+  {{- $count := len $category.pullRequests -}}
+  {{- if gt $count 0 }}
+    <tr>
+      <th colspan="4" align="left">{{ $category.title }} ({{ $count }})</th>
+    </tr>
+    {{- if ge $count $collapseAt }}
+      <tr>
+        <td colspan="4">
+          <details>
+            <summary>Show {{ $count }} PRs</summary>
+            <table role="presentation">
+            {{- range $__, $pr := $category.pullRequests -}}
+              <tr>
+                <td align="right" width="72"><a href="{{ $pr.url }}">#{{ $pr.number }}</a></td>
+                <td>{{ $pr.title }}</td>
+                <td align="center" width="28">
+                  <img src="https://wsrv.nl/?url={{ $pr.author.url}}.png&w=20&h=20&mask=circle&fit=cover&maxage=1w" width="20" height="20" alt="{{ $pr.author.login }}" />
+                </td>
+                <td><a href="{{ $pr.author.url }}">{{ $pr.author.login }}</a></td>
+              </tr>
+            {{- end }}
+            </table>
+          </details>
+        </td>
+      </tr>
+    {{- else }}
+      {{- range $__, $pr := $category.pullRequests -}}
+      <tr>
+        <td align="right"><a href="{{ $pr.url }}">#{{ $pr.number }}</a></td>
+        <td>{{ $pr.title }}</td>
+        <td align="center" valign="middle">
+          <img src="https://wsrv.nl/?url={{ $pr.author.url}}.png&w=20&h=20&mask=circle&fit=cover&maxage=1w" width="20" height="20" alt="{{ $pr.author.login }}" />
+        </td>
+        <td valign="middle"><a href="{{ $pr.author.url }}">{{ $pr.author.login }}</a></td>
+      </tr>
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+  </tbody>
+  </table>
+
+{{- /* Optional: Full changelog link */ -}}{{nl}}
+**Full Changelog**: https://github.com/{{ .owner }}/{{ .repo }}/compare/{{ .lastRelease.tag_name }}...{{ .defaultBranch }}
+
+## Contributors
+{{ range $_, $c := .contributors -}}
+[<img src="https://wsrv.nl/?url={{ $c.avatar_url }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64" height="64" alt="{{ $c.login }}" />]({{ $c.html_url }})
+{{- end }}

@@ -1,0 +1,633 @@
+{
+  "owner": "release-drafter",
+  "repo": "release-drafter",
+  "defaultBranch": "master",
+  "lastRelease": {
+    "id": 139616007,
+    "tag_name": "v6.0.0",
+    "created_at": "2024-02-02T05:42:38Z"
+  },
+  "mergedPullRequests": [
+    {
+      "title": "Add config option for PR query limit",
+      "number": 1362,
+      "author": {
+        "login": "ssolbeck",
+        "__typename": "User",
+        "url": "https://github.com/ssolbeck"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-19T12:34:30Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: feature"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "docs: Fix Fork Link",
+      "number": 1412,
+      "author": {
+        "login": "Dor-bl",
+        "__typename": "User",
+        "url": "https://github.com/Dor-bl"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-19T12:21:14Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: docs"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "Ensure support new default branch name",
+      "number": 1079,
+      "author": {
+        "login": "Triloworld",
+        "__typename": "User",
+        "url": "https://github.com/Triloworld"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-19T12:14:08Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: docs"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "Fix: Correctly mention bot accounts in release notes",
+      "number": 1376,
+      "author": {
+        "login": "jamietanna",
+        "__typename": "User",
+        "url": "https://github.com/jamietanna"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-19T12:04:56Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: bug"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "update schema generation and update schema to draft 07",
+      "number": 1422,
+      "author": {
+        "login": "jetersen",
+        "__typename": "User",
+        "url": "https://github.com/jetersen"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-19T12:01:15Z",
+      "isCrossRepository": false,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: docs"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "fix typo: therelease",
+      "number": 1407,
+      "author": {
+        "login": "billykern",
+        "__typename": "User",
+        "url": "https://github.com/billykern"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-19T10:32:30Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: docs"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "Document added action outputs introduced in #1300",
+      "number": 1406,
+      "author": {
+        "login": "SVNKoch",
+        "__typename": "User",
+        "url": "https://github.com/SVNKoch"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-19T10:31:54Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: docs"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "Update README.md",
+      "number": 1421,
+      "author": {
+        "login": "yusufraji",
+        "__typename": "User",
+        "url": "https://github.com/yusufraji"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-18T16:57:55Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: docs"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "Update only drafts with the same prerelease status",
+      "number": 1385,
+      "author": {
+        "login": "jaap3",
+        "__typename": "User",
+        "url": "https://github.com/jaap3"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2025-01-18T16:55:45Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: bug"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "fix: update broken link in readme",
+      "number": 1416,
+      "author": {
+        "login": "kopach",
+        "__typename": "User",
+        "url": "https://github.com/kopach"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2024-11-12T20:01:40Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: docs"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "Update v6 README.md",
+      "number": 1384,
+      "author": {
+        "login": "taku333",
+        "__typename": "User",
+        "url": "https://github.com/taku333"
+      },
+      "baseRepository": {
+        "nameWithOwner": "release-drafter/release-drafter"
+      },
+      "mergedAt": "2024-04-26T08:23:47Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "type: docs"
+          }
+        ]
+      },
+      "merged": true
+    }
+  ],
+  "categorizedPullRequests": {
+    "uncategorized": [],
+    "categories": [
+      {
+        "title": "Breaking",
+        "labels": [
+          "type: breaking"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      },
+      {
+        "title": "New",
+        "labels": [
+          "type: feature"
+        ],
+        "collapse-after": 0,
+        "pullRequests": [
+          {
+            "title": "Add config option for PR query limit",
+            "number": 1362,
+            "author": {
+              "login": "ssolbeck",
+              "__typename": "User",
+              "url": "https://github.com/ssolbeck"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-19T12:34:30Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: feature"
+                }
+              ]
+            },
+            "merged": true
+          }
+        ]
+      },
+      {
+        "title": "Bug Fixes",
+        "labels": [
+          "type: bug"
+        ],
+        "collapse-after": 0,
+        "pullRequests": [
+          {
+            "title": "Fix: Correctly mention bot accounts in release notes",
+            "number": 1376,
+            "author": {
+              "login": "jamietanna",
+              "__typename": "User",
+              "url": "https://github.com/jamietanna"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-19T12:04:56Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: bug"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "Update only drafts with the same prerelease status",
+            "number": 1385,
+            "author": {
+              "login": "jaap3",
+              "__typename": "User",
+              "url": "https://github.com/jaap3"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-18T16:55:45Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: bug"
+                }
+              ]
+            },
+            "merged": true
+          }
+        ]
+      },
+      {
+        "title": "Maintenance",
+        "labels": [
+          "type: maintenance"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      },
+      {
+        "title": "Documentation",
+        "labels": [
+          "type: docs"
+        ],
+        "collapse-after": 0,
+        "pullRequests": [
+          {
+            "title": "docs: Fix Fork Link",
+            "number": 1412,
+            "author": {
+              "login": "Dor-bl",
+              "__typename": "User",
+              "url": "https://github.com/Dor-bl"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-19T12:21:14Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: docs"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "Ensure support new default branch name",
+            "number": 1079,
+            "author": {
+              "login": "Triloworld",
+              "__typename": "User",
+              "url": "https://github.com/Triloworld"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-19T12:14:08Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: docs"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "update schema generation and update schema to draft 07",
+            "number": 1422,
+            "author": {
+              "login": "jetersen",
+              "__typename": "User",
+              "url": "https://github.com/jetersen"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-19T12:01:15Z",
+            "isCrossRepository": false,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: docs"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "fix typo: therelease",
+            "number": 1407,
+            "author": {
+              "login": "billykern",
+              "__typename": "User",
+              "url": "https://github.com/billykern"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-19T10:32:30Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: docs"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "Document added action outputs introduced in #1300",
+            "number": 1406,
+            "author": {
+              "login": "SVNKoch",
+              "__typename": "User",
+              "url": "https://github.com/SVNKoch"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-19T10:31:54Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: docs"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "Update README.md",
+            "number": 1421,
+            "author": {
+              "login": "yusufraji",
+              "__typename": "User",
+              "url": "https://github.com/yusufraji"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2025-01-18T16:57:55Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: docs"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "fix: update broken link in readme",
+            "number": 1416,
+            "author": {
+              "login": "kopach",
+              "__typename": "User",
+              "url": "https://github.com/kopach"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2024-11-12T20:01:40Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: docs"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "Update v6 README.md",
+            "number": 1384,
+            "author": {
+              "login": "taku333",
+              "__typename": "User",
+              "url": "https://github.com/taku333"
+            },
+            "baseRepository": {
+              "nameWithOwner": "release-drafter/release-drafter"
+            },
+            "mergedAt": "2024-04-26T08:23:47Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "type: docs"
+                }
+              ]
+            },
+            "merged": true
+          }
+        ]
+      },
+      {
+        "title": "Other changes",
+        "collapse-after": 0,
+        "labels": [],
+        "pullRequests": []
+      },
+      {
+        "title": "Dependency Updates",
+        "collapse-after": 5,
+        "labels": [
+          "type: dependencies"
+        ],
+        "pullRequests": []
+      }
+    ]
+  },
+  "contributors": [
+    {
+      "login": "billykern",
+      "isBot": false,
+      "avatar_url": "https://github.com/billykern.png?size=64",
+      "html_url": "https://github.com/billykern"
+    },
+    {
+      "login": "Dor-bl",
+      "isBot": false,
+      "avatar_url": "https://github.com/Dor-bl.png?size=64",
+      "html_url": "https://github.com/Dor-bl"
+    },
+    {
+      "login": "jaap3",
+      "isBot": false,
+      "avatar_url": "https://github.com/jaap3.png?size=64",
+      "html_url": "https://github.com/jaap3"
+    },
+    {
+      "login": "jamietanna",
+      "isBot": false,
+      "avatar_url": "https://github.com/jamietanna.png?size=64",
+      "html_url": "https://github.com/jamietanna"
+    },
+    {
+      "login": "jetersen",
+      "isBot": false,
+      "avatar_url": "https://github.com/jetersen.png?size=64",
+      "html_url": "https://github.com/jetersen"
+    },
+    {
+      "login": "kopach",
+      "isBot": false,
+      "avatar_url": "https://github.com/kopach.png?size=64",
+      "html_url": "https://github.com/kopach"
+    },
+    {
+      "login": "ssolbeck",
+      "isBot": false,
+      "avatar_url": "https://github.com/ssolbeck.png?size=64",
+      "html_url": "https://github.com/ssolbeck"
+    },
+    {
+      "login": "SVNKoch",
+      "isBot": false,
+      "avatar_url": "https://github.com/SVNKoch.png?size=64",
+      "html_url": "https://github.com/SVNKoch"
+    },
+    {
+      "login": "taku333",
+      "isBot": false,
+      "avatar_url": "https://github.com/taku333.png?size=64",
+      "html_url": "https://github.com/taku333"
+    },
+    {
+      "login": "Triloworld",
+      "isBot": false,
+      "avatar_url": "https://github.com/Triloworld.png?size=64",
+      "html_url": "https://github.com/Triloworld"
+    },
+    {
+      "login": "yusufraji",
+      "isBot": false,
+      "avatar_url": "https://github.com/yusufraji.png?size=64",
+      "html_url": "https://github.com/yusufraji"
+    }
+  ],
+  "newContributors": null,
+  "release": {
+    "name": "v6.1.0",
+    "tag": "v6.1.0",
+    "body": "# What's Changed\n\n## New\n\n* Add config option for PR query limit (#1362) @ssolbeck\n\n## Bug Fixes\n\n* Fix: Correctly mention bot accounts in release notes (#1376) @jamietanna\n* Update only drafts with the same prerelease status (#1385) @jaap3\n\n## Documentation\n\n* docs: Fix Fork Link (#1412) @Dor-bl\n* Ensure support new default branch name (#1079) @Triloworld\n* update schema generation and update schema to draft 07 (#1422) @jetersen\n* fix typo: therelease (#1407) @billykern\n* Document added action outputs introduced in #1300 (#1406) @SVNKoch\n* Update README.md (#1421) @yusufraji\n* fix: update broken link in readme (#1416) @kopach\n* Update v6 README.md (#1384) @taku333\n\n**Full Changelog**: https://github.com/release-drafter/release-drafter/compare/v6.0.0...v6.1.0\n",
+    "targetCommitish": "master"
+  }
+}

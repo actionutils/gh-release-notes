@@ -1,0 +1,434 @@
+{
+  "owner": "cli",
+  "repo": "cli",
+  "defaultBranch": "trunk",
+  "lastRelease": {
+    "id": 249421112,
+    "tag_name": "v2.80.0",
+    "created_at": "2025-09-23T16:40:48Z"
+  },
+  "mergedPullRequests": [
+    {
+      "title": "Fix no tagname logic for  release verify-asset ",
+      "number": 11798,
+      "url": "https://github.com/cli/cli/pull/11798",
+      "author": {
+        "login": "ejahnGithub",
+        "__typename": "User",
+        "url": "https://github.com/ejahnGithub"
+      },
+      "baseRepository": {
+        "nameWithOwner": "cli/cli"
+      },
+      "mergedAt": "2025-09-23T17:44:56Z",
+      "isCrossRepository": false,
+      "labels": {
+        "nodes": [
+          {
+            "name": "external"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "Add alias `co` for `pr checkout`",
+      "number": 11804,
+      "url": "https://github.com/cli/cli/pull/11804",
+      "author": {
+        "login": "babakks",
+        "__typename": "User",
+        "url": "https://github.com/babakks"
+      },
+      "baseRepository": {
+        "nameWithOwner": "cli/cli"
+      },
+      "mergedAt": "2025-09-24T15:08:42Z",
+      "isCrossRepository": false,
+      "labels": {
+        "nodes": []
+      },
+      "merged": true
+    },
+    {
+      "title": "Add JSON output to `gh auth status`",
+      "number": 11544,
+      "url": "https://github.com/cli/cli/pull/11544",
+      "author": {
+        "login": "benjlevesque",
+        "__typename": "User",
+        "url": "https://github.com/benjlevesque"
+      },
+      "baseRepository": {
+        "nameWithOwner": "cli/cli"
+      },
+      "mergedAt": "2025-09-25T15:50:47Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "external"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "visible for  `release verify`  and `release verify-asset` cmd",
+      "number": 11801,
+      "url": "https://github.com/cli/cli/pull/11801",
+      "author": {
+        "login": "ejahnGithub",
+        "__typename": "User",
+        "url": "https://github.com/ejahnGithub"
+      },
+      "baseRepository": {
+        "nameWithOwner": "cli/cli"
+      },
+      "mergedAt": "2025-09-29T14:43:09Z",
+      "isCrossRepository": false,
+      "labels": {
+        "nodes": [
+          {
+            "name": "external"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "refactor: use strings.FieldsFuncSeq to reduce memory allocations",
+      "number": 11805,
+      "url": "https://github.com/cli/cli/pull/11805",
+      "author": {
+        "login": "juejinyuxitu",
+        "__typename": "User",
+        "url": "https://github.com/juejinyuxitu"
+      },
+      "baseRepository": {
+        "nameWithOwner": "cli/cli"
+      },
+      "mergedAt": "2025-09-30T10:18:58Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "external"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "fix(cache delete): report correct deleted count for key and key+ref deletions",
+      "number": 11838,
+      "url": "https://github.com/cli/cli/pull/11838",
+      "author": {
+        "login": "luxass",
+        "__typename": "User",
+        "url": "https://github.com/luxass"
+      },
+      "baseRepository": {
+        "nameWithOwner": "cli/cli"
+      },
+      "mergedAt": "2025-10-02T10:45:39Z",
+      "isCrossRepository": true,
+      "labels": {
+        "nodes": [
+          {
+            "name": "external"
+          }
+        ]
+      },
+      "merged": true
+    },
+    {
+      "title": "`gh pr edit`: Only fetch org teams for reviewers when required",
+      "number": 11835,
+      "url": "https://github.com/cli/cli/pull/11835",
+      "author": {
+        "login": "BagToad",
+        "__typename": "User",
+        "url": "https://github.com/BagToad"
+      },
+      "baseRepository": {
+        "nameWithOwner": "cli/cli"
+      },
+      "mergedAt": "2025-10-03T18:25:55Z",
+      "isCrossRepository": false,
+      "labels": {
+        "nodes": []
+      },
+      "merged": true
+    }
+  ],
+  "categorizedPullRequests": {
+    "uncategorized": [],
+    "categories": [
+      {
+        "title": "Breaking Changes 🛠",
+        "labels": [
+          "breaking-change"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      },
+      {
+        "title": "Deprecations ⚠️",
+        "labels": [
+          "deprecation"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      },
+      {
+        "title": "Enhancements 🎉",
+        "labels": [
+          "enhancement"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      },
+      {
+        "title": "Bug Fixes 🐛",
+        "labels": [
+          "bug"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      },
+      {
+        "title": "Other Changes",
+        "collapse-after": 0,
+        "labels": [],
+        "pullRequests": [
+          {
+            "title": "Fix no tagname logic for  release verify-asset ",
+            "number": 11798,
+            "url": "https://github.com/cli/cli/pull/11798",
+            "author": {
+              "login": "ejahnGithub",
+              "__typename": "User",
+              "url": "https://github.com/ejahnGithub"
+            },
+            "baseRepository": {
+              "nameWithOwner": "cli/cli"
+            },
+            "mergedAt": "2025-09-23T17:44:56Z",
+            "isCrossRepository": false,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "external"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "Add alias `co` for `pr checkout`",
+            "number": 11804,
+            "url": "https://github.com/cli/cli/pull/11804",
+            "author": {
+              "login": "babakks",
+              "__typename": "User",
+              "url": "https://github.com/babakks"
+            },
+            "baseRepository": {
+              "nameWithOwner": "cli/cli"
+            },
+            "mergedAt": "2025-09-24T15:08:42Z",
+            "isCrossRepository": false,
+            "labels": {
+              "nodes": []
+            },
+            "merged": true
+          },
+          {
+            "title": "Add JSON output to `gh auth status`",
+            "number": 11544,
+            "url": "https://github.com/cli/cli/pull/11544",
+            "author": {
+              "login": "benjlevesque",
+              "__typename": "User",
+              "url": "https://github.com/benjlevesque"
+            },
+            "baseRepository": {
+              "nameWithOwner": "cli/cli"
+            },
+            "mergedAt": "2025-09-25T15:50:47Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "external"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "visible for  `release verify`  and `release verify-asset` cmd",
+            "number": 11801,
+            "url": "https://github.com/cli/cli/pull/11801",
+            "author": {
+              "login": "ejahnGithub",
+              "__typename": "User",
+              "url": "https://github.com/ejahnGithub"
+            },
+            "baseRepository": {
+              "nameWithOwner": "cli/cli"
+            },
+            "mergedAt": "2025-09-29T14:43:09Z",
+            "isCrossRepository": false,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "external"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "refactor: use strings.FieldsFuncSeq to reduce memory allocations",
+            "number": 11805,
+            "url": "https://github.com/cli/cli/pull/11805",
+            "author": {
+              "login": "juejinyuxitu",
+              "__typename": "User",
+              "url": "https://github.com/juejinyuxitu"
+            },
+            "baseRepository": {
+              "nameWithOwner": "cli/cli"
+            },
+            "mergedAt": "2025-09-30T10:18:58Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "external"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "fix(cache delete): report correct deleted count for key and key+ref deletions",
+            "number": 11838,
+            "url": "https://github.com/cli/cli/pull/11838",
+            "author": {
+              "login": "luxass",
+              "__typename": "User",
+              "url": "https://github.com/luxass"
+            },
+            "baseRepository": {
+              "nameWithOwner": "cli/cli"
+            },
+            "mergedAt": "2025-10-02T10:45:39Z",
+            "isCrossRepository": true,
+            "labels": {
+              "nodes": [
+                {
+                  "name": "external"
+                }
+              ]
+            },
+            "merged": true
+          },
+          {
+            "title": "`gh pr edit`: Only fetch org teams for reviewers when required",
+            "number": 11835,
+            "url": "https://github.com/cli/cli/pull/11835",
+            "author": {
+              "login": "BagToad",
+              "__typename": "User",
+              "url": "https://github.com/BagToad"
+            },
+            "baseRepository": {
+              "nameWithOwner": "cli/cli"
+            },
+            "mergedAt": "2025-10-03T18:25:55Z",
+            "isCrossRepository": false,
+            "labels": {
+              "nodes": []
+            },
+            "merged": true
+          }
+        ]
+      },
+      {
+        "title": "Dependencies",
+        "labels": [
+          "dependencies"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      }
+    ]
+  },
+  "contributors": [
+    {
+      "login": "babakks",
+      "isBot": false,
+      "avatar_url": "https://github.com/babakks.png?size=64",
+      "html_url": "https://github.com/babakks"
+    },
+    {
+      "login": "BagToad",
+      "isBot": false,
+      "avatar_url": "https://github.com/BagToad.png?size=64",
+      "html_url": "https://github.com/BagToad"
+    },
+    {
+      "login": "benjlevesque",
+      "isBot": false,
+      "avatar_url": "https://github.com/benjlevesque.png?size=64",
+      "html_url": "https://github.com/benjlevesque"
+    },
+    {
+      "login": "ejahnGithub",
+      "isBot": false,
+      "avatar_url": "https://github.com/ejahnGithub.png?size=64",
+      "html_url": "https://github.com/ejahnGithub"
+    },
+    {
+      "login": "juejinyuxitu",
+      "isBot": false,
+      "avatar_url": "https://github.com/juejinyuxitu.png?size=64",
+      "html_url": "https://github.com/juejinyuxitu"
+    },
+    {
+      "login": "luxass",
+      "isBot": false,
+      "avatar_url": "https://github.com/luxass.png?size=64",
+      "html_url": "https://github.com/luxass"
+    }
+  ],
+  "newContributors": {
+    "newContributors": [
+      {
+        "login": "juejinyuxitu",
+        "isBot": false,
+        "firstPullRequest": {
+          "number": 11805,
+          "title": "refactor: use strings.FieldsFuncSeq to reduce memory allocations",
+          "url": "https://github.com/cli/cli/pull/11805",
+          "mergedAt": "2025-09-30T10:18:58Z",
+          "author": {
+            "login": "juejinyuxitu",
+            "__typename": "User"
+          }
+        },
+        "avatar_url": "https://github.com/juejinyuxitu.png?size=64",
+        "html_url": "https://github.com/juejinyuxitu"
+      }
+    ]
+  },
+  "release": {
+    "name": "",
+    "tag": "",
+    "body": "## What's Changed\n\n### Other Changes\n\n- Fix no tagname logic for  release verify-asset  by @ejahnGithub in https://github.com/cli/cli/pull/11798\n- Add alias `co` for `pr checkout` by @babakks in https://github.com/cli/cli/pull/11804\n- Add JSON output to `gh auth status` by @benjlevesque in https://github.com/cli/cli/pull/11544\n- visible for  `release verify`  and `release verify-asset` cmd by @ejahnGithub in https://github.com/cli/cli/pull/11801\n- refactor: use strings.FieldsFuncSeq to reduce memory allocations by @juejinyuxitu in https://github.com/cli/cli/pull/11805\n- fix(cache delete): report correct deleted count for key and key+ref deletions by @luxass in https://github.com/cli/cli/pull/11838\n- `gh pr edit`: Only fetch org teams for reviewers when required by @BagToad in https://github.com/cli/cli/pull/11835\n\n## New Contributors\n* @juejinyuxitu made their first contribution in https://github.com/cli/cli/pull/11805\n\n**Full Changelog**: https://github.com/cli/cli/compare/v2.80.0...trunk",
+    "targetCommitish": "trunk"
+  }
+}
