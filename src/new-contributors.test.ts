@@ -256,7 +256,6 @@ describe("new-contributors", () => {
 						title: "First PR",
 						url: "https://github.com/owner/repo/pull/100",
 						mergedAt: "2024-01-15T10:00:00Z",
-						author: { login: "user1", __typename: "User" },
 					},
 				},
 				{
@@ -268,7 +267,6 @@ describe("new-contributors", () => {
 						title: "Bot PR",
 						url: "https://github.com/owner/repo/pull/101",
 						mergedAt: "2024-01-16T10:00:00Z",
-						author: { login: "bot-user", __typename: "Bot" },
 					},
 				},
 			];
