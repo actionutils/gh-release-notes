@@ -499,7 +499,7 @@ export async function run(options: RunOptions) {
 		release: releaseInfo,
 		pullRequests: mergedPullRequestsSorted,
 		categorizedPullRequests,
-		contributors: contributorsMap.values(),
+		contributors: Array.from(contributorsMap.values()),
 		newContributors: newContributorsOutput,
 		lastRelease: lastRelease
 			? {
