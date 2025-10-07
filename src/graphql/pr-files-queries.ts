@@ -24,7 +24,7 @@ function buildFilesBatchQuery(
       pr_${n}: pullRequest(number: ${n}) {
         files(first: 100, after: $${varPrefix}_pr_${n}) {
           pageInfo { hasNextPage endCursor }
-          nodes { path previousFilePath }
+          nodes { path }
         }
       }
     `,
@@ -82,11 +82,7 @@ export async function filterByChangedFilesGraphQL(
 			let matched = false;
 			for (const f of nodes) {
 				const cur = String(f?.path || "");
-				const prev = String(f?.previousFilePath || "");
-				if (
-					(cur && matchesIncludePaths(cur, includePaths)) ||
-					(prev && matchesIncludePaths(prev, includePaths))
-				) {
+				if (cur && matchesIncludePaths(cur, includePaths)) {
 					matched = true;
 					break;
 				}
