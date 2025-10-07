@@ -170,10 +170,6 @@ function extractContributorsFromPRs(
 			title: pr.title,
 			url: pr.url || `https://github.com/${repoName}/pull/${pr.number}`,
 			mergedAt: pr.merged_at || pr.mergedAt,
-			author: {
-				login,
-				__typename: isBot ? "Bot" : "User",
-			},
 		});
 	}
 

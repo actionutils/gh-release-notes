@@ -172,10 +172,8 @@ async function main() {
 				targetCommitish: releaseTargetCommitish,
 			} as Record<string, any>;
 
-			// Shape newContributors without the confusing totalContributors field
-			const shapedNewContributors = result.newContributors
-				? { newContributors: result.newContributors.newContributors }
-				: null;
+			// newContributors is a direct array aligned to contributors shape
+			const shapedNewContributors = result.newContributors;
 
 			logVerbose("[CLI] Output mode: JSON");
 			process.stdout.write(

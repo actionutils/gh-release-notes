@@ -261,7 +261,8 @@ describe("actionutils/gh-release-notes core", () => {
 				"@newuser made their first contribution",
 			);
 			expect(res.newContributors).toBeDefined();
-			expect(res.newContributors?.newContributors).toHaveLength(1);
+			expect(Array.isArray(res.newContributors)).toBe(true);
+			expect(res.newContributors?.length).toBe(1);
 		} finally {
 			// Cleanup
 			await fsPromises.rm(tmpDir, { recursive: true });
@@ -434,7 +435,9 @@ describe("actionutils/gh-release-notes core", () => {
 											author: {
 												login: "github-actions",
 												__typename: "Bot",
-												url: "",
+												url: "https://github.com/apps/github-actions",
+												avatarUrl:
+													"https://avatars.githubusercontent.com/in/15368?v=4",
 											},
 										},
 									],
@@ -466,7 +469,7 @@ describe("actionutils/gh-release-notes core", () => {
 			if (u.endsWith("/users/github-actions%5Bbot%5D")) {
 				const user = {
 					login: "github-actions[bot]",
-					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4",
+					avatarUrl: "https://avatars.githubusercontent.com/in/15368?v=4",
 					type: "Bot",
 				};
 				return {
@@ -490,21 +493,20 @@ describe("actionutils/gh-release-notes core", () => {
 				prevTag: "v0.9.0",
 			});
 
-			// Should have new contributors data even without placeholder
+			// Should have new contributors array even without placeholder
 			expect(res.newContributors).toBeDefined();
-			expect(res.newContributors?.newContributors).toHaveLength(1);
-			expect(res.newContributors?.newContributors[0].login).toBe(
-				"github-actions",
-			);
-			expect(res.newContributors?.newContributors[0].isBot).toBe(true);
+			expect(Array.isArray(res.newContributors)).toBe(true);
+			expect(res.newContributors?.length).toBe(1);
+			expect(res.newContributors?.[0].login).toBe("github-actions");
+			expect(res.newContributors?.[0].__typename).toBe("Bot");
 
 			// Should include minimal contributors list in run() result
 			expect(res.contributors).toBeDefined();
 			expect(res.contributors.length).toBe(1);
 			expect(res.contributors[0].login).toBe("github-actions");
-			expect(res.contributors[0].isBot).toBe(true);
-			expect(res.contributors[0].avatar_url).toBe(
-				"https://avatars.githubusercontent.com/in/15368?v=4&s=64",
+			expect(res.contributors[0].__typename).toBe("Bot");
+			expect(res.contributors[0].avatarUrl).toBe(
+				"https://avatars.githubusercontent.com/in/15368?v=4",
 			);
 		} finally {
 			// Cleanup

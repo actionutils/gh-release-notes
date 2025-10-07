@@ -12,10 +12,6 @@ import {
 } from "./new-contributors";
 import { logVerbose } from "./logger";
 import {
-	buildMinimalContributors,
-	enrichContributorAvatars,
-} from "./contributors";
-import {
 	categorizePullRequests,
 	type MinimalPullRequest,
 	type CategorizeConfig,
@@ -469,37 +465,27 @@ export async function run(options: RunOptions) {
 		}
 	}
 
-	// Build and enrich minimal contributors (like release-drafter's $CONTRIBUTORS)
-	const minimalContributors = buildMinimalContributors(
-		mergedPullRequestsSorted,
-		Array.isArray(rdConfig["exclude-contributors"])
-			? rdConfig["exclude-contributors"]
-			: [],
-	);
-	const contributors = await enrichContributorAvatars(
-		minimalContributors,
-		(pathname) => ghRest(pathname, { token }),
-	);
-
-	// Transform new contributors data for JSON output (remove internal details)
-	// Also attach avatar_url/html_url by reusing the already-resolved contributors list
-	const avatarMap = new Map<string, string>();
-	const htmlMap = new Map<string, string>();
-	for (const c of contributors) {
-		if (c.avatar_url) avatarMap.set(c.login, c.avatar_url);
-		if ((c as any).html_url) htmlMap.set(c.login, (c as any).html_url);
+	// Build contributors directly from PR authors (GraphQL data)
+	const excludeContributors: string[] = Array.isArray(
+		rdConfig["exclude-contributors"],
+	)
+		? rdConfig["exclude-contributors"]
+		: [];
+	const contributorsMap = new Map<string, any>();
+	for (const pr of mergedPullRequestsSorted || []) {
+		const login = pr?.author?.login as string | undefined;
+		if (!login) continue;
+		if (excludeContributors.includes(login)) continue;
+		if (!contributorsMap.has(login)) {
+			const author = pr.author || {};
+			contributorsMap.set(login, { ...author });
+		}
 	}
 	const newContributorsOutput = newContributorsData
-		? {
-				newContributors: newContributorsData.newContributors.map((c) => ({
-					login: c.login,
-					isBot: c.isBot,
-					firstPullRequest: c.firstPullRequest,
-					avatar_url: avatarMap.get(c.login),
-					html_url: htmlMap.get(c.login),
-				})),
-				totalContributors: newContributorsData.totalContributors,
-			}
+		? newContributorsData.newContributors.map((c) => {
+				const base = contributorsMap.get(c.login);
+				return { ...base, firstPullRequest: c.firstPullRequest };
+			})
 		: null;
 
 	// Build categorized pull requests for JSON output using local workaround
@@ -513,7 +499,7 @@ export async function run(options: RunOptions) {
 		release: releaseInfo,
 		pullRequests: mergedPullRequestsSorted,
 		categorizedPullRequests,
-		contributors,
+		contributors: contributorsMap.values(),
 		newContributors: newContributorsOutput,
 		lastRelease: lastRelease
 			? {

@@ -34,7 +34,8 @@ function buildSearchQuery(): string {
               login
               __typename
               url
-              ... on User { avatarUrl sponsorsListing { url } }
+              avatarUrl
+              ... on User { sponsorsListing { url } }
             }
           }
         }
