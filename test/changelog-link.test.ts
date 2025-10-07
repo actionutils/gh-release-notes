@@ -64,7 +64,7 @@ describe("Full Changelog Link", () => {
 					ok: true,
 					status: 200,
 					headers,
-					json: async () => ({ data: {} }),
+					json: async () => ({ data: { search: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } }),
 				};
 			}
 
@@ -139,7 +139,7 @@ describe("Full Changelog Link", () => {
 					ok: true,
 					status: 200,
 					headers,
-					json: async () => ({ data: {} }),
+					json: async () => ({ data: { search: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } }),
 				};
 			}
 
@@ -231,7 +231,7 @@ describe("Full Changelog Link", () => {
 					ok: true,
 					status: 200,
 					headers,
-					json: async () => ({ data: {} }),
+					json: async () => ({ data: { search: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } }),
 				};
 			}
 

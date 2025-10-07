@@ -2,6 +2,7 @@ export type SearchPRParams = {
 	owner: string;
 	repo: string;
 	sinceDate?: string;
+	baseBranch?: string;
 	graphqlFn: (query: string, variables?: any) => Promise<any>;
 	withBody: boolean;
 	withURL: boolean;
@@ -44,11 +45,14 @@ function buildSearchQuery(): string {
   `;
 }
 
+const { paginate }: { paginate: any } = require("release-drafter/lib/pagination");
+
 export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 	const {
 		owner,
 		repo,
 		sinceDate,
+		baseBranch,
 		graphqlFn,
 		withBody,
 		withURL,
@@ -57,35 +61,21 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 	} = params;
 
 	const qParts = [`repo:${owner}/${repo}`, `is:pr`, `is:merged`];
+	if (baseBranch) {
+		qParts.push(`base:${baseBranch}`);
+	}
 	if (sinceDate) {
 		qParts.push(`merged:>${sinceDate}`);
 	}
 	const q = qParts.join(" ");
 
 	const query = buildSearchQuery();
-	let after: string | null = null;
-	const prs: any[] = [];
-	// paginate search
-	// eslint-disable-next-line no-constant-condition
-	while (true) {
-		const variables = {
-			q,
-			withBody,
-			withURL,
-			withBase: withBaseRefName,
-			withHead: withHeadRefName,
-			after,
-		};
-		const data = await graphqlFn(query, variables);
-		const search = data?.search;
-		const nodes = Array.isArray(search?.nodes) ? search.nodes : [];
-		for (const node of nodes) {
-			// Node is a PullRequest per selection set
-			prs.push(node);
-		}
-		const pageInfo = search?.pageInfo;
-		if (!pageInfo?.hasNextPage) break;
-		after = pageInfo.endCursor || null;
-	}
-	return prs;
+	const data = await paginate(
+		graphqlFn,
+		query,
+		{ q, withBody, withURL, withBase: withBaseRefName, withHead: withHeadRefName, after: null },
+		["search"],
+	);
+	const nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];
+	return nodes;
 }

@@ -23,7 +23,6 @@ import {
 const {
 	validateSchema,
 }: { validateSchema: any } = require("release-drafter/lib/schema");
-// Note: We no longer use release-drafter's commit history scan.
 const {
 	generateReleaseInfo,
 	findReleases,
@@ -338,7 +337,6 @@ export async function run(options: RunOptions) {
 	}
 
 	const targetCommitish: string = target || defaultBranch;
-	// PR-only data path using GraphQL search
 	logVerbose("[GitHub] Resolving merged pull requests via GraphQL search...");
 	const { fetchMergedPRs } = await import("./graphql/pr-queries");
 	const { filterByChangedFilesGraphQL } = await import(
@@ -355,10 +353,12 @@ export async function run(options: RunOptions) {
 	);
 
 	const sinceDate: string | undefined = lastRelease?.created_at || undefined;
+	const targetCommitishName = targetCommitish.replace(/^refs\/heads\//, "");
 	let pullRequests: any[] = await fetchMergedPRs({
 		owner,
 		repo,
 		sinceDate,
+		baseBranch: targetCommitishName,
 		graphqlFn: context.octokit.graphql,
 		withBody: needBody,
 		withURL: needURL,
