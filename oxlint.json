@@ -1,5 +1,5 @@
 {
   "rules": {
-    "@typescript-eslint/no-explicit-any": "error"
+    "typescript/no-explicit-any": "error"
   }
 }
