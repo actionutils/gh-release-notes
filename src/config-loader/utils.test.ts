@@ -1,4 +1,4 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect } from "bun:test";
 import {
 	detectConfigSource,
 	parsePurl,
@@ -180,9 +180,7 @@ describe("validateChecksums", () => {
 			hash: "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f",
 		};
 
-		await expect(
-			validateChecksums(content, [checksum]),
-		).resolves.toBeUndefined();
+		expect(await validateChecksums(content, [checksum])).toBeUndefined();
 	});
 
 	it("validates correct sha1 checksum", async () => {
@@ -192,9 +190,7 @@ describe("validateChecksums", () => {
 			hash: "0a0a9f2a6772942557ab5355d76af442f8f65e01",
 		};
 
-		await expect(
-			validateChecksums(content, [checksum]),
-		).resolves.toBeUndefined();
+		expect(await validateChecksums(content, [checksum])).toBeUndefined();
 	});
 
 	it("validates multiple checksums", async () => {
@@ -209,9 +205,7 @@ describe("validateChecksums", () => {
 			},
 		];
 
-		await expect(
-			validateChecksums(content, checksums),
-		).resolves.toBeUndefined();
+		expect(await validateChecksums(content, checksums)).toBeUndefined();
 	});
 
 	it("throws on incorrect checksum", async () => {
@@ -220,9 +214,9 @@ describe("validateChecksums", () => {
 			hash: "incorrect_hash",
 		};
 
-		await expect(validateChecksums(content, [checksum])).rejects.toThrow(
-			"Checksum validation failed for sha256",
-		);
+		expect(async () => {
+			await validateChecksums(content, [checksum]);
+		}).toThrow("Checksum validation failed for sha256");
 	});
 
 	it("throws on first incorrect checksum in list", async () => {
@@ -237,8 +231,8 @@ describe("validateChecksums", () => {
 			},
 		];
 
-		await expect(validateChecksums(content, checksums)).rejects.toThrow(
-			"Checksum validation failed for sha256",
-		);
+		expect(async () => {
+			await validateChecksums(content, checksums);
+		}).toThrow("Checksum validation failed for sha256");
 	});
 });

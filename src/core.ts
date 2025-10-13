@@ -562,10 +562,12 @@ export async function run(options: RunOptions) {
 		}
 	}
 	const newContributorsOutput = newContributorsData
-		? newContributorsData.newContributors.map((c) => {
-				const base = contributorsMap.get(c.login);
-				return { ...base, firstPullRequest: c.firstPullRequest };
-			})
+		? newContributorsData.newContributors.map(
+				(c: { login: string; firstPullRequest: any }) => {
+					const base = contributorsMap.get(c.login);
+					return { ...base, firstPullRequest: c.firstPullRequest };
+				},
+			)
 		: null;
 
 	// Build categorized pull requests for JSON output using local workaround

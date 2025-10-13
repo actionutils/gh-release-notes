@@ -36,6 +36,9 @@ jobs:
     - name: Run format check
       run: bun run format:check
 
+    - name: Run typecheck
+      run: bun run typecheck
+
     - name: Build
       run: bun run build
 
