@@ -34,6 +34,8 @@ const {
 	sortPullRequests: any;
 } = require("release-drafter/lib/sort-pull-requests");
 
+import type { SponsorFetchMode } from "./graphql/pr-queries";
+
 export type RunOptions = {
 	repo: string;
 	config?: string;
@@ -43,6 +45,7 @@ export type RunOptions = {
 	token?: string;
 	preview?: boolean;
 	includeNewContributors?: boolean;
+	sponsorFetchMode?: SponsorFetchMode;
 };
 
 async function ghRest(
@@ -204,6 +207,7 @@ export async function run(options: RunOptions) {
 		tag,
 		target,
 		preview,
+		sponsorFetchMode,
 	} = options;
 	logVerbose("[Run] Resolving GitHub token...");
 	const token = await getGitHubToken(options.token);
@@ -360,6 +364,7 @@ export async function run(options: RunOptions) {
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
+		sponsorFetchMode: sponsorFetchMode || "none", // Default to 'none' due to GitHub token limitations
 	});
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
