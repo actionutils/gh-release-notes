@@ -16,7 +16,7 @@ interface Args {
 	json: boolean;
 	preview: boolean;
 	verbose: boolean;
-	"include-new-contributors"?: boolean;
+	"skip-new-contributors"?: boolean;
 	// Using enum instead of boolean to allow future extensibility
 	// (e.g., fetching via HTML HEAD requests)
 	"sponsor-fetch-mode"?: "none" | "graphql" | "html" | "auto";
@@ -79,10 +79,10 @@ async function main() {
 			description: "Enable verbose logging",
 			default: false,
 		})
-		.option("include-new-contributors", {
+		.option("skip-new-contributors", {
 			type: "boolean",
 			description:
-				"Force include new contributors data (mainly for JSON output)",
+				"Skip fetching new contributors data to reduce API calls (only applies with --json or --template)",
 			default: false,
 		})
 		.option("sponsor-fetch-mode", {
@@ -171,7 +171,7 @@ async function main() {
 			tag: args.tag,
 			target: args.target,
 			preview: args.preview,
-			includeNewContributors: args["include-new-contributors"],
+			includeNewContributors: (args.json || !!args.template) && !args["skip-new-contributors"],
 			sponsorFetchMode: args["sponsor-fetch-mode"],
 			isJsonMode: args.json || !!args.template,
 		});
