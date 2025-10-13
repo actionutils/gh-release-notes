@@ -13,28 +13,81 @@ import {
 import { logVerbose } from "./logger";
 import {
 	categorizePullRequests,
-	type MinimalPullRequest,
 	type CategorizeConfig,
 } from "./categorize";
+// Type definitions for release-drafter library functions
+interface ReleaseDrafterContext {
+	payload: {
+		repository: {
+			full_name: string;
+			default_branch: string;
+		};
+	};
+	repo: (obj?: Record<string, unknown>) => Record<string, unknown>;
+	log: { info: () => void; warn: () => void };
+	octokit: {
+		graphql: (query: string, variables: Record<string, unknown>) => Promise<unknown>;
+		repos: {
+			getReleaseByTag: (params: { owner: string; repo: string; tag: string }) => Promise<{ data: unknown }>;
+		};
+	};
+}
+
+interface ReleaseDrafterConfig {
+	'change-template'?: string;
+	'filter-by-commitish'?: boolean;
+	'include-pre-releases'?: boolean;
+	'tag-prefix'?: string;
+	'exclude-contributors'?: string[];
+	'include-paths'?: string[];
+	'sort-by'?: string;
+	'sort-direction'?: string;
+	template?: string;
+	prerelease?: boolean;
+	latest?: boolean;
+	[key: string]: unknown;
+}
+
+interface FindReleasesParams {
+	context: ReleaseDrafterContext;
+	targetCommitish: string;
+	filterByCommitish: boolean;
+	includePreReleases: boolean;
+	tagPrefix: string;
+}
+
+interface GenerateReleaseInfoParams {
+	context: ReleaseDrafterContext;
+	commits: unknown[];
+	config: ReleaseDrafterConfig;
+	lastRelease: LastRelease;
+	mergedPullRequests: MergedPullRequest[];
+	tag?: string;
+	isPreRelease?: boolean;
+	latest?: boolean;
+	shouldDraft: boolean;
+	targetCommitish: string;
+}
+
 const {
 	validateSchema,
-}: { validateSchema: (context: unknown, config: unknown) => unknown } = require("release-drafter/lib/schema");
+}: { validateSchema: (context: ReleaseDrafterContext, config: unknown) => ReleaseDrafterConfig } = require("release-drafter/lib/schema");
 const {
 	generateReleaseInfo,
 	findReleases,
 }: {
-	generateReleaseInfo: (params: unknown) => unknown;
-	findReleases: (params: unknown) => Promise<{ draftRelease: unknown; lastRelease: unknown }>;
+	generateReleaseInfo: (params: GenerateReleaseInfoParams) => ReleaseInfo & { resolvedVersion: string; majorVersion: number; minorVersion: number; patchVersion: number };
+	findReleases: (params: FindReleasesParams) => Promise<{ draftRelease: unknown; lastRelease: LastRelease }>;
 } = require("release-drafter/lib/releases");
 
 // release-drafter exports sortPullRequests; rely on it being present
 const {
 	sortPullRequests,
 }: {
-	sortPullRequests: (pullRequests: unknown[], sortBy?: string, sortDirection?: string) => unknown[];
+	sortPullRequests: (pullRequests: MergedPullRequest[], sortBy?: string, sortDirection?: string) => MergedPullRequest[];
 } = require("release-drafter/lib/sort-pull-requests");
 
-import type { SponsorFetchMode } from "./graphql/pr-queries";
+import type { SponsorFetchMode, PullRequest } from "./graphql/pr-queries";
 import type { PullRequestInfo } from "./types/new-contributors";
 import { TemplateRenderer } from "./template";
 
@@ -52,38 +105,12 @@ export type RunOptions = {
 	includeAllData?: boolean; // Default: true for library usage, controls whether to fetch extra data like new contributors
 };
 
-// Type for Author information
-export type Author = {
-	login: string;
-	url?: string;
-	type?: string;
-	__typename?: string;
-};
+// Use PullRequest from GraphQL layer as the base type
+export type MergedPullRequest = PullRequest;
 
-// Type for Label information
-export type Label = {
-	name: string;
-	color?: string;
-	description?: string;
-};
-
-// Type for merged pull request with full details
-export type MergedPullRequest = {
-	number: number;
-	title: string;
-	url: string;
-	mergedAt: string;
-	body?: string;
-	author?: Author;
-	labels?: {
-		nodes: Label[];
-	};
-	headRefName?: string;
-	baseRefName?: string;
-	isDraft?: boolean;
-	state?: string;
-	merged?: boolean;
-};
+// Export types for external consumers
+export type Author = PullRequest['author'];
+export type Label = PullRequest['labels']['nodes'][0];
 
 // Type for release version information
 export type ReleaseVersion = {
@@ -216,9 +243,9 @@ function buildContext({
 	repo: string;
 	token: string;
 	defaultBranch: string;
-}) {
+}): ReleaseDrafterContext {
 	const octokit = new Octokit({ auth: token });
-	const ctx = {
+	const ctx: ReleaseDrafterContext = {
 		payload: {
 			repository: {
 				full_name: `${owner}/${repo}`,
@@ -227,12 +254,16 @@ function buildContext({
 		},
 		repo: (obj: Record<string, unknown> = {}) => ({ owner, repo, ...obj }),
 		log: { info: () => {}, warn: () => {} },
-		octokit: octokit as unknown,
+		octokit: {
+			graphql: async (query: string, variables: Record<string, unknown>): Promise<unknown> =>
+				ghGraphQL(query, variables, { token }),
+			repos: {
+				getReleaseByTag: (params: { owner: string; repo: string; tag: string }) =>
+					(octokit as any).repos.getReleaseByTag(params),
+			},
+		},
 	};
-	// Provide graphql compatible with release-drafter's expectation
-	(ctx as { octokit: { graphql: (query: string, variables: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql = async (query: string, variables: Record<string, unknown>): Promise<unknown> =>
-		ghGraphQL(query, variables, { token });
-	return ctx as unknown;
+	return ctx;
 }
 
 function parseConfigString(source: string, filename = ""): unknown {
@@ -423,12 +454,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	logVerbose(`[GitHub] Default branch: ${defaultBranch}`);
 
 	const context = buildContext({ owner, repo, token, defaultBranch });
-	const rdConfig = validateSchema(context, cfg) as Record<string, unknown>;
+	const rdConfig = validateSchema(context, cfg);
 
 	let lastRelease: LastRelease = null;
 	if (prevTag) {
 		logVerbose(`[Releases] Using explicit previous tag: ${prevTag}`);
-		const rel = await (context as { octokit: { repos: { getReleaseByTag: (params: { owner: string; repo: string; tag: string }) => Promise<{ data: unknown }> } } }).octokit.repos.getReleaseByTag({
+		const rel = await context.octokit.repos.getReleaseByTag({
 			owner,
 			repo,
 			tag: prevTag,
@@ -450,7 +481,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				includePreReleases: !!rdConfig["include-pre-releases"],
 				tagPrefix: String(rdConfig["tag-prefix"] || ""),
 			});
-		lastRelease = (lr as LastRelease) || null;
+		lastRelease = lr || null;
 		if (lastRelease?.tag_name) {
 			logVerbose(`[Releases] Detected last release: ${lastRelease.tag_name}`);
 		} else {
@@ -504,12 +535,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		repo,
 		sinceDate,
 		baseBranch: baseBranchName,
-		graphqlFn: (context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql,
+		graphqlFn: context.octokit.graphql as any,
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
 		sponsorFetchMode,
-	}) as MergedPullRequest[];
+	});
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
 		? rdConfig["include-paths"]
@@ -521,20 +552,20 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		pullRequests = await filterByChangedFilesGraphQL({
 			owner,
 			repo,
-			pullRequests: pullRequests as Array<{ number: number; [key: string]: unknown }>,
+			pullRequests,
 			includePaths,
-			graphqlFn: (context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql as (query: string, variables?: { owner: string; name: string; [key: string]: string | null }) => Promise<{ repo?: { [key: string]: { files?: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: Array<{ path: string; previousFilePath?: string | null }> } } } }>,
-		}) as MergedPullRequest[];
+			graphqlFn: context.octokit.graphql as (query: string, variables?: { owner: string; name: string; [key: string]: string | null }) => Promise<{ repo?: { [key: string]: { files?: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: Array<{ path: string; previousFilePath?: string | null }> } } } }>,
+		});
 	}
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
 
 	// Start sponsor enrichment in parallel (don't await yet)
-	let sponsorEnrichmentPromise: Promise<unknown[]> | null = null;
+	let sponsorEnrichmentPromise: Promise<MergedPullRequest[]> | null = null;
 	if (sponsorFetchMode === "html" && pullRequests.length > 0) {
 		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
 		sponsorEnrichmentPromise = import("./sponsor-html-checker").then(
 			({ enrichWithHtmlSponsorData }) =>
-				enrichWithHtmlSponsorData(pullRequests as Array<{ number: number; author?: { login?: string; [key: string]: unknown }; [key: string]: unknown }>, 10),
+				enrichWithHtmlSponsorData(pullRequests as any, 10) as unknown as Promise<MergedPullRequest[]>,
 		);
 	}
 
@@ -542,9 +573,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const mergedPullRequestsSorted: MergedPullRequest[] = Array.isArray(pullRequests)
 		? sortPullRequests(
 				pullRequests,
-				rdConfig["sort-by"] as string | undefined,
-				rdConfig["sort-direction"] as string | undefined,
-			) as MergedPullRequest[]
+				rdConfig["sort-by"],
+				rdConfig["sort-direction"],
+			)
 		: pullRequests;
 
 	logVerbose("[Release] Generating release info from commits/PRs...");
@@ -559,7 +590,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		latest: rdConfig.latest,
 		shouldDraft: true,
 		targetCommitish,
-	}) as ReleaseInfo & { resolvedVersion: string; majorVersion: number; minorVersion: number; patchVersion: number };
+	});
 	logVerbose(
 		`[Release] Generated release: name=${String(releaseInfo.name || "")} tag=${String(
 			releaseInfo.tag || tag || "",
@@ -591,7 +622,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			newContributorsPromise = findNewContributors({
 				owner,
 				repo,
-				pullRequests: pullRequests as Array<{ number: number; title: string; url: string; mergedAt: string }>,
+				pullRequests,
 				token,
 				prevReleaseDate,
 			});
@@ -610,15 +641,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (sponsorEnrichmentPromise) {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
 			if (enrichedPullRequests) {
-				pullRequests = enrichedPullRequests as MergedPullRequest[];
+				pullRequests = enrichedPullRequests;
 				// Update the sorted version too
 				if (Array.isArray(mergedPullRequestsSorted)) {
 					// Re-sort with enriched data
 					const sortedEnriched = sortPullRequests(
-						enrichedPullRequests as MergedPullRequest[],
-						rdConfig["sort-direction"] as string | undefined,
-						rdConfig["sort-by"] as string | undefined,
-					) as MergedPullRequest[];
+						enrichedPullRequests,
+						rdConfig["sort-direction"],
+						rdConfig["sort-by"],
+					);
 					mergedPullRequestsSorted.length = 0;
 					mergedPullRequestsSorted.push(...sortedEnriched);
 				}
@@ -671,17 +702,24 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	)
 		? rdConfig["exclude-contributors"]
 		: [];
+	// Build contributors from PR authors - convert from GraphQL format to internal format
 	const contributorsMap = new Map<string, Contributor>();
 	for (const pr of mergedPullRequestsSorted || []) {
 		const login = pr.author?.login;
 		if (!login) continue;
 		if (excludeContributors.includes(login)) continue;
 		if (!contributorsMap.has(login)) {
-			const author = pr.author || {} as Author;
-			contributorsMap.set(login, { ...author, login } as Contributor);
+			// Convert from normalized GraphQL format to internal Contributor format
+			const contributor = {
+				login,
+				isBot: pr.author?.type === 'Bot',
+				pullRequests: [] // Will be populated by findNewContributors if needed
+			} as Contributor;
+			contributorsMap.set(login, contributor);
 		}
 	}
-	const newContributorsOutput: NewContributor[] | null = newContributorsData
+
+	const newContributorsOutput = newContributorsData
 		? (newContributorsData as { newContributors: NewContributor[] }).newContributors.map(
 				(c: NewContributor) => {
 					const base = contributorsMap.get(c.login);
@@ -692,7 +730,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Build categorized pull requests for JSON output using local workaround
 	const categorizedPullRequests = categorizePullRequests(
-		(mergedPullRequestsSorted || []) as MinimalPullRequest[],
+		mergedPullRequestsSorted || [],
 		rdConfig as CategorizeConfig,
 	) as CategorizedPullRequests;
 

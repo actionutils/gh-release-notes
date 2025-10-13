@@ -12,6 +12,53 @@
  */
 export type SponsorFetchMode = "none" | "graphql" | "html" | "auto";
 
+// Type for PR Author from GraphQL response
+export interface GraphQLAuthor {
+	login: string;
+	__typename: string;
+	url: string;
+	avatarUrl: string;
+	sponsorsListing?: { url: string };
+}
+
+// Type for PR Label from GraphQL response
+export interface GraphQLLabel {
+	name: string;
+}
+
+// Type for Pull Request from GraphQL response (raw from API)
+export interface GraphQLPullRequest {
+	number: number;
+	title: string;
+	mergedAt: string;
+	url: string;
+	body?: string;
+	baseRefName?: string;
+	headRefName?: string;
+	labels: { nodes: GraphQLLabel[] };
+	author: GraphQLAuthor;
+}
+
+// Normalized PullRequest type (for consumption by core.ts)
+export interface PullRequest {
+	number: number;
+	title: string;
+	mergedAt: string;
+	url: string;
+	body?: string;
+	baseRefName?: string;
+	headRefName?: string;
+	labels: { nodes: GraphQLLabel[] }; // Keep nodes structure for categorize compatibility
+	author: {
+		login: string;
+		type: string; // Normalized from __typename
+		url: string;
+		avatarUrl: string;
+		sponsorsListing?: { url: string };
+	};
+	[key: string]: unknown; // Index signature for MinimalPullRequest compatibility
+}
+
 export type SearchPRParams = {
 	owner: string;
 	repo: string;
@@ -66,9 +113,9 @@ function buildSearchQuery(): string {
 
 const {
 	paginate,
-}: { paginate: (graphqlFn: (query: string, variables?: Record<string, unknown>) => Promise<unknown>, query: string, variables: Record<string, unknown>, path: string[]) => Promise<{ search: { nodes: unknown[] } }> } = require("release-drafter/lib/pagination");
+}: { paginate: (graphqlFn: (query: string, variables?: Record<string, unknown>) => Promise<unknown>, query: string, variables: Record<string, unknown>, path: string[]) => Promise<{ search: { nodes: GraphQLPullRequest[] } }> } = require("release-drafter/lib/pagination");
 
-export async function fetchMergedPRs(params: SearchPRParams): Promise<unknown[]> {
+export async function fetchMergedPRs(params: SearchPRParams): Promise<PullRequest[]> {
 	const {
 		owner,
 		repo,
@@ -105,5 +152,23 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<unknown[]>
 		["search"],
 	);
 	const nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];
-	return nodes;
+
+	// Normalize the GraphQL response to the expected format
+	return nodes.map((node: GraphQLPullRequest): PullRequest => ({
+		number: node.number,
+		title: node.title,
+		mergedAt: node.mergedAt,
+		url: node.url,
+		body: node.body,
+		baseRefName: node.baseRefName,
+		headRefName: node.headRefName,
+		labels: node.labels, // Keep the nodes structure for categorize compatibility
+		author: {
+			login: node.author.login,
+			type: node.author.__typename, // Normalize __typename to type
+			url: node.author.url,
+			avatarUrl: node.author.avatarUrl,
+			sponsorsListing: node.author.sponsorsListing,
+		},
+	}));
 }

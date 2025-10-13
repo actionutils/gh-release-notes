@@ -1,34 +1,40 @@
-type GraphQLResponse = {
-	repo?: {
-		[key: string]: {
-			files?: {
-				pageInfo: { hasNextPage: boolean; endCursor: string | null };
-				nodes: Array<{ path: string; previousFilePath?: string | null }>;
-			};
-		};
-	};
-};
+import type { PullRequest } from './pr-queries';
 
-type GraphQLVariables = {
+interface GraphQLFileNode {
+	path: string;
+	previousFilePath?: string | null;
+}
+
+interface GraphQLFilesResponse {
+	pageInfo: { hasNextPage: boolean; endCursor: string | null };
+	nodes: GraphQLFileNode[];
+}
+
+interface GraphQLPullRequestFiles {
+	files?: GraphQLFilesResponse;
+}
+
+interface GraphQLResponse {
+	repo?: {
+		[key: string]: GraphQLPullRequestFiles;
+	};
+}
+
+interface GraphQLVariables {
 	owner: string;
 	name: string;
 	[key: string]: string | null;
-};
+}
 
 type GraphQLFn = (query: string, variables?: GraphQLVariables) => Promise<GraphQLResponse>;
 
-interface MinimalPullRequest {
-	number: number;
-	[key: string]: unknown;
-}
-
-export type FilterByChangedFilesParams = {
+export interface FilterByChangedFilesParams {
 	owner: string;
 	repo: string;
-	pullRequests: MinimalPullRequest[];
+	pullRequests: PullRequest[];
 	includePaths: string[];
 	graphqlFn: GraphQLFn;
-};
+}
 
 function buildFilesBatchQuery(
 	prNumbers: number[],
@@ -66,14 +72,12 @@ function matchesIncludePaths(path: string, includes: string[]): boolean {
 
 export async function filterByChangedFilesGraphQL(
 	params: FilterByChangedFilesParams,
-): Promise<MinimalPullRequest[]> {
+): Promise<PullRequest[]> {
 	const { owner, repo, pullRequests, includePaths, graphqlFn } = params;
 	if (includePaths.length === 0 || pullRequests.length === 0)
 		return pullRequests;
 
-	const numbers: number[] = pullRequests
-		.map((p) => p?.number)
-		.filter((n) => typeof n === "number");
+	const numbers: number[] = pullRequests.map((p) => p.number);
 
 	const kept = new Set<number>();
 	const perPrCursors = new Map<number, string | null>();
@@ -94,11 +98,10 @@ export async function filterByChangedFilesGraphQL(
 		for (const n of batch) {
 			const prNode = repoNode?.[`pr_${n}`];
 			const files = prNode?.files;
-			const nodes = Array.isArray(files?.nodes) ? files.nodes : [];
+			const nodes = files?.nodes || [];
 			let matched = false;
 			for (const f of nodes) {
-				const cur = String(f?.path || "");
-				if (cur && matchesIncludePaths(cur, includePaths)) {
+				if (f.path && matchesIncludePaths(f.path, includePaths)) {
 					matched = true;
 					break;
 				}
