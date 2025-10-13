@@ -35,6 +35,7 @@ const {
 } = require("release-drafter/lib/sort-pull-requests");
 
 import type { SponsorFetchMode } from "./graphql/pr-queries";
+import type { PullRequestInfo } from "./types/new-contributors";
 import { TemplateRenderer } from "./template";
 
 export type RunOptions = {
@@ -51,32 +52,108 @@ export type RunOptions = {
 	includeAllData?: boolean; // Default: true for library usage, controls whether to fetch extra data like new contributors
 };
 
+// Type for Author information
+export type Author = {
+	login: string;
+	url?: string;
+	type?: string;
+	__typename?: string;
+};
+
+// Type for Label information
+export type Label = {
+	name: string;
+	color?: string;
+	description?: string;
+};
+
+// Type for merged pull request with full details
+export type MergedPullRequest = {
+	number: number;
+	title: string;
+	url: string;
+	mergedAt: string;
+	body?: string;
+	author?: Author;
+	labels?: {
+		nodes: Label[];
+	};
+	headRefName?: string;
+	baseRefName?: string;
+	isDraft?: boolean;
+	state?: string;
+	merged?: boolean;
+};
+
+// Type for release version information
+export type ReleaseVersion = {
+	resolved: string;
+	major: number;
+	minor: number;
+	patch: number;
+};
+
+// Type for categorized pull requests
+export type CategorizedPullRequests = {
+	uncategorized: MergedPullRequest[];
+	categories: Array<{
+		title: string;
+		labels?: string[];
+		collapse_after?: number;
+		pullRequests: MergedPullRequest[];
+	}>;
+};
+
+// Type for contributor information
+export type Contributor = {
+	login: string;
+	url?: string;
+	type?: string;
+	__typename?: string;
+};
+
+// Type for new contributor with their first PR
+export type NewContributor = {
+	login: string;
+	isBot: boolean;
+	firstPullRequest: PullRequestInfo;
+	pullRequests: PullRequestInfo[];
+};
+
+// Type for last release information
+export type LastRelease = {
+	id: number | string;
+	tag_name: string;
+	created_at: string;
+	published_at?: string;
+	name?: string;
+	body?: string;
+	draft?: boolean;
+	prerelease?: boolean;
+} | null;
+
+// Type for release information
+export type ReleaseInfo = {
+	name: string;
+	tag: string;
+	body: string;
+	targetCommitish: string;
+	resolvedVersion: string;
+	majorVersion: number;
+	minorVersion: number;
+	patchVersion: number;
+};
+
 export type RunResult = {
 	owner: string;
 	repo: string;
 	defaultBranch: string;
-	lastRelease: {
-		id: unknown;
-		tag_name: string;
-		created_at: string;
-	} | null;
-	mergedPullRequests: unknown[];
-	categorizedPullRequests: {
-		uncategorized: unknown[];
-		categories: Array<{ title: string; pullRequests: unknown[]; [key: string]: unknown }>;
-	};
-	contributors: Array<{ login: string; [key: string]: unknown }>;
-	newContributors: Array<{ login: string; firstPullRequest: unknown; [key: string]: unknown }> | null;
-	release: {
-		name: string;
-		tag: string;
-		body: string;
-		targetCommitish: string;
-		resolvedVersion: unknown;
-		majorVersion: unknown;
-		minorVersion: unknown;
-		patchVersion: unknown;
-	};
+	lastRelease: LastRelease;
+	mergedPullRequests: MergedPullRequest[];
+	categorizedPullRequests: CategorizedPullRequests;
+	contributors: Contributor[];
+	newContributors: NewContributor[] | null;
+	release: ReleaseInfo;
 	fullChangelogLink: string;
 };
 
@@ -348,7 +425,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const context = buildContext({ owner, repo, token, defaultBranch });
 	const rdConfig = validateSchema(context, cfg) as Record<string, unknown>;
 
-	let lastRelease: { id: unknown; tag_name: string; created_at: string; published_at?: string } | null = null;
+	let lastRelease: LastRelease = null;
 	if (prevTag) {
 		logVerbose(`[Releases] Using explicit previous tag: ${prevTag}`);
 		const rel = await (context as { octokit: { repos: { getReleaseByTag: (params: { owner: string; repo: string; tag: string }) => Promise<{ data: unknown }> } } }).octokit.repos.getReleaseByTag({
@@ -356,7 +433,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			repo,
 			tag: prevTag,
 		});
-		lastRelease = rel.data as { id: unknown; tag_name: string; created_at: string; published_at?: string };
+		lastRelease = rel.data as LastRelease;
 	} else {
 		logVerbose(
 			`[Releases] Auto-detecting previous release (target=${target || defaultBranch})`,
@@ -373,7 +450,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				includePreReleases: !!rdConfig["include-pre-releases"],
 				tagPrefix: String(rdConfig["tag-prefix"] || ""),
 			});
-		lastRelease = (lr as { id: unknown; tag_name: string; created_at: string; published_at?: string } | null) || null;
+		lastRelease = (lr as LastRelease) || null;
 		if (lastRelease?.tag_name) {
 			logVerbose(`[Releases] Detected last release: ${lastRelease.tag_name}`);
 		} else {
@@ -432,7 +509,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
 		sponsorFetchMode,
-	}) as unknown as MinimalPullRequest[];
+	}) as MergedPullRequest[];
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
 		? rdConfig["include-paths"]
@@ -444,10 +521,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		pullRequests = await filterByChangedFilesGraphQL({
 			owner,
 			repo,
-			pullRequests: pullRequests as unknown as Array<{ number: number; [key: string]: unknown }>,
+			pullRequests: pullRequests as Array<{ number: number; [key: string]: unknown }>,
 			includePaths,
 			graphqlFn: (context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql as (query: string, variables?: { owner: string; name: string; [key: string]: string | null }) => Promise<{ repo?: { [key: string]: { files?: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: Array<{ path: string; previousFilePath?: string | null }> } } } }>,
-		}) as unknown as MinimalPullRequest[];
+		}) as MergedPullRequest[];
 	}
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
 
@@ -457,17 +534,17 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
 		sponsorEnrichmentPromise = import("./sponsor-html-checker").then(
 			({ enrichWithHtmlSponsorData }) =>
-				enrichWithHtmlSponsorData(pullRequests as unknown as Array<{ number: number; author?: { login?: string; [key: string]: unknown }; [key: string]: unknown }>, 10),
+				enrichWithHtmlSponsorData(pullRequests as Array<{ number: number; author?: { login?: string; [key: string]: unknown }; [key: string]: unknown }>, 10),
 		);
 	}
 
 	// Align PR order with release-drafter by applying its exported sorter
-	const mergedPullRequestsSorted = Array.isArray(pullRequests)
+	const mergedPullRequestsSorted: MergedPullRequest[] = Array.isArray(pullRequests)
 		? sortPullRequests(
 				pullRequests,
 				rdConfig["sort-by"] as string | undefined,
 				rdConfig["sort-direction"] as string | undefined,
-			)
+			) as MergedPullRequest[]
 		: pullRequests;
 
 	logVerbose("[Release] Generating release info from commits/PRs...");
@@ -482,7 +559,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		latest: rdConfig.latest,
 		shouldDraft: true,
 		targetCommitish,
-	}) as { name: string; tag: string; body: string; targetCommitish: string; resolvedVersion: unknown; majorVersion: unknown; minorVersion: unknown; patchVersion: unknown };
+	}) as ReleaseInfo & { resolvedVersion: string; majorVersion: number; minorVersion: number; patchVersion: number };
 	logVerbose(
 		`[Release] Generated release: name=${String(releaseInfo.name || "")} tag=${String(
 			releaseInfo.tag || tag || "",
@@ -514,7 +591,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			newContributorsPromise = findNewContributors({
 				owner,
 				repo,
-				pullRequests: pullRequests as unknown as Array<{ number: number; title: string; url: string; mergedAt: string }>,
+				pullRequests: pullRequests as Array<{ number: number; title: string; url: string; mergedAt: string }>,
 				token,
 				prevReleaseDate,
 			});
@@ -533,15 +610,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (sponsorEnrichmentPromise) {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
 			if (enrichedPullRequests) {
-				pullRequests = enrichedPullRequests as unknown as MinimalPullRequest[];
+				pullRequests = enrichedPullRequests as MergedPullRequest[];
 				// Update the sorted version too
 				if (Array.isArray(mergedPullRequestsSorted)) {
 					// Re-sort with enriched data
 					const sortedEnriched = sortPullRequests(
-						enrichedPullRequests as unknown as MinimalPullRequest[],
+						enrichedPullRequests as MergedPullRequest[],
 						rdConfig["sort-direction"] as string | undefined,
 						rdConfig["sort-by"] as string | undefined,
-					);
+					) as MergedPullRequest[];
 					mergedPullRequestsSorted.length = 0;
 					mergedPullRequestsSorted.push(...sortedEnriched);
 				}
@@ -551,9 +628,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 		// Wait for new contributors detection if it was started
 		if (newContributorsPromise) {
-			const newContributorsResult = await newContributorsPromise as { newContributors: Array<{ login: string; firstPullRequest: unknown }> };
+			const newContributorsResult = await newContributorsPromise as { newContributors: NewContributor[] };
 			newContributorsSection = formatNewContributorsSection(
-				newContributorsResult.newContributors as Array<{ login: string; isBot: boolean; firstPullRequest: { number: number; title: string; url: string; mergedAt: string }; pullRequests: Array<{ number: number; title: string; url: string; mergedAt: string }> }>,
+				newContributorsResult.newContributors,
 			);
 			newContributorsData = newContributorsResult;
 			logVerbose("[Parallel] New contributors detection completed");
@@ -570,7 +647,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		// to avoid excessive empty lines in the output
 		if (newContributorsSection === "") {
 			// Remove optional preceding whitespace and newline
-			(releaseInfo as { body: string }).body = (releaseInfo as { body: string }).body.replace(
+			releaseInfo.body = releaseInfo.body.replace(
 				/\n?\s*\$NEW_CONTRIBUTORS/g,
 				"",
 			);
@@ -578,7 +655,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				"[Template] Removed $NEW_CONTRIBUTORS placeholder (no new contributors)",
 			);
 		} else {
-			(releaseInfo as { body: string }).body = (releaseInfo as { body: string }).body.replace(
+			releaseInfo.body = releaseInfo.body.replace(
 				"$NEW_CONTRIBUTORS",
 				newContributorsSection,
 			);
@@ -594,21 +671,21 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	)
 		? rdConfig["exclude-contributors"]
 		: [];
-	const contributorsMap = new Map<string, { login: string; [key: string]: unknown }>();
+	const contributorsMap = new Map<string, Contributor>();
 	for (const pr of mergedPullRequestsSorted || []) {
-		const login = (pr as unknown as { author?: { login?: string } })?.author?.login as string | undefined;
+		const login = pr.author?.login;
 		if (!login) continue;
 		if (excludeContributors.includes(login)) continue;
 		if (!contributorsMap.has(login)) {
-			const author = (pr as unknown as { author?: Record<string, unknown> }).author || {};
-			contributorsMap.set(login, { ...author, login });
+			const author = pr.author || {} as Author;
+			contributorsMap.set(login, { ...author, login } as Contributor);
 		}
 	}
-	const newContributorsOutput = newContributorsData
-		? (newContributorsData as unknown as { newContributors: Array<{ login: string; firstPullRequest: unknown }> }).newContributors.map(
-				(c: { login: string; firstPullRequest: unknown }) => {
+	const newContributorsOutput: NewContributor[] | null = newContributorsData
+		? (newContributorsData as { newContributors: NewContributor[] }).newContributors.map(
+				(c: NewContributor) => {
 					const base = contributorsMap.get(c.login);
-					return { ...base, login: c.login, firstPullRequest: c.firstPullRequest };
+					return { ...base, ...c } as NewContributor;
 				},
 			)
 		: null;
@@ -617,20 +694,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const categorizedPullRequests = categorizePullRequests(
 		(mergedPullRequestsSorted || []) as MinimalPullRequest[],
 		rdConfig as CategorizeConfig,
-	);
+	) as CategorizedPullRequests;
 
 	// Create the output data structure once
 	const result: RunResult = {
 		owner,
 		repo,
 		defaultBranch,
-		lastRelease: lastRelease
-			? {
-					id: lastRelease.id,
-					tag_name: lastRelease.tag_name,
-					created_at: lastRelease.created_at,
-				}
-			: null,
+		lastRelease,
 		mergedPullRequests: mergedPullRequestsSorted,
 		categorizedPullRequests,
 		contributors: Array.from(contributorsMap.values()),
@@ -640,10 +711,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			tag: releaseInfo.tag,
 			body: releaseInfo.body,
 			targetCommitish: releaseInfo.targetCommitish,
-			resolvedVersion: releaseInfo.resolvedVersion,
-			majorVersion: releaseInfo.majorVersion,
-			minorVersion: releaseInfo.minorVersion,
-			patchVersion: releaseInfo.patchVersion,
+			resolvedVersion: String(releaseInfo.resolvedVersion),
+			majorVersion: Number(releaseInfo.majorVersion),
+			minorVersion: Number(releaseInfo.minorVersion),
+			patchVersion: Number(releaseInfo.patchVersion),
 		},
 		fullChangelogLink,
 	};
