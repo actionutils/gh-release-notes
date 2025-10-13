@@ -1,15 +1,23 @@
-import { logVerbose } from "./logger";
+import { logVerbose, logWarning } from "./logger";
+
+/**
+ * Result of checking a sponsor page
+ */
+type SponsorCheckResult = {
+	sponsorUrl?: string;
+	hasError: boolean;
+};
 
 /**
  * Check if a GitHub user has sponsors by making a HEAD request to their sponsors page.
  * This is an experimental approach to work around GitHub API limitations.
  *
  * @param login GitHub username
- * @returns URL if user has sponsors page, undefined otherwise
+ * @returns Object with sponsorUrl (if exists) and error state
  */
 async function checkSponsorPageExists(
 	login: string,
-): Promise<string | undefined> {
+): Promise<SponsorCheckResult> {
 	const sponsorUrl = `https://github.com/sponsors/${login}`;
 
 	try {
@@ -26,20 +34,20 @@ async function checkSponsorPageExists(
 		// If we get a 200 OK without redirect, the sponsor page exists
 		if (response.status === 200) {
 			logVerbose(`[SponsorHTML] Found sponsor page for ${login}`);
-			return sponsorUrl;
+			return { sponsorUrl, hasError: false };
 		}
 
 		// 301/302/303/307/308 are redirects - means no sponsor page
 		// (GitHub redirects to user profile when sponsor page doesn't exist)
 		if (response.status >= 300 && response.status < 400) {
 			logVerbose(`[SponsorHTML] No sponsor page for ${login} (redirected)`);
-			return undefined;
+			return { hasError: false };
 		}
 
 		// 404 means no sponsor page (shouldn't happen with current GitHub behavior)
 		if (response.status === 404) {
 			logVerbose(`[SponsorHTML] No sponsor page for ${login}`);
-			return undefined;
+			return { hasError: false };
 		}
 
 		// Rate limiting or other client errors - log warning but don't fail
@@ -47,26 +55,26 @@ async function checkSponsorPageExists(
 			response.status === 429 ||
 			(response.status >= 400 && response.status < 500)
 		) {
-			console.warn(
-				`[SponsorHTML] Warning: Got ${response.status} checking sponsor page for ${login}. ` +
+			logWarning(
+				`[SponsorHTML] Got ${response.status} checking sponsor page for ${login}. ` +
 					`This may indicate rate limiting or access restrictions. Skipping sponsor check.`,
 			);
-			return undefined;
+			return { hasError: true };
 		}
 
 		// Other unexpected status codes
 		logVerbose(
 			`[SponsorHTML] Unexpected status ${response.status} for ${login}, assuming no sponsor page`,
 		);
-		return undefined;
+		return { hasError: false };
 	} catch (error) {
 		// Network errors or other issues - log warning but don't fail
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		console.warn(
-			`[SponsorHTML] Warning: Failed to check sponsor page for ${login}: ${errorMessage}. ` +
+		logWarning(
+			`[SponsorHTML] Failed to check sponsor page for ${login}: ${errorMessage}. ` +
 				`Continuing without sponsor information.`,
 		);
-		return undefined;
+		return { hasError: true };
 	}
 }
 
@@ -79,49 +87,27 @@ async function processBatch(
 	errorTracker: {
 		count: number;
 		shouldStop: boolean;
-		warnedLogins: Set<string>;
 	},
 ): Promise<{ successCount: number }> {
-	// Store current console.warn to capture warnings
-	const originalWarn = console.warn;
-	const warnedInBatch = new Set<string>();
-
-	// Temporarily override console.warn to track warnings
-	console.warn = (...args: any[]) => {
-		originalWarn(...args);
-		const message = args.join(" ");
-		// Extract login from warning message
-		for (const login of batch) {
-			if (message.includes(login)) {
-				warnedInBatch.add(login);
-				errorTracker.warnedLogins.add(login);
-				break;
-			}
-		}
-	};
-
 	const promises = batch.map(async (login) => {
-		const sponsorUrl = await checkSponsorPageExists(login);
-		sponsorResults.set(login, sponsorUrl);
-		return { login, sponsorUrl };
+		const result = await checkSponsorPageExists(login);
+		sponsorResults.set(login, result.sponsorUrl);
+		return { login, ...result };
 	});
 
 	const results = await Promise.all(promises);
-
-	// Restore original console.warn
-	console.warn = originalWarn;
 
 	// Count successes and check for errors
 	let batchSuccessCount = 0;
 	for (const result of results) {
 		if (result.sponsorUrl) {
 			batchSuccessCount++;
-		} else if (warnedInBatch.has(result.login)) {
+		} else if (result.hasError) {
 			// This was an error (rate limit, network issue, etc.)
 			errorTracker.count++;
 			if (errorTracker.count > 5) {
 				errorTracker.shouldStop = true;
-				console.warn(
+				logWarning(
 					`[SponsorHTML] Too many errors checking sponsor pages. ` +
 						`Stopping sponsor enrichment to avoid rate limits.`,
 				);
@@ -172,7 +158,6 @@ export async function enrichWithHtmlSponsorData(
 	const errorTracker = {
 		count: 0,
 		shouldStop: false,
-		warnedLogins: new Set<string>(),
 	};
 
 	// Process authors in batches
