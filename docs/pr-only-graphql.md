@@ -23,9 +23,9 @@
 - Use GraphQL search scoped to repo and merged PRs, bounded by previous release timestamp when available.
 - Query string: `repo:OWNER/REPO is:pr is:merged merged:>ISO_TIMESTAMP` (strictly greater to mirror RD logic). If no previous release, see Edge Cases.
 - Fields (conditionally included based on template needs to stay light):
-  - Core: `number`, `title`, `mergedAt`, `labels(first: 100) { nodes { name } }`, `author { login __typename url ... }`
+  - Core: `number`, `title`, `mergedAt`, `labels(first: 100) { nodes { name } }`, `author { login __typename url avatarUrl ... }`
   - Optional: `body` ($BODY), `url` ($URL), `baseRefName` ($BASE_REF_NAME), `headRefName` ($HEAD_REF_NAME)
-  - Optional user extras (best-effort): `author { ... on User { avatarUrl sponsorsListing { url } } }`
+  - Optional user extras (best-effort): `author { ... on User { sponsorsListing { url } } }`
 
 Example (field gating by @include):
 
@@ -54,7 +54,8 @@ query SearchMergedPRs(
           login
           __typename
           url
-          ... on User { avatarUrl sponsorsListing { url } }
+          avatarUrl
+          ... on User { sponsorsListing { url } }
         }
       }
     }

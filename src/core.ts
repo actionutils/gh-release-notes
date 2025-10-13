@@ -12,10 +12,6 @@ import {
 } from "./new-contributors";
 import { logVerbose } from "./logger";
 import {
-	buildMinimalContributors,
-	enrichContributorAvatars,
-} from "./contributors";
-import {
 	categorizePullRequests,
 	type MinimalPullRequest,
 	type CategorizeConfig,
@@ -38,6 +34,8 @@ const {
 	sortPullRequests: any;
 } = require("release-drafter/lib/sort-pull-requests");
 
+import type { SponsorFetchMode } from "./graphql/pr-queries";
+
 export type RunOptions = {
 	repo: string;
 	config?: string;
@@ -47,6 +45,7 @@ export type RunOptions = {
 	token?: string;
 	preview?: boolean;
 	includeNewContributors?: boolean;
+	sponsorFetchMode?: SponsorFetchMode;
 };
 
 async function ghRest(
@@ -208,6 +207,7 @@ export async function run(options: RunOptions) {
 		tag,
 		target,
 		preview,
+		sponsorFetchMode,
 	} = options;
 	logVerbose("[Run] Resolving GitHub token...");
 	const token = await getGitHubToken(options.token);
@@ -364,6 +364,7 @@ export async function run(options: RunOptions) {
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
+		sponsorFetchMode: sponsorFetchMode || "none", // Default to 'none' due to GitHub token limitations
 	});
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
@@ -382,6 +383,16 @@ export async function run(options: RunOptions) {
 		});
 	}
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
+
+	// Start sponsor enrichment in parallel (don't await yet)
+	let sponsorEnrichmentPromise: Promise<any[]> | null = null;
+	if (sponsorFetchMode === "html" && pullRequests.length > 0) {
+		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
+		sponsorEnrichmentPromise = import("./sponsor-html-checker").then(
+			({ enrichWithHtmlSponsorData }) =>
+				enrichWithHtmlSponsorData(pullRequests, 10),
+		);
+	}
 
 	// Align PR order with release-drafter by applying its exported sorter
 	const mergedPullRequestsSorted = Array.isArray(pullRequests)
@@ -414,6 +425,8 @@ export async function run(options: RunOptions) {
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
 	let newContributorsData = null;
+	let newContributorsPromise: Promise<any> | null = null;
+
 	if (
 		rdConfig.template &&
 		(rdConfig.template.includes("$NEW_CONTRIBUTORS") ||
@@ -426,80 +439,108 @@ export async function run(options: RunOptions) {
 		// Skip new contributors detection if no previous release exists
 		// Without a baseline, all contributors would be marked as "new"
 		if (prevReleaseDate) {
-			logVerbose("[New Contributors] Detecting new contributors...");
-			const newContributorsResult = await findNewContributors({
+			logVerbose(
+				"[New Contributors] Starting new contributors detection in background...",
+			);
+			// Start new contributors check in parallel (don't await yet)
+			newContributorsPromise = findNewContributors({
 				owner,
 				repo,
 				pullRequests: pullRequests,
 				token,
 				prevReleaseDate,
 			});
-			newContributorsSection = formatNewContributorsSection(
-				newContributorsResult.newContributors,
-			);
-			newContributorsData = newContributorsResult;
 		} else {
 			logVerbose(
 				"[New Contributors] Skipping detection - no previous release tag found",
 			);
 		}
+	}
 
-		// Replace $NEW_CONTRIBUTORS placeholder in the release body
-		if (releaseInfo.body && rdConfig.template?.includes("$NEW_CONTRIBUTORS")) {
-			// If new contributors section is empty, also remove the preceding whitespace/newline
-			// to avoid excessive empty lines in the output
-			if (newContributorsSection === "") {
-				// Remove optional preceding whitespace and newline
-				releaseInfo.body = releaseInfo.body.replace(
-					/\n?\s*\$NEW_CONTRIBUTORS/g,
-					"",
-				);
-				logVerbose(
-					"[Template] Removed $NEW_CONTRIBUTORS placeholder (no new contributors)",
-				);
-			} else {
-				releaseInfo.body = releaseInfo.body.replace(
-					"$NEW_CONTRIBUTORS",
-					newContributorsSection,
-				);
-				logVerbose(
-					"[Template] Replaced $NEW_CONTRIBUTORS placeholder with generated section",
-				);
+	// Wait for parallel operations to complete
+	if (sponsorEnrichmentPromise || newContributorsPromise) {
+		logVerbose("[Parallel] Waiting for background operations to complete...");
+
+		// Wait for sponsor enrichment if it was started
+		if (sponsorEnrichmentPromise) {
+			const enrichedPullRequests = await sponsorEnrichmentPromise;
+			if (enrichedPullRequests) {
+				pullRequests = enrichedPullRequests;
+				// Update the sorted version too
+				if (Array.isArray(mergedPullRequestsSorted)) {
+					// Re-sort with enriched data
+					const sortedEnriched = (sortPullRequests as any)(
+						enrichedPullRequests,
+						rdConfig["sort-direction"],
+						rdConfig["sort-by"],
+					);
+					mergedPullRequestsSorted.length = 0;
+					mergedPullRequestsSorted.push(...sortedEnriched);
+				}
+				logVerbose("[Parallel] Sponsor enrichment completed");
 			}
+		}
+
+		// Wait for new contributors detection if it was started
+		if (newContributorsPromise) {
+			const newContributorsResult = await newContributorsPromise;
+			newContributorsSection = formatNewContributorsSection(
+				newContributorsResult.newContributors,
+			);
+			newContributorsData = newContributorsResult;
+			logVerbose("[Parallel] New contributors detection completed");
 		}
 	}
 
-	// Build and enrich minimal contributors (like release-drafter's $CONTRIBUTORS)
-	const minimalContributors = buildMinimalContributors(
-		mergedPullRequestsSorted,
-		Array.isArray(rdConfig["exclude-contributors"])
-			? rdConfig["exclude-contributors"]
-			: [],
-	);
-	const contributors = await enrichContributorAvatars(
-		minimalContributors,
-		(pathname) => ghRest(pathname, { token }),
-	);
+	// Replace $NEW_CONTRIBUTORS placeholder in the release body if needed
+	if (
+		rdConfig.template &&
+		rdConfig.template.includes("$NEW_CONTRIBUTORS") &&
+		releaseInfo.body
+	) {
+		// If new contributors section is empty, also remove the preceding whitespace/newline
+		// to avoid excessive empty lines in the output
+		if (newContributorsSection === "") {
+			// Remove optional preceding whitespace and newline
+			releaseInfo.body = releaseInfo.body.replace(
+				/\n?\s*\$NEW_CONTRIBUTORS/g,
+				"",
+			);
+			logVerbose(
+				"[Template] Removed $NEW_CONTRIBUTORS placeholder (no new contributors)",
+			);
+		} else {
+			releaseInfo.body = releaseInfo.body.replace(
+				"$NEW_CONTRIBUTORS",
+				newContributorsSection,
+			);
+			logVerbose(
+				"[Template] Replaced $NEW_CONTRIBUTORS placeholder with generated section",
+			);
+		}
+	}
 
-	// Transform new contributors data for JSON output (remove internal details)
-	// Also attach avatar_url/html_url by reusing the already-resolved contributors list
-	const avatarMap = new Map<string, string>();
-	const htmlMap = new Map<string, string>();
-	for (const c of contributors) {
-		if (c.avatar_url) avatarMap.set(c.login, c.avatar_url);
-		if ((c as any).html_url) htmlMap.set(c.login, (c as any).html_url);
+	// Build contributors directly from PR authors (GraphQL data)
+	const excludeContributors: string[] = Array.isArray(
+		rdConfig["exclude-contributors"],
+	)
+		? rdConfig["exclude-contributors"]
+		: [];
+	const contributorsMap = new Map<string, any>();
+	for (const pr of mergedPullRequestsSorted || []) {
+		const login = pr?.author?.login as string | undefined;
+		if (!login) continue;
+		if (excludeContributors.includes(login)) continue;
+		if (!contributorsMap.has(login)) {
+			const author = pr.author || {};
+			contributorsMap.set(login, { ...author });
+		}
 	}
 	const newContributorsOutput = newContributorsData
-		? {
-				newContributors: newContributorsData.newContributors.map((c) => ({
-					login: c.login,
-					isBot: c.isBot,
-					firstPullRequest: c.firstPullRequest,
-					avatar_url: avatarMap.get(c.login),
-					html_url: htmlMap.get(c.login),
-				})),
-				totalContributors: newContributorsData.totalContributors,
-			}
+		? newContributorsData.newContributors.map((c) => {
+				const base = contributorsMap.get(c.login);
+				return { ...base, firstPullRequest: c.firstPullRequest };
+			})
 		: null;
 
 	// Build categorized pull requests for JSON output using local workaround
@@ -513,7 +554,7 @@ export async function run(options: RunOptions) {
 		release: releaseInfo,
 		pullRequests: mergedPullRequestsSorted,
 		categorizedPullRequests,
-		contributors,
+		contributors: Array.from(contributorsMap.values()),
 		newContributors: newContributorsOutput,
 		lastRelease: lastRelease
 			? {
