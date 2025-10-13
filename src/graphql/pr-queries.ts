@@ -3,7 +3,7 @@
  * Using an enum-like type instead of boolean to allow future extensibility.
  *
  * - 'none': Do not fetch sponsor information (default)
- * - 'graphql': Fetch via GraphQL API (requires user token with appropriate permissions)
+ * - 'graphql': Fetch via GraphQL API (requires user token, even without any permissions)
  * - 'html': (Future) May add support for fetching by making HEAD requests to HTML sponsor pages
  *
  * Note: We use this approach instead of a simple boolean to accommodate potential
@@ -50,8 +50,9 @@ function buildSearchQuery(): string {
               __typename
               url
               avatarUrl
-              # Note: sponsorsListing requires a user token with appropriate permissions.
-              # GitHub App tokens and GITHUB_TOKEN cannot access this field.
+              # Note: sponsorsListing is public data but GitHub blocks app tokens
+              # (including GITHUB_TOKEN in Actions) from accessing it.
+              # A user token (even without any permissions) can access this field.
               # Ref: https://github.com/orgs/community/discussions/44226
               ... on User { sponsorsListing @include(if: $withSponsor) { url } }
             }

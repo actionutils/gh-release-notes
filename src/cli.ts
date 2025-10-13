@@ -81,7 +81,7 @@ async function main() {
 			type: "string",
 			choices: ["none", "graphql"] as const,
 			description:
-				"How to fetch sponsor information. 'graphql' requires user token with appropriate permissions (not GitHub App token or GITHUB_TOKEN).",
+				"How to fetch sponsor information. 'graphql' requires user token (even without any permissions) - GitHub blocks app tokens including GITHUB_TOKEN from accessing this public data.",
 			default: "none",
 		})
 		.help("help")
