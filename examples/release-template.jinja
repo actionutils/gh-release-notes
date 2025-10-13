@@ -1,18 +1,20 @@
 # {{ release.name }}
 
-{% if categorizedPullRequests %}
-{% for category in categorizedPullRequests %}
+{% if categorizedPullRequests and categorizedPullRequests.categories %}
+{% for category in categorizedPullRequests.categories %}
+{% if category.pullRequests and category.pullRequests | length > 0 %}
 ## {{ category.title }}
 
 {% for pr in category.pullRequests %}
-* {{ pr.title }} by @{{ pr.user.login }} in #{{ pr.number }}
+* {{ pr.title }} by @{{ pr.author.login }} in #{{ pr.number }}
 {%- endfor %}
+{% endif %}
 {% endfor %}
 {% else %}
 ## What's Changed
 
 {% for pr in mergedPullRequests %}
-* {{ pr.title }} by @{{ pr.user.login }} in #{{ pr.number }}
+* {{ pr.title }} by @{{ pr.author.login }} in #{{ pr.number }}
 {%- endfor %}
 {% endif %}
 
