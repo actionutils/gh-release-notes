@@ -5,7 +5,7 @@ import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
-import { ContentLoaderFactory } from "./config-loader";
+import { ContentLoaderFactory } from "./content-loader";
 import {
 	findNewContributors,
 	formatNewContributorsSection,

@@ -1,58 +1,58 @@
 import { describe, it, expect } from "bun:test";
 import {
-	detectConfigSource,
+	detectContentSource,
 	parsePurl,
 	parseChecksumQualifier,
 	validateChecksums,
 } from "./utils";
 
-describe("detectConfigSource", () => {
+describe("detectContentSource", () => {
 	it("detects local files", () => {
-		expect(detectConfigSource("./config.yaml")).toEqual({
+		expect(detectContentSource("./content.yaml")).toEqual({
 			type: "local",
-			location: "./config.yaml",
+			location: "./content.yaml",
 		});
 
-		expect(detectConfigSource("/absolute/path/config.json")).toEqual({
+		expect(detectContentSource("/absolute/path/content.json")).toEqual({
 			type: "local",
-			location: "/absolute/path/config.json",
+			location: "/absolute/path/content.json",
 		});
 
-		expect(detectConfigSource("relative/path.yml")).toEqual({
+		expect(detectContentSource("relative/path.yml")).toEqual({
 			type: "local",
 			location: "relative/path.yml",
 		});
 	});
 
 	it("detects HTTPS URLs", () => {
-		expect(detectConfigSource("https://example.com/config.yaml")).toEqual({
+		expect(detectContentSource("https://example.com/content.yaml")).toEqual({
 			type: "https",
-			location: "https://example.com/config.yaml",
+			location: "https://example.com/content.yaml",
 		});
 
 		expect(
-			detectConfigSource(
-				"https://raw.githubusercontent.com/org/repo/main/config.yaml",
+			detectContentSource(
+				"https://raw.githubusercontent.com/org/repo/main/content.yaml",
 			),
 		).toEqual({
 			type: "https",
-			location: "https://raw.githubusercontent.com/org/repo/main/config.yaml",
+			location: "https://raw.githubusercontent.com/org/repo/main/content.yaml",
 		});
 	});
 
 	it("detects purl sources", () => {
-		const result = detectConfigSource("pkg:github/owner/repo#path/config.yaml");
+		const result = detectContentSource("pkg:github/owner/repo#path/content.yaml");
 		expect(result.type).toBe("purl");
-		expect(result.location).toBe("pkg:github/owner/repo#path/config.yaml");
+		expect(result.location).toBe("pkg:github/owner/repo#path/content.yaml");
 	});
 
 	it("detects purl with checksum", () => {
-		const result = detectConfigSource(
-			"pkg:github/owner/repo?checksum=sha256:abc123#path/config.yaml",
+		const result = detectContentSource(
+			"pkg:github/owner/repo?checksum=sha256:abc123#path/content.yaml",
 		);
 		expect(result.type).toBe("purl");
 		expect(result.location).toBe(
-			"pkg:github/owner/repo?checksum=sha256:abc123#path/config.yaml",
+			"pkg:github/owner/repo?checksum=sha256:abc123#path/content.yaml",
 		);
 	});
 });
@@ -69,18 +69,18 @@ describe("parsePurl", () => {
 	});
 
 	it("parses GitHub purl with version", () => {
-		const result = parsePurl("pkg:github/owner/repo@v1.0.0#config.yaml");
+		const result = parsePurl("pkg:github/owner/repo@v1.0.0#content.yaml");
 		expect(result.type).toBe("github");
 		expect(result.namespace).toBe("owner");
 		expect(result.name).toBe("repo");
 		expect(result.version).toBe("v1.0.0");
 		expect(result.qualifiers).toBeUndefined();
-		expect(result.subpath).toBe("config.yaml");
+		expect(result.subpath).toBe("content.yaml");
 	});
 
 	it("parses GitHub purl with qualifiers", () => {
 		const result = parsePurl(
-			"pkg:github/owner/repo@main?checksum=sha256:abc123&foo=bar#.github/config.yaml",
+			"pkg:github/owner/repo@main?checksum=sha256:abc123&foo=bar#.github/content.yaml",
 		);
 		expect(result.type).toBe("github");
 		expect(result.namespace).toBe("owner");
@@ -90,7 +90,7 @@ describe("parsePurl", () => {
 			checksum: "sha256:abc123",
 			foo: "bar",
 		});
-		expect(result.subpath).toBe(".github/config.yaml");
+		expect(result.subpath).toBe(".github/content.yaml");
 	});
 
 	it("parses GitHub purl with nested namespace", () => {

@@ -1,5 +1,5 @@
 import { Environment } from "minijinja-js";
-import { ContentLoaderFactory } from "../config-loader";
+import { ContentLoaderFactory } from "../content-loader";
 import { logVerbose } from "../logger";
 
 export class TemplateRenderer {
