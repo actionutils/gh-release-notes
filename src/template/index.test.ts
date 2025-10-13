@@ -25,7 +25,7 @@ describe("TemplateRenderer", () => {
 {% endfor %}
 
 ## Full Changelog
-{{ fullChangelogLink }}`
+{{ fullChangelogLink }}`,
 		);
 	});
 
@@ -52,11 +52,9 @@ describe("TemplateRenderer", () => {
 					user: { login: "user2" },
 				},
 			],
-			contributors: [
-				{ login: "user1" },
-				{ login: "user2" },
-			],
-			fullChangelogLink: "https://github.com/owner/repo/compare/v0.9.0...v1.0.0",
+			contributors: [{ login: "user1" }, { login: "user2" }],
+			fullChangelogLink:
+				"https://github.com/owner/repo/compare/v0.9.0...v1.0.0",
 		};
 
 		const result = await renderer.loadAndRender(testTemplate, data);
@@ -66,7 +64,9 @@ describe("TemplateRenderer", () => {
 		expect(result).toContain("#2: Fix bug (@user2)");
 		expect(result).toContain("@user1");
 		expect(result).toContain("@user2");
-		expect(result).toContain("https://github.com/owner/repo/compare/v0.9.0...v1.0.0");
+		expect(result).toContain(
+			"https://github.com/owner/repo/compare/v0.9.0...v1.0.0",
+		);
 	});
 
 	test("handles categorized pull requests", async () => {
@@ -91,16 +91,14 @@ describe("TemplateRenderer", () => {
 				},
 				{
 					title: "🐛 Bug Fixes",
-					pullRequests: [
-						{ number: 3, title: "Fix bug X" },
-					],
+					pullRequests: [{ number: 3, title: "Fix bug X" }],
 				},
 			],
 		};
 
 		const result = await renderer.loadAndRender(
 			path.join(testDir, "categorized.jinja"),
-			data
+			data,
 		);
 
 		expect(result).toContain("## 🚀 Features");
@@ -119,7 +117,10 @@ describe("TemplateRenderer", () => {
 {% endfor %}
 {% endif %}`;
 
-		fs.writeFileSync(path.join(testDir, "new-contributors.jinja"), templateContent);
+		fs.writeFileSync(
+			path.join(testDir, "new-contributors.jinja"),
+			templateContent,
+		);
 
 		const data = {
 			newContributors: [
@@ -136,7 +137,7 @@ describe("TemplateRenderer", () => {
 
 		const result = await renderer.loadAndRender(
 			path.join(testDir, "new-contributors.jinja"),
-			data
+			data,
 		);
 
 		expect(result).toContain("## New Contributors");
@@ -161,7 +162,7 @@ No pull requests
 
 		const result = await renderer.loadAndRender(
 			path.join(testDir, "empty.jinja"),
-			data
+			data,
 		);
 
 		expect(result).toContain("No pull requests");

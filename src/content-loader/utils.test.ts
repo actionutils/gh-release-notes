@@ -41,7 +41,9 @@ describe("detectContentSource", () => {
 	});
 
 	it("detects purl sources", () => {
-		const result = detectContentSource("pkg:github/owner/repo#path/content.yaml");
+		const result = detectContentSource(
+			"pkg:github/owner/repo#path/content.yaml",
+		);
 		expect(result.type).toBe("purl");
 		expect(result.location).toBe("pkg:github/owner/repo#path/content.yaml");
 	});
