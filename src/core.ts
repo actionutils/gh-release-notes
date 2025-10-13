@@ -260,8 +260,10 @@ function buildContext({
 			repos: {
 				getReleaseByTag: (params: { owner: string; repo: string; tag: string }) =>
 					(octokit as any).repos.getReleaseByTag(params),
+				listReleases: octokit.repos.listReleases,
 			},
-		},
+			paginate: octokit.paginate,
+		} as any,
 	};
 	return ctx;
 }
