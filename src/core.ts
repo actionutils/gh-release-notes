@@ -339,17 +339,19 @@ export async function run(options: RunOptions) {
 		}
 	}
 
-	// Replace $FULL_CHANGELOG_LINK placeholder in template before processing
+	// Generate full changelog link
+	const previousTag = prevTag || lastRelease?.tag_name;
+	const fullChangelogLink = generateFullChangelogLink({
+		owner,
+		repo,
+		previousTag,
+		nextTag: preview
+			? target || tag || defaultBranch
+			: tag || target || defaultBranch,
+	});
+
+	// Replace $FULL_CHANGELOG_LINK placeholder in template if it exists
 	if (rdConfig.template && rdConfig.template.includes("$FULL_CHANGELOG_LINK")) {
-		const previousTag = prevTag || lastRelease?.tag_name;
-		const fullChangelogLink = generateFullChangelogLink({
-			owner,
-			repo,
-			previousTag,
-			nextTag: preview
-				? target || tag || defaultBranch
-				: tag || target || defaultBranch,
-		});
 		logVerbose(
 			`[Template] Injecting FULL_CHANGELOG_LINK: ${fullChangelogLink}`,
 		);
@@ -590,5 +592,6 @@ export async function run(options: RunOptions) {
 		targetCommitish,
 		owner,
 		repo,
+		fullChangelogLink,
 	};
 }
