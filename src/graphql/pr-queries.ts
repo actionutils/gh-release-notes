@@ -4,7 +4,7 @@
  *
  * - 'none': Do not fetch sponsor information (default)
  * - 'graphql': Fetch via GraphQL API (requires user token, even without any permissions)
- * - 'html': (Future) May add support for fetching by making HEAD requests to HTML sponsor pages
+ * - 'html': (Experimental) Fetch by making HEAD requests to HTML sponsor pages
  *
  * Note: We use this approach instead of a simple boolean to accommodate potential
  * future methods of fetching sponsor information without breaking the API.
