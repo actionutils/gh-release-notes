@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import path from "node:path";
 import fs from "node:fs";
+type BufferEncoding = "ascii" | "utf8" | "utf-8" | "utf16le" | "utf-16le" | "ucs2" | "ucs-2" | "base64" | "base64url" | "latin1" | "binary" | "hex";
 import * as os from "node:os";
 import * as fsPromises from "node:fs/promises";
 
@@ -81,7 +82,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 	});
 
 	afterEach(() => {
@@ -99,10 +100,10 @@ describe("actionutils/gh-release-notes core", () => {
 			return originalExistsSync(p);
 		});
 
-		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: any) => {
+		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
 			if (p === localCfg) return 'template: "Hello from local config"\n';
 			return originalReadFileSync(p, enc);
-		}) as any;
+		}) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}` });
@@ -112,10 +113,10 @@ describe("actionutils/gh-release-notes core", () => {
 	test("uses provided local --config file (yaml)", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "tmp-config.yml");
 
-		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: any) => {
+		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
 			if (p === cfgPath) return 'template: "Custom config"\n';
 			return originalReadFileSync(p, enc);
-		}) as any;
+		}) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
@@ -125,10 +126,10 @@ describe("actionutils/gh-release-notes core", () => {
 	test("passes flags to findReleases and tag to generateReleaseInfo", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "test-config.yml");
 
-		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: any) => {
+		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
 			if (p === cfgPath) return 'template: "Test template"\n';
 			return originalReadFileSync(p, enc);
-		}) as any;
+		}) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({
@@ -246,7 +247,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -334,7 +335,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -482,7 +483,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -609,7 +610,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -692,7 +693,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -770,7 +771,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -848,7 +849,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);

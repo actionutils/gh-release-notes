@@ -427,12 +427,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		repo,
 		sinceDate,
 		baseBranch: baseBranchName,
-		graphqlFn: ((context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql) as any,
+		graphqlFn: (context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql,
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
 		sponsorFetchMode,
-	}) as MinimalPullRequest[];
+	}) as unknown as MinimalPullRequest[];
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
 		? rdConfig["include-paths"]
@@ -444,9 +444,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		pullRequests = await filterByChangedFilesGraphQL({
 			owner,
 			repo,
-			pullRequests: pullRequests as unknown as any,
+			pullRequests: pullRequests as unknown as Array<{ number: number; [key: string]: unknown }>,
 			includePaths,
-			graphqlFn: ((context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql) as any,
+			graphqlFn: (context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql as (query: string, variables?: { owner: string; name: string; [key: string]: string | null }) => Promise<{ repo?: { [key: string]: { files?: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: Array<{ path: string; previousFilePath?: string | null }> } } } }>,
 		}) as unknown as MinimalPullRequest[];
 	}
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
@@ -457,7 +457,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
 		sponsorEnrichmentPromise = import("./sponsor-html-checker").then(
 			({ enrichWithHtmlSponsorData }) =>
-				enrichWithHtmlSponsorData(pullRequests as any, 10),
+				enrichWithHtmlSponsorData(pullRequests as unknown as Array<{ number: number; author?: { login?: string; [key: string]: unknown }; [key: string]: unknown }>, 10),
 		);
 	}
 
@@ -482,7 +482,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		latest: rdConfig.latest,
 		shouldDraft: true,
 		targetCommitish,
-	}) as any;
+	}) as { name: string; tag: string; body: string; targetCommitish: string; resolvedVersion: unknown; majorVersion: unknown; minorVersion: unknown; patchVersion: unknown };
 	logVerbose(
 		`[Release] Generated release: name=${String(releaseInfo.name || "")} tag=${String(
 			releaseInfo.tag || tag || "",
@@ -514,7 +514,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			newContributorsPromise = findNewContributors({
 				owner,
 				repo,
-				pullRequests: pullRequests as any,
+				pullRequests: pullRequests as unknown as Array<{ number: number; title: string; url: string; mergedAt: string }>,
 				token,
 				prevReleaseDate,
 			});
@@ -533,12 +533,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (sponsorEnrichmentPromise) {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
 			if (enrichedPullRequests) {
-				pullRequests = enrichedPullRequests as any;
+				pullRequests = enrichedPullRequests as unknown as MinimalPullRequest[];
 				// Update the sorted version too
 				if (Array.isArray(mergedPullRequestsSorted)) {
 					// Re-sort with enriched data
 					const sortedEnriched = sortPullRequests(
-						enrichedPullRequests as any,
+						enrichedPullRequests as unknown as MinimalPullRequest[],
 						rdConfig["sort-direction"] as string | undefined,
 						rdConfig["sort-by"] as string | undefined,
 					);
@@ -551,9 +551,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 		// Wait for new contributors detection if it was started
 		if (newContributorsPromise) {
-			const newContributorsResult = await newContributorsPromise as any;
+			const newContributorsResult = await newContributorsPromise as { newContributors: Array<{ login: string; firstPullRequest: unknown }> };
 			newContributorsSection = formatNewContributorsSection(
-				newContributorsResult.newContributors,
+				newContributorsResult.newContributors as Array<{ login: string; isBot: boolean; firstPullRequest: { number: number; title: string; url: string; mergedAt: string }; pullRequests: Array<{ number: number; title: string; url: string; mergedAt: string }> }>,
 			);
 			newContributorsData = newContributorsResult;
 			logVerbose("[Parallel] New contributors detection completed");
@@ -570,7 +570,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		// to avoid excessive empty lines in the output
 		if (newContributorsSection === "") {
 			// Remove optional preceding whitespace and newline
-			releaseInfo.body = releaseInfo.body.replace(
+			(releaseInfo as { body: string }).body = (releaseInfo as { body: string }).body.replace(
 				/\n?\s*\$NEW_CONTRIBUTORS/g,
 				"",
 			);
@@ -578,7 +578,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				"[Template] Removed $NEW_CONTRIBUTORS placeholder (no new contributors)",
 			);
 		} else {
-			releaseInfo.body = releaseInfo.body.replace(
+			(releaseInfo as { body: string }).body = (releaseInfo as { body: string }).body.replace(
 				"$NEW_CONTRIBUTORS",
 				newContributorsSection,
 			);
@@ -596,19 +596,19 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		: [];
 	const contributorsMap = new Map<string, { login: string; [key: string]: unknown }>();
 	for (const pr of mergedPullRequestsSorted || []) {
-		const login = (pr as any)?.author?.login as string | undefined;
+		const login = (pr as unknown as { author?: { login?: string } })?.author?.login as string | undefined;
 		if (!login) continue;
 		if (excludeContributors.includes(login)) continue;
 		if (!contributorsMap.has(login)) {
-			const author = (pr as any).author || {};
-			contributorsMap.set(login, { ...author });
+			const author = (pr as unknown as { author?: Record<string, unknown> }).author || {};
+			contributorsMap.set(login, { ...author, login });
 		}
 	}
 	const newContributorsOutput = newContributorsData
-		? (newContributorsData as any).newContributors.map(
+		? (newContributorsData as unknown as { newContributors: Array<{ login: string; firstPullRequest: unknown }> }).newContributors.map(
 				(c: { login: string; firstPullRequest: unknown }) => {
 					const base = contributorsMap.get(c.login);
-					return { ...base, firstPullRequest: c.firstPullRequest };
+					return { ...base, login: c.login, firstPullRequest: c.firstPullRequest };
 				},
 			)
 		: null;
