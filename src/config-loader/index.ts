@@ -8,7 +8,7 @@ import type { ConfigLoader } from "./types";
 export * from "./types";
 export * from "./utils";
 
-export class ConfigLoaderFactory {
+export class ContentLoaderFactory {
 	private localLoader: LocalConfigLoader;
 	private httpsLoader: HTTPSConfigLoader;
 	private purlLoader?: PurlGitHubConfigLoader;
@@ -27,7 +27,7 @@ export class ConfigLoaderFactory {
 	async load(source: string): Promise<string> {
 		const configSource = detectConfigSource(source);
 		logVerbose(
-			`[ConfigLoader] Detected source type: ${configSource.type} (${configSource.location})`,
+			`[ContentLoader] Detected source type: ${configSource.type} (${configSource.location})`,
 		);
 
 		let loader: ConfigLoader;
@@ -52,11 +52,14 @@ export class ConfigLoaderFactory {
 				);
 		}
 
-		logVerbose(`[ConfigLoader] Loading configuration...`);
+		logVerbose(`[ContentLoader] Loading content...`);
 		const content = await loader.load(configSource.location);
 		logVerbose(
-			`[ConfigLoader] Loaded configuration (${Math.min(content.length, 1024)} bytes shown, total ${content.length} bytes)`,
+			`[ContentLoader] Loaded content (${Math.min(content.length, 1024)} bytes shown, total ${content.length} bytes)`,
 		);
 		return content;
 	}
 }
+
+// Backward compatibility alias
+export const ConfigLoaderFactory = ContentLoaderFactory;
