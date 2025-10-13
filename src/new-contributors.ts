@@ -1,13 +1,45 @@
 import { buildBatchContributorQuery } from "./graphql/new-contributors-queries";
-import type {
-	Contributor,
-	ContributorCheckResult,
-	NewContributor,
-	NewContributorsOptions,
-	NewContributorsResult,
-	PullRequestInfo,
-} from "./types/new-contributors";
 import { logVerbose } from "./logger";
+import type { PullRequest } from "./graphql/pr-queries";
+
+// Internal types for new-contributors module
+interface PullRequestInfo {
+	number: number;
+	title: string;
+	url: string;
+	mergedAt: string;
+}
+
+interface Contributor {
+	login: string;
+	isBot: boolean;
+	pullRequests: PullRequestInfo[];
+}
+
+interface ContributorCheckResult {
+	login: string;
+	isBot: boolean;
+	isNewContributor: boolean;
+	prCount: number;
+	firstPullRequest?: PullRequestInfo;
+}
+
+export interface NewContributorsOptions {
+	owner: string;
+	repo: string;
+	pullRequests: PullRequest[];
+	token: string;
+	prevReleaseDate?: string;
+}
+
+export interface NewContributorsResult {
+	newContributors: Array<{
+		login: string;
+		firstPullRequest: PullRequestInfo;
+	}>;
+	totalContributors: number;
+	apiCallsUsed: number;
+}
 
 const DEFAULT_BATCH_SIZE = 10;
 
@@ -145,22 +177,7 @@ async function batchCheckContributors(
 function extractContributorsFromPRs(
 	owner: string,
 	repo: string,
-	pullRequests: Array<{
-		number: number;
-		title: string;
-		url?: string;
-		merged_at?: string;
-		mergedAt?: string;
-		author?: {
-			login?: string;
-			__typename?: string;
-			type?: string; // Normalized from __typename in GraphQL
-		};
-		baseRepository?: {
-			nameWithOwner?: string;
-		};
-		[key: string]: unknown;
-	}>,
+	pullRequests: PullRequest[],
 ): Map<string, Contributor> {
 	const contributorsMap = new Map<string, Contributor>();
 
@@ -168,8 +185,8 @@ function extractContributorsFromPRs(
 		if (!pr.author?.login) continue;
 
 		const login = pr.author.login;
-		// Check both __typename (raw GraphQL) and type (normalized from pr-queries.ts)
-		const isBot = pr.author.__typename === "Bot" || pr.author.type === "Bot";
+		// Check type field (normalized from __typename in pr-queries.ts)
+		const isBot = pr.author.type === "Bot";
 
 		if (!contributorsMap.has(login)) {
 			contributorsMap.set(login, {
@@ -180,12 +197,11 @@ function extractContributorsFromPRs(
 		}
 
 		const contributor = contributorsMap.get(login)!;
-		const repoName = pr.baseRepository?.nameWithOwner || `${owner}/${repo}`;
 		contributor.pullRequests.push({
 			number: pr.number,
 			title: pr.title,
-			url: pr.url || `https://github.com/${repoName}/pull/${pr.number}`,
-			mergedAt: (pr.merged_at || pr.mergedAt) as string,
+			url: pr.url,
+			mergedAt: pr.mergedAt,
 		});
 	}
 
@@ -226,22 +242,7 @@ export async function findNewContributors(
 		return payload.data || {};
 	};
 
-	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests as Array<{
-		number: number;
-		title: string;
-		url?: string;
-		merged_at?: string;
-		mergedAt?: string;
-		author?: {
-			login?: string;
-			__typename?: string;
-			type?: string; // Normalized from __typename in GraphQL
-		};
-		baseRepository?: {
-			nameWithOwner?: string;
-		};
-		[key: string]: unknown;
-	}>);
+	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests);
 	const contributors = Array.from(contributorsMap.values());
 	logVerbose(
 		`[New Contributors] Extracted ${contributors.length} unique contributors from PRs`,
@@ -263,7 +264,7 @@ export async function findNewContributors(
 		`[New Contributors] Found ${checkResults.filter((r) => r.isNewContributor).length} new contributors out of ${contributors.length} total`,
 	);
 
-	const newContributors: NewContributor[] = checkResults
+	const newContributors = checkResults
 		.filter((result) => result.isNewContributor && result.firstPullRequest)
 		.map((result) => ({
 			login: result.login,
@@ -285,7 +286,7 @@ export async function findNewContributors(
 }
 
 export function formatNewContributorsSection(
-	newContributors: NewContributor[],
+	newContributors: Array<{ login: string; firstPullRequest: PullRequestInfo }>,
 ): string {
 	if (newContributors.length === 0) {
 		return "";

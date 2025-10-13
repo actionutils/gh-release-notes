@@ -1,4 +1,8 @@
-import type { Contributor } from "../types/new-contributors";
+// Minimal interface for what this module needs
+interface Contributor {
+	login: string;
+	isBot: boolean;
+}
 
 function generateAlias(login: string): string {
 	if (/^\d/.test(login)) {

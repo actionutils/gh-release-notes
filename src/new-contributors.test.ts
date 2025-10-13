@@ -3,7 +3,6 @@ import {
 	findNewContributors,
 	formatNewContributorsSection,
 } from "./new-contributors";
-import type { NewContributor } from "./types/new-contributors";
 
 describe("new-contributors", () => {
 	describe("findNewContributors", () => {
@@ -14,21 +13,24 @@ describe("new-contributors", () => {
 					title: "Add new feature",
 					url: "https://github.com/owner/repo/pull/100",
 					mergedAt: "2024-01-15T10:00:00Z",
-					author: { login: "user1", __typename: "User" },
+					author: { login: "user1", type: "User", url: "https://github.com/user1", avatarUrl: "" },
+					labels: { nodes: [] },
 				},
 				{
 					number: 101,
 					title: "Fix bug",
 					url: "https://github.com/owner/repo/pull/101",
 					mergedAt: "2024-01-16T10:00:00Z",
-					author: { login: "existing-user", __typename: "User" },
+					author: { login: "existing-user", type: "User", url: "https://github.com/existing-user", avatarUrl: "" },
+					labels: { nodes: [] },
 				},
 				{
 					number: 102,
 					title: "Update docs",
 					url: "https://github.com/owner/repo/pull/102",
 					mergedAt: "2024-01-17T10:00:00Z",
-					author: { login: "github-actions", __typename: "Bot" },
+					author: { login: "github-actions", type: "Bot", url: "https://github.com/apps/github-actions", avatarUrl: "" },
+					labels: { nodes: [] },
 				},
 			];
 
@@ -134,14 +136,16 @@ describe("new-contributors", () => {
 					title: "New feature from new contributor",
 					url: "https://github.com/owner/repo/pull/200",
 					mergedAt: "2024-02-15T10:00:00Z",
-					author: { login: "newuser", __typename: "User" },
+					author: { login: "newuser", type: "User", url: "https://github.com/newuser", avatarUrl: "" },
+					labels: { nodes: [] },
 				},
 				{
 					number: 201,
 					title: "Another PR from existing user",
 					url: "https://github.com/owner/repo/pull/201",
 					mergedAt: "2024-02-16T10:00:00Z",
-					author: { login: "olduser", __typename: "User" },
+					author: { login: "olduser", type: "User", url: "https://github.com/olduser", avatarUrl: "" },
+					labels: { nodes: [] },
 				},
 			];
 
@@ -200,7 +204,8 @@ describe("new-contributors", () => {
 					title: "Numeric user PR",
 					url: "https://github.com/owner/repo/pull/200",
 					mergedAt: "2024-01-20T10:00:00Z",
-					author: { login: "0xFANGO", __typename: "User" },
+					author: { login: "0xFANGO", type: "User", url: "https://github.com/0xFANGO", avatarUrl: "" },
+					labels: { nodes: [] },
 				},
 			];
 
@@ -246,11 +251,9 @@ describe("new-contributors", () => {
 
 	describe("formatNewContributorsSection", () => {
 		it("should format new contributors section correctly", () => {
-			const newContributors: NewContributor[] = [
+			const newContributors = [
 				{
 					login: "user1",
-					isBot: false,
-					pullRequests: [],
 					firstPullRequest: {
 						number: 100,
 						title: "First PR",
@@ -260,8 +263,6 @@ describe("new-contributors", () => {
 				},
 				{
 					login: "bot-user",
-					isBot: true,
-					pullRequests: [],
 					firstPullRequest: {
 						number: 101,
 						title: "Bot PR",
