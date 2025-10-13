@@ -168,21 +168,17 @@ async function main() {
 			// Unlike release-drafter, this tool doesn't create releases, so
 			// fields like `draft` and `make_latest` are meaningless in --json output.
 			// Allowlist only fields meaningful for consumers of this CLI
-			// This avoids leaking release-creation specific or internal fields
-			// from release-drafter internals (e.g., draft, make_latest, prerelease,
-			// resolvedVersion, majorVersion, minorVersion, patchVersion, etc.).
-			const {
-				name,
-				tag,
-				body,
-				targetCommitish: releaseTargetCommitish,
-			} = result.release as any as Record<string, any>;
+			// Include version fields which are useful for creating releases based on this output
 			const allowlistedRelease = {
-				name,
-				tag,
-				body,
-				targetCommitish: releaseTargetCommitish,
-			} as Record<string, any>;
+				name: result.release.name,
+				tag: result.release.tag,
+				body: result.release.body,
+				targetCommitish: result.release.targetCommitish,
+				resolvedVersion: result.release.resolvedVersion,
+				majorVersion: result.release.majorVersion,
+				minorVersion: result.release.minorVersion,
+				patchVersion: result.release.patchVersion,
+			};
 
 			// newContributors is a direct array aligned to contributors shape
 			const shapedNewContributors = result.newContributors;
