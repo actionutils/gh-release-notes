@@ -699,11 +699,11 @@ describe("actionutils/gh-release-notes core", () => {
 			await run({
 				repo: `${owner}/${repo}`,
 				config: cfgPath,
-				isJsonMode: true, // JSON mode enabled
+				includeAllData: true, // Include all data enabled
 				// sponsorFetchMode not specified, should auto-detect
 			});
 
-			// With GitHub App token and JSON mode, should NOT use GraphQL for sponsors
+			// With GitHub App token and includeAllData, should NOT use GraphQL for sponsors (uses HTML instead)
 			expect(sponsorFetchMode).toBe("none");
 		} finally {
 			// Cleanup
@@ -777,11 +777,11 @@ describe("actionutils/gh-release-notes core", () => {
 			await run({
 				repo: `${owner}/${repo}`,
 				config: cfgPath,
-				isJsonMode: true, // JSON mode enabled
+				includeAllData: true, // Include all data enabled
 				// sponsorFetchMode not specified, should auto-detect
 			});
 
-			// With non-GitHub App token and JSON mode, should use GraphQL for sponsors
+			// With non-GitHub App token and includeAllData, should use GraphQL for sponsors
 			expect(sponsorFetchMode).toBe("graphql");
 		} finally {
 			// Cleanup
@@ -855,11 +855,11 @@ describe("actionutils/gh-release-notes core", () => {
 			await run({
 				repo: `${owner}/${repo}`,
 				config: cfgPath,
-				isJsonMode: false, // JSON mode disabled
+				includeAllData: false, // Include all data disabled
 				// sponsorFetchMode not specified, should auto-detect
 			});
 
-			// Without JSON mode, should not fetch sponsors
+			// Without includeAllData, should not fetch sponsors
 			expect(sponsorFetchMode).toBe("none");
 		} finally {
 			// Cleanup

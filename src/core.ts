@@ -35,6 +35,7 @@ const {
 } = require("release-drafter/lib/sort-pull-requests");
 
 import type { SponsorFetchMode } from "./graphql/pr-queries";
+import { TemplateRenderer } from "./template";
 
 export type RunOptions = {
 	repo: string;
@@ -47,7 +48,20 @@ export type RunOptions = {
 	preview?: boolean;
 	skipNewContributors?: boolean;
 	sponsorFetchMode?: SponsorFetchMode;
-	isJsonMode?: boolean;
+	includeAllData?: boolean; // Default: true for library usage, controls whether to fetch extra data like new contributors
+};
+
+export type RunResult = {
+	owner: string;
+	repo: string;
+	defaultBranch: string;
+	lastRelease: any;
+	mergedPullRequests: any[];
+	categorizedPullRequests: any;
+	contributors: any[];
+	newContributors: any;
+	release: any;
+	fullChangelogLink: string;
 };
 
 async function ghRest(
@@ -201,7 +215,7 @@ function generateFullChangelogLink(params: {
 	return `https://github.com/${owner}/${repo}/commits/${nextTag}`;
 }
 
-export async function run(options: RunOptions) {
+export async function run(options: RunOptions): Promise<RunResult> {
 	const {
 		repo: repoNameWithOwner,
 		config,
@@ -209,8 +223,9 @@ export async function run(options: RunOptions) {
 		tag,
 		target,
 		preview,
+		template,
 		sponsorFetchMode: providedSponsorFetchMode,
-		isJsonMode,
+		includeAllData = true, // Default to true for library usage
 	} = options;
 	logVerbose("[Run] Resolving GitHub token...");
 	const token = await getGitHubToken(options.token);
@@ -223,10 +238,10 @@ export async function run(options: RunOptions) {
 	let sponsorFetchMode: SponsorFetchMode = providedSponsorFetchMode || "auto";
 	if (sponsorFetchMode === "auto" || !sponsorFetchMode) {
 		// Auto-detection logic
-		// If not in JSON mode, sponsor info is not needed
-		if (!isJsonMode) {
+		// If not including all data, sponsor info is not needed
+		if (!includeAllData) {
 			sponsorFetchMode = "none";
-			logVerbose("[Run] Auto sponsor mode: 'none' (not in JSON output mode)");
+			logVerbose("[Run] Auto sponsor mode: 'none' (not including all data)");
 		} else if (token.startsWith("ghs_")) {
 			// GitHub App token (including GITHUB_TOKEN in Actions)
 			sponsorFetchMode = "html";
@@ -298,6 +313,16 @@ export async function run(options: RunOptions) {
 		"[Config] Normalizing config (GitHub release.yml vs release-drafter)",
 	);
 	cfg = normalizeConfig(cfg);
+
+	// Set minimal release-drafter template if custom template is provided
+	// This prevents release-drafter from generating its full body
+	// We use a single space because release-drafter doesn't allow empty template strings
+	if (template && cfg.template) {
+		logVerbose(
+			"[Config] Setting minimal release-drafter template (using custom template instead)",
+		);
+		cfg.template = " "; // Empty string causes validation error, so use single space
+	}
 
 	logVerbose(`[GitHub] Fetching repository info for ${owner}/${repo}`);
 	const repoInfo: any = await ghRest(`/repos/${owner}/${repo}`, { token });
@@ -455,7 +480,7 @@ export async function run(options: RunOptions) {
 
 	const shouldFetchNewContributors =
 		!options.skipNewContributors &&
-		(options.isJsonMode ||
+		(includeAllData ||
 			(rdConfig.template && rdConfig.template.includes("$NEW_CONTRIBUTORS")));
 
 	if (shouldFetchNewContributors) {
@@ -578,13 +603,11 @@ export async function run(options: RunOptions) {
 		rdConfig as CategorizeConfig,
 	);
 
-	logVerbose("[Run] Completed successfully");
-	return {
-		release: releaseInfo,
-		pullRequests: mergedPullRequestsSorted,
-		categorizedPullRequests,
-		contributors: Array.from(contributorsMap.values()),
-		newContributors: newContributorsOutput,
+	// Create the output data structure once
+	const result: RunResult = {
+		owner,
+		repo,
+		defaultBranch,
 		lastRelease: lastRelease
 			? {
 					id: lastRelease.id,
@@ -592,11 +615,32 @@ export async function run(options: RunOptions) {
 					created_at: lastRelease.created_at,
 				}
 			: null,
-		defaultBranch,
-		targetCommitish,
-		owner,
-		repo,
+		mergedPullRequests: mergedPullRequestsSorted,
+		categorizedPullRequests,
+		contributors: Array.from(contributorsMap.values()),
+		newContributors: newContributorsOutput,
+		release: {
+			name: releaseInfo.name,
+			tag: releaseInfo.tag,
+			body: releaseInfo.body,
+			targetCommitish: releaseInfo.targetCommitish,
+			resolvedVersion: releaseInfo.resolvedVersion,
+			majorVersion: releaseInfo.majorVersion,
+			minorVersion: releaseInfo.minorVersion,
+			patchVersion: releaseInfo.patchVersion,
+		},
 		fullChangelogLink,
-		githubToken: token,
 	};
+
+	// Handle template rendering - this overrides release.body
+	if (template) {
+		logVerbose("[Run] Rendering template");
+		const renderer = new TemplateRenderer(token);
+		const renderedBody = await renderer.loadAndRender(template, result);
+		// Update release.body with the rendered template
+		result.release.body = renderedBody;
+	}
+
+	logVerbose("[Run] Completed successfully");
+	return result;
 }

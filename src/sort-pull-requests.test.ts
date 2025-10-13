@@ -112,8 +112,8 @@ describe("PR sorting via release-drafter", () => {
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
 
-		// pullRequests should be [1, 2]
-		const numbers = (res.pullRequests || []).map((p: any) => p.number);
+		// mergedPullRequests should be [1, 2]
+		const numbers = (res.mergedPullRequests || []).map((p: any) => p.number);
 		expect(numbers).toEqual([1, 2]);
 
 		// category Cat should preserve the same order
@@ -140,8 +140,8 @@ describe("PR sorting via release-drafter", () => {
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
 
-		// pullRequests should be [2, 1]
-		const numbers = (res.pullRequests || []).map((p: any) => p.number);
+		// mergedPullRequests should be [2, 1]
+		const numbers = (res.mergedPullRequests || []).map((p: any) => p.number);
 		expect(numbers).toEqual([2, 1]);
 
 		// category Cat should preserve the same order
@@ -173,8 +173,8 @@ describe("PR sorting via release-drafter", () => {
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
 
-		// pullRequests should be [1, 2] because A < B
-		const numbers = (res.pullRequests || []).map((p: any) => p.number);
+		// mergedPullRequests should be [1, 2] because A < B
+		const numbers = (res.mergedPullRequests || []).map((p: any) => p.number);
 		expect(numbers).toEqual([1, 2]);
 
 		const cat = res.categorizedPullRequests.categories[0];
@@ -205,8 +205,8 @@ describe("PR sorting via release-drafter", () => {
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
 
-		// pullRequests should be [2, 1] because B > A
-		const numbers = (res.pullRequests || []).map((p: any) => p.number);
+		// mergedPullRequests should be [2, 1] because B > A
+		const numbers = (res.mergedPullRequests || []).map((p: any) => p.number);
 		expect(numbers).toEqual([2, 1]);
 
 		const cat = res.categorizedPullRequests.categories[0];
