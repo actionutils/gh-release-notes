@@ -593,7 +593,8 @@ describe("actionutils/gh-release-notes core", () => {
 												login: "testuser",
 												__typename: "User",
 												url: "https://github.com/testuser",
-												avatarUrl: "https://avatars.githubusercontent.com/u/123?v=4",
+												avatarUrl:
+													"https://avatars.githubusercontent.com/u/123?v=4",
 											},
 										},
 									],
