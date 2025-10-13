@@ -2,14 +2,15 @@
  * Sponsor fetch mode controls how sponsor information is retrieved.
  * Using an enum-like type instead of boolean to allow future extensibility.
  *
- * - 'none': Do not fetch sponsor information (default)
- * - 'graphql': Fetch via GraphQL API (requires user token, even without any permissions)
+ * - 'none': Do not fetch sponsor information
+ * - 'graphql': Fetch via GraphQL API (requires non-GitHub App token, even without any permissions)
  * - 'html': (Experimental) Fetch by making HEAD requests to HTML sponsor pages
+ * - 'auto': Automatically select the best method based on token type and output format
  *
  * Note: We use this approach instead of a simple boolean to accommodate potential
  * future methods of fetching sponsor information without breaking the API.
  */
-export type SponsorFetchMode = "none" | "graphql" | "html";
+export type SponsorFetchMode = "none" | "graphql" | "html" | "auto";
 
 export type SearchPRParams = {
 	owner: string;

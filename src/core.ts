@@ -46,6 +46,7 @@ export type RunOptions = {
 	preview?: boolean;
 	includeNewContributors?: boolean;
 	sponsorFetchMode?: SponsorFetchMode;
+	isJsonMode?: boolean;
 };
 
 async function ghRest(
@@ -207,7 +208,8 @@ export async function run(options: RunOptions) {
 		tag,
 		target,
 		preview,
-		sponsorFetchMode,
+		sponsorFetchMode: providedSponsorFetchMode,
+		isJsonMode,
 	} = options;
 	logVerbose("[Run] Resolving GitHub token...");
 	const token = await getGitHubToken(options.token);
@@ -215,6 +217,27 @@ export async function run(options: RunOptions) {
 	if (!repoNameWithOwner) throw new Error("Missing repo (owner/repo)");
 	const [owner, repo] = repoNameWithOwner.split("/");
 	if (!owner || !repo) throw new Error("Invalid repo, expected owner/repo");
+
+	// Determine the actual sponsor fetch mode
+	let sponsorFetchMode: SponsorFetchMode = providedSponsorFetchMode || "auto";
+	if (sponsorFetchMode === "auto" || !sponsorFetchMode) {
+		// Auto-detection logic
+		// If not in JSON mode, sponsor info is not needed
+		if (!isJsonMode) {
+			sponsorFetchMode = "none";
+			logVerbose("[Run] Auto sponsor mode: 'none' (not in JSON output mode)");
+		} else if (token.startsWith("ghs_")) {
+			// GitHub App token (including GITHUB_TOKEN in Actions)
+			sponsorFetchMode = "html";
+			logVerbose("[Run] Auto sponsor mode: 'html' (detected GitHub App token)");
+		} else {
+			// Non-GitHub App token (user, OAuth, fine-grained PAT, etc.)
+			sponsorFetchMode = "graphql";
+			logVerbose(
+				"[Run] Auto sponsor mode: 'graphql' (detected non-GitHub App token)",
+			);
+		}
+	}
 
 	// Load config (optional). If not provided, try local configs then fallback.
 	let cfg: any;
@@ -364,7 +387,7 @@ export async function run(options: RunOptions) {
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
-		sponsorFetchMode: sponsorFetchMode || "none", // Default to 'none' due to GitHub token limitations
+		sponsorFetchMode,
 	});
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])

@@ -513,4 +513,238 @@ describe("actionutils/gh-release-notes core", () => {
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}
 	});
+
+	test("auto sponsor-fetch-mode detects GitHub App token", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-sponsor-mode-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-sponsor-config.yml");
+		await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+		// Set GitHub App token (ghs_ prefix)
+		process.env.GITHUB_TOKEN = "ghs_testtoken123";
+
+		let sponsorFetchMode: string | undefined;
+		global.fetch = mock(async (url: any, options?: any) => {
+			const u = url.toString();
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			// GraphQL - check the query to detect sponsor fetch mode
+			if (u.includes("/graphql")) {
+				const body = JSON.parse(options?.body || "{}");
+				if (body.variables?.withSponsor === true) {
+					sponsorFetchMode = "graphql";
+				} else if (body.variables?.withSponsor === false) {
+					sponsorFetchMode = "none";
+				}
+
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		try {
+			const { run } = await import(sourcePath);
+			await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				isJsonMode: true, // JSON mode enabled
+				// sponsorFetchMode not specified, should auto-detect
+			});
+
+			// With GitHub App token and JSON mode, should NOT use GraphQL for sponsors
+			expect(sponsorFetchMode).toBe("none");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("auto sponsor-fetch-mode detects non-GitHub App token", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-sponsor-mode2-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-sponsor-config.yml");
+		await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+		// Set user token (ghp_ prefix)
+		process.env.GITHUB_TOKEN = "ghp_testtoken123";
+
+		let sponsorFetchMode: string | undefined;
+		global.fetch = mock(async (url: any, options?: any) => {
+			const u = url.toString();
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			// GraphQL - check the query to detect sponsor fetch mode
+			if (u.includes("/graphql")) {
+				const body = JSON.parse(options?.body || "{}");
+				if (body.variables?.withSponsor === true) {
+					sponsorFetchMode = "graphql";
+				} else if (body.variables?.withSponsor === false) {
+					sponsorFetchMode = "none";
+				}
+
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		try {
+			const { run } = await import(sourcePath);
+			await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				isJsonMode: true, // JSON mode enabled
+				// sponsorFetchMode not specified, should auto-detect
+			});
+
+			// With non-GitHub App token and JSON mode, should use GraphQL for sponsors
+			expect(sponsorFetchMode).toBe("graphql");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("auto sponsor-fetch-mode uses none when not in JSON mode", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-sponsor-mode3-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-sponsor-config.yml");
+		await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+		// Set user token (ghp_ prefix)
+		process.env.GITHUB_TOKEN = "ghp_testtoken123";
+
+		let sponsorFetchMode: string | undefined;
+		global.fetch = mock(async (url: any, options?: any) => {
+			const u = url.toString();
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			// GraphQL - check the query to detect sponsor fetch mode
+			if (u.includes("/graphql")) {
+				const body = JSON.parse(options?.body || "{}");
+				if (body.variables?.withSponsor === true) {
+					sponsorFetchMode = "graphql";
+				} else if (body.variables?.withSponsor === false) {
+					sponsorFetchMode = "none";
+				}
+
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		try {
+			const { run } = await import(sourcePath);
+			await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				isJsonMode: false, // JSON mode disabled
+				// sponsorFetchMode not specified, should auto-detect
+			});
+
+			// Without JSON mode, should not fetch sponsors
+			expect(sponsorFetchMode).toBe("none");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
 });
