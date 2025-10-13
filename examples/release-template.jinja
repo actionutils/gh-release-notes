@@ -1,4 +1,6 @@
+{%- if release.name %}
 # {{ release.name }}
+{%- endif -%}
 {%- if categorizedPullRequests and categorizedPullRequests.categories %}
 {%- for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests and category.pullRequests | length > 0 %}
