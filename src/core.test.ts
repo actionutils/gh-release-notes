@@ -498,13 +498,13 @@ describe("actionutils/gh-release-notes core", () => {
 			expect(Array.isArray(res.newContributors)).toBe(true);
 			expect(res.newContributors?.length).toBe(1);
 			expect(res.newContributors?.[0].login).toBe("github-actions");
-			expect(res.newContributors?.[0].__typename).toBe("Bot");
+			expect(res.newContributors?.[0].isBot).toBe(true);
 
 			// Should include minimal contributors list in run() result
 			expect(res.contributors).toBeDefined();
 			expect(res.contributors.length).toBe(1);
 			expect(res.contributors[0].login).toBe("github-actions");
-			expect(res.contributors[0].__typename).toBe("Bot");
+			expect(res.contributors[0].type).toBe("Bot");
 			expect(res.contributors[0].avatarUrl).toBe(
 				"https://avatars.githubusercontent.com/in/15368?v=4",
 			);

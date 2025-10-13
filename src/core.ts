@@ -88,7 +88,6 @@ const {
 } = require("release-drafter/lib/sort-pull-requests");
 
 import type { SponsorFetchMode, PullRequest } from "./graphql/pr-queries";
-import type { PullRequestInfo } from "./types/new-contributors";
 import { TemplateRenderer } from "./template";
 
 export type RunOptions = {
@@ -105,12 +104,18 @@ export type RunOptions = {
 	includeAllData?: boolean; // Default: true for library usage, controls whether to fetch extra data like new contributors
 };
 
-// Use PullRequest from GraphQL layer as the base type
-export type MergedPullRequest = PullRequest;
+// Type for label in final output (flattened)
+export type Label = {
+	name: string;
+};
+
+// Type for MergedPullRequest - flattens labels for final output
+export type MergedPullRequest = Omit<PullRequest, 'labels'> & {
+	labels?: Label[];
+};
 
 // Export types for external consumers
 export type Author = PullRequest['author'];
-export type Label = PullRequest['labels']['nodes'][0];
 
 // Type for release version information
 export type ReleaseVersion = {
@@ -131,20 +136,25 @@ export type CategorizedPullRequests = {
 	}>;
 };
 
-// Type for contributor information
-export type Contributor = {
-	login: string;
-	url?: string;
-	type?: string;
-	__typename?: string;
-};
+// Type for contributor information - preserve all fields from GraphQL
+export type Contributor = Author;
 
-// Type for new contributor with their first PR
+// Type for new contributor - from new-contributors module with specific fields
 export type NewContributor = {
 	login: string;
 	isBot: boolean;
-	firstPullRequest: PullRequestInfo;
-	pullRequests: PullRequestInfo[];
+	pullRequests: Array<{
+		number: number;
+		title: string;
+		url: string;
+		mergedAt: string;
+	}>;
+	firstPullRequest: {
+		number: number;
+		title: string;
+		url: string;
+		mergedAt: string;
+	};
 };
 
 // Type for last release information
@@ -259,11 +269,11 @@ function buildContext({
 				ghGraphQL(query, variables, { token }),
 			repos: {
 				getReleaseByTag: (params: { owner: string; repo: string; tag: string }) =>
-					(octokit as any).repos.getReleaseByTag(params),
+					(octokit as unknown as { repos: { getReleaseByTag: (params: { owner: string; repo: string; tag: string }) => Promise<{ data: unknown }> } }).repos.getReleaseByTag(params),
 				listReleases: octokit.repos.listReleases,
 			},
 			paginate: octokit.paginate,
-		} as any,
+		} as unknown as ReleaseDrafterContext['octokit'],
 	};
 	return ctx;
 }
@@ -537,7 +547,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		repo,
 		sinceDate,
 		baseBranch: baseBranchName,
-		graphqlFn: context.octokit.graphql as any,
+		graphqlFn: context.octokit.graphql as (query: string, variables?: Record<string, unknown>) => Promise<unknown>,
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
@@ -567,17 +577,26 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
 		sponsorEnrichmentPromise = import("./sponsor-html-checker").then(
 			({ enrichWithHtmlSponsorData }) =>
-				enrichWithHtmlSponsorData(pullRequests as any, 10) as unknown as Promise<MergedPullRequest[]>,
+				enrichWithHtmlSponsorData(pullRequests as Array<{
+					number: number;
+					author?: {
+						login?: string;
+						__typename?: string;
+						[key: string]: unknown;
+					};
+					[key: string]: unknown;
+				}>, 10) as unknown as Promise<MergedPullRequest[]>,
 		);
 	}
 
 	// Align PR order with release-drafter by applying its exported sorter
-	const mergedPullRequestsSorted: MergedPullRequest[] = Array.isArray(pullRequests)
+	// Keep nodes structure for release-drafter compatibility
+	const pullRequestsSorted: PullRequest[] = Array.isArray(pullRequests)
 		? sortPullRequests(
-				pullRequests,
+				pullRequests as unknown as MergedPullRequest[],
 				rdConfig["sort-by"],
 				rdConfig["sort-direction"],
-			)
+			) as unknown as PullRequest[]
 		: pullRequests;
 
 	logVerbose("[Release] Generating release info from commits/PRs...");
@@ -586,7 +605,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		commits: [],
 		config: rdConfig,
 		lastRelease,
-		mergedPullRequests: mergedPullRequestsSorted,
+		mergedPullRequests: pullRequestsSorted as unknown as MergedPullRequest[],
 		tag,
 		isPreRelease: rdConfig.prerelease,
 		latest: rdConfig.latest,
@@ -643,18 +662,16 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (sponsorEnrichmentPromise) {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
 			if (enrichedPullRequests) {
-				pullRequests = enrichedPullRequests;
-				// Update the sorted version too
-				if (Array.isArray(mergedPullRequestsSorted)) {
-					// Re-sort with enriched data
-					const sortedEnriched = sortPullRequests(
-						enrichedPullRequests,
-						rdConfig["sort-direction"],
-						rdConfig["sort-by"],
-					);
-					mergedPullRequestsSorted.length = 0;
-					mergedPullRequestsSorted.push(...sortedEnriched);
-				}
+				// Update both the raw and sorted versions
+				pullRequests = enrichedPullRequests as unknown as PullRequest[];
+				// Re-sort with enriched data (keep nodes structure)
+				const sortedEnriched = sortPullRequests(
+					enrichedPullRequests as unknown as MergedPullRequest[],
+					rdConfig["sort-by"],
+					rdConfig["sort-direction"],
+				) as unknown as PullRequest[];
+				pullRequestsSorted.length = 0;
+				pullRequestsSorted.push(...sortedEnriched);
 				logVerbose("[Parallel] Sponsor enrichment completed");
 			}
 		}
@@ -704,37 +721,47 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	)
 		? rdConfig["exclude-contributors"]
 		: [];
-	// Build contributors from PR authors - convert from GraphQL format to internal format
-	const contributorsMap = new Map<string, Contributor>();
-	for (const pr of mergedPullRequestsSorted || []) {
-		const login = pr.author?.login;
+	// Build contributors from PR authors - preserve all author fields as-is
+	const contributorsMap = new Map<string, Author>();
+	for (const pr of pullRequestsSorted || []) {
+		// Since MergedPullRequest extends PullRequest, author should always exist
+		// and have the right type, but TypeScript needs explicit handling
+		const author = pr.author as Author | undefined;
+		if (!author) continue;
+		const login = author.login;
 		if (!login) continue;
 		if (excludeContributors.includes(login)) continue;
 		if (!contributorsMap.has(login)) {
-			// Convert from normalized GraphQL format to internal Contributor format
-			const contributor = {
-				login,
-				isBot: pr.author?.type === 'Bot',
-				pullRequests: [] // Will be populated by findNewContributors if needed
-			} as Contributor;
-			contributorsMap.set(login, contributor);
+			// Preserve the author object exactly as received
+			contributorsMap.set(login, author);
 		}
 	}
 
 	const newContributorsOutput = newContributorsData
-		? (newContributorsData as { newContributors: NewContributor[] }).newContributors.map(
-				(c: NewContributor) => {
-					const base = contributorsMap.get(c.login);
-					return { ...base, ...c } as NewContributor;
-				},
-			)
+		? (newContributorsData as { newContributors: NewContributor[] }).newContributors
 		: null;
 
 	// Build categorized pull requests for JSON output using local workaround
+	// categorizePullRequests expects PullRequest[] with nodes structure
 	const categorizedPullRequests = categorizePullRequests(
-		mergedPullRequestsSorted || [],
+		pullRequestsSorted || [],
 		rdConfig as CategorizeConfig,
-	) as CategorizedPullRequests;
+	);
+
+	// The categorized result already has the right structure
+	const flattenedCategorized: CategorizedPullRequests = {
+		uncategorized: categorizedPullRequests.uncategorized.map(pr => ({
+			...pr,
+			labels: pr.labels?.nodes?.map((node: { name: string }) => ({ name: node.name }))
+		})),
+		categories: categorizedPullRequests.categories.map(cat => ({
+			...cat,
+			pullRequests: cat.pullRequests.map(pr => ({
+				...pr,
+				labels: pr.labels?.nodes?.map((node: { name: string }) => ({ name: node.name }))
+			}))
+		}))
+	};
 
 	// Create the output data structure once
 	const result: RunResult = {
@@ -742,8 +769,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		repo,
 		defaultBranch,
 		lastRelease,
-		mergedPullRequests: mergedPullRequestsSorted,
-		categorizedPullRequests,
+		mergedPullRequests: pullRequestsSorted.map(pr => ({
+			...pr,
+			labels: pr.labels?.nodes?.map(node => ({ name: node.name }))
+		})),
+		categorizedPullRequests: flattenedCategorized,
 		contributors: Array.from(contributorsMap.values()),
 		newContributors: newContributorsOutput,
 		release: {

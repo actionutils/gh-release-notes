@@ -154,6 +154,7 @@ function extractContributorsFromPRs(
 		author?: {
 			login?: string;
 			__typename?: string;
+			type?: string; // Normalized from __typename in GraphQL
 		};
 		baseRepository?: {
 			nameWithOwner?: string;
@@ -167,7 +168,8 @@ function extractContributorsFromPRs(
 		if (!pr.author?.login) continue;
 
 		const login = pr.author.login;
-		const isBot = pr.author.__typename === "Bot";
+		// Check both __typename (raw GraphQL) and type (normalized from pr-queries.ts)
+		const isBot = pr.author.__typename === "Bot" || pr.author.type === "Bot";
 
 		if (!contributorsMap.has(login)) {
 			contributorsMap.set(login, {
@@ -233,6 +235,7 @@ export async function findNewContributors(
 		author?: {
 			login?: string;
 			__typename?: string;
+			type?: string; // Normalized from __typename in GraphQL
 		};
 		baseRepository?: {
 			nameWithOwner?: string;
