@@ -103,16 +103,6 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 		},
 		["search"],
 	);
-	let nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];
-
-	// If using HTML mode, enrich with sponsor data via HEAD requests
-	if (sponsorFetchMode === "html" && nodes.length > 0) {
-		const { enrichWithHtmlSponsorData } = await import(
-			"../sponsor-html-checker"
-		);
-		// Use 10 parallel requests for better performance
-		nodes = await enrichWithHtmlSponsorData(nodes, 10);
-	}
-
+	const nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];
 	return nodes;
 }
