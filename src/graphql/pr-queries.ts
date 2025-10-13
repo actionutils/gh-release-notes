@@ -1,3 +1,16 @@
+/**
+ * Sponsor fetch mode controls how sponsor information is retrieved.
+ * Using an enum-like type instead of boolean to allow future extensibility.
+ *
+ * - 'none': Do not fetch sponsor information (default)
+ * - 'graphql': Fetch via GraphQL API (requires user token with appropriate permissions)
+ * - 'html': (Future) May add support for fetching by making HEAD requests to HTML sponsor pages
+ *
+ * Note: We use this approach instead of a simple boolean to accommodate potential
+ * future methods of fetching sponsor information without breaking the API.
+ */
+export type SponsorFetchMode = "none" | "graphql" | "html";
+
 export type SearchPRParams = {
 	owner: string;
 	repo: string;
@@ -7,6 +20,7 @@ export type SearchPRParams = {
 	withBody: boolean;
 	withBaseRefName: boolean;
 	withHeadRefName: boolean;
+	sponsorFetchMode?: SponsorFetchMode;
 };
 
 function buildSearchQuery(): string {
@@ -16,6 +30,7 @@ function buildSearchQuery(): string {
       $withBody: Boolean!
       $withBase: Boolean!
       $withHead: Boolean!
+      $withSponsor: Boolean!
       $after: String
     ) {
       search(query: $q, type: ISSUE, first: 100, after: $after) {
@@ -35,7 +50,10 @@ function buildSearchQuery(): string {
               __typename
               url
               avatarUrl
-              ... on User { sponsorsListing { url } }
+              # Note: sponsorsListing requires a user token with appropriate permissions.
+              # GitHub App tokens and GITHUB_TOKEN cannot access this field.
+              # Ref: https://github.com/orgs/community/discussions/44226
+              ... on User { sponsorsListing @include(if: $withSponsor) { url } }
             }
           }
         }
@@ -58,6 +76,7 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 		withBody,
 		withBaseRefName,
 		withHeadRefName,
+		sponsorFetchMode = "none",
 	} = params;
 
 	const qParts = [`repo:${owner}/${repo}`, `is:pr`, `is:merged`];
@@ -78,6 +97,7 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 			withBody,
 			withBase: withBaseRefName,
 			withHead: withHeadRefName,
+			withSponsor: sponsorFetchMode === "graphql",
 			after: null,
 		},
 		["search"],
