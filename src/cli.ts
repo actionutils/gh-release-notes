@@ -200,6 +200,7 @@ async function main() {
 						contributors: result.contributors,
 						newContributors: shapedNewContributors,
 						release: allowlistedRelease,
+						fullChangelogLink: result.fullChangelogLink,
 					},
 					null,
 					2,
