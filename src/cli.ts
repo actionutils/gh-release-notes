@@ -17,7 +17,7 @@ interface Args {
 	"include-new-contributors"?: boolean;
 	// Using enum instead of boolean to allow future extensibility
 	// (e.g., fetching via HTML HEAD requests)
-	"sponsor-fetch-mode"?: "none" | "graphql";
+	"sponsor-fetch-mode"?: "none" | "graphql" | "html";
 }
 
 async function main() {
@@ -79,9 +79,9 @@ async function main() {
 		})
 		.option("sponsor-fetch-mode", {
 			type: "string",
-			choices: ["none", "graphql"] as const,
+			choices: ["none", "graphql", "html"] as const,
 			description:
-				"How to fetch sponsor information. 'graphql' requires user token (even without any permissions) - GitHub blocks app tokens including GITHUB_TOKEN from accessing this public data.",
+				"How to fetch sponsor information. 'graphql' requires user token (even without any permissions) - GitHub blocks app tokens including GITHUB_TOKEN from accessing this public data. 'html' (experimental) checks sponsor pages via HEAD requests.",
 			default: "none",
 		})
 		.help("help")

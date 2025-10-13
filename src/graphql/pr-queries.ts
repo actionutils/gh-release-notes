@@ -4,7 +4,7 @@
  *
  * - 'none': Do not fetch sponsor information (default)
  * - 'graphql': Fetch via GraphQL API (requires user token, even without any permissions)
- * - 'html': (Future) May add support for fetching by making HEAD requests to HTML sponsor pages
+ * - 'html': (Experimental) Fetch by making HEAD requests to HTML sponsor pages
  *
  * Note: We use this approach instead of a simple boolean to accommodate potential
  * future methods of fetching sponsor information without breaking the API.
@@ -103,6 +103,15 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 		},
 		["search"],
 	);
-	const nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];
+	let nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];
+
+	// If using HTML mode, enrich with sponsor data via HEAD requests
+	if (sponsorFetchMode === "html" && nodes.length > 0) {
+		const { enrichWithHtmlSponsorData } = await import(
+			"../sponsor-html-checker"
+		);
+		nodes = await enrichWithHtmlSponsorData(nodes);
+	}
+
 	return nodes;
 }
