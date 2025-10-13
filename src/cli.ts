@@ -4,7 +4,6 @@ import { hideBin } from "yargs/helpers";
 import { run } from "./core";
 import { setVerbose, logVerbose } from "./logger";
 import { resolveBaseRepo } from "./repo-detector";
-import { TemplateRenderer } from "./template";
 
 interface Args {
 	repo?: string;
@@ -37,13 +36,15 @@ async function main() {
 			alias: "c",
 			type: "string",
 			description: "Config source: local file, HTTPS URL, or purl (optional)",
-			example: ".github/release-drafter.yml",
+			example:
+				"pkg:github/release-drafter/release-drafter@v5#.github/release-drafter.yml",
 		})
 		.option("template", {
 			alias: "t",
 			type: "string",
-			description: "Template source: local file, HTTPS URL, or purl (optional)",
-			example: "release-notes.jinja",
+			description:
+				"MiniJinja template for release body. Template receives same data as --json output. Source: local file, HTTPS URL, or purl",
+			example: "pkg:github/myorg/templates@v1.0.0#releases/default.jinja",
 		})
 		.option("prev-tag", {
 			type: "string",
@@ -101,16 +102,12 @@ async function main() {
 			"Generate notes from v1.0.0 to v1.1.0",
 		)
 		.example(
-			"$0 --config .github/release-drafter.yml",
-			"Use custom config file",
+			"$0 --config pkg:github/release-drafter/release-drafter@v5#.github/release-drafter.yml",
+			"Use remote config from GitHub repository",
 		)
 		.example(
-			"$0 --config pkg:github/myorg/.github#.github/release-notes.yaml",
-			"Use remote config from GitHub",
-		)
-		.example(
-			"$0 --template release.jinja --json",
-			"Use minijinja template with JSON data",
+			"$0 --template pkg:github/myorg/templates@v1.0.0#releases/default.jinja",
+			"Use remote MiniJinja template from GitHub",
 		)
 		.example(
 			"$0 --preview --tag v2.0.0",
@@ -135,11 +132,31 @@ async function main() {
 				"  Compatible with both:\n" +
 				"  - Release-drafter: https://github.com/release-drafter/release-drafter\n" +
 				"  - GitHub's release.yml: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes\n\n" +
-				"Remote Config Support:\n" +
+				"Remote Config/Template Support:\n" +
 				"  - Local file: ./config.yaml\n" +
 				"  - HTTPS URL: https://example.com/config.yaml\n" +
 				"  - GitHub purl: pkg:github/owner/repo@version#path/to/config.yaml\n" +
-				"  - With checksum: pkg:github/owner/repo@v1.0?checksum=sha256:abc123#config.yaml\n\n" +
+				"  - With checksum: pkg:github/owner/repo@version?checksum=sha256:abc123#config.yaml\n\n" +
+				"MiniJinja Template Usage:\n" +
+				"  Templates generate the release notes body using MiniJinja (https://github.com/mitsuhiko/minijinja).\n" +
+				"  The template receives the same data structure as --json output.\n\n" +
+				"  Example template:\n" +
+				"    ## Release {{ release.tag }}\n" +
+				"    ### ✨ Highlights\n" +
+				"    {% for pr in mergedPullRequests %}\n" +
+				"    {% if loop.index <= 5 %}\n" +
+				"    - {{ pr.title }} (#{{ pr.number }})\n" +
+				"    {% endif %}\n" +
+				"    {% endfor %}\n" +
+				"    \n" +
+				"    **Full Changelog**: {{ fullChangelogLink }}\n\n" +
+				"  Available data:\n" +
+				"    - release: name, tag, targetCommitish, resolvedVersion, etc.\n" +
+				"    - mergedPullRequests: array of all PRs with title, number, author, labels, etc.\n" +
+				"    - categorizedPullRequests: PRs grouped by category\n" +
+				"    - contributors: array of all contributors\n" +
+				"    - newContributors: first-time contributors\n" +
+				"    - owner, repo, defaultBranch, lastRelease, fullChangelogLink\n\n" +
 				"More Information:\n" +
 				"  GitHub: https://github.com/actionutils/gh-release-notes",
 		)
@@ -173,50 +190,14 @@ async function main() {
 			preview: args.preview,
 			skipNewContributors: args["skip-new-contributors"],
 			sponsorFetchMode: args["sponsor-fetch-mode"],
-			isJsonMode: args.json || !!args.template,
+			includeAllData: args.json || !!args.template, // Include all data for JSON output or template rendering
 		});
 
-		// Prepare JSON data structure
-		const allowlistedRelease = {
-			name: result.release.name,
-			tag: result.release.tag,
-			body: result.release.body,
-			targetCommitish: result.release.targetCommitish,
-			resolvedVersion: result.release.resolvedVersion,
-			majorVersion: result.release.majorVersion,
-			minorVersion: result.release.minorVersion,
-			patchVersion: result.release.patchVersion,
-		};
-
-		const shapedNewContributors = result.newContributors;
-
-		const jsonData = {
-			owner: result.owner,
-			repo: result.repo,
-			defaultBranch: result.defaultBranch,
-			lastRelease: result.lastRelease,
-			mergedPullRequests: result.pullRequests,
-			categorizedPullRequests: result.categorizedPullRequests,
-			contributors: result.contributors,
-			newContributors: shapedNewContributors,
-			release: allowlistedRelease,
-			fullChangelogLink: result.fullChangelogLink,
-		};
-
-		if (args.template) {
-			// Use template rendering
-			logVerbose("[CLI] Output mode: Template rendering");
-			const renderer = new TemplateRenderer(result.githubToken);
-			const rendered = await renderer.loadAndRender(args.template, jsonData);
-			process.stdout.write(rendered + "\n");
-		} else if (args.json) {
-			// Output JSON format
-			logVerbose("[CLI] Output mode: JSON");
-			process.stdout.write(JSON.stringify(jsonData, null, 2) + "\n");
+		// Display the output
+		if (args.json) {
+			process.stdout.write(JSON.stringify(result, null, 2) + "\n");
 		} else {
-			// Output markdown body
-			logVerbose("[CLI] Output mode: Markdown body");
-			process.stdout.write(String((result.release as any).body || "") + "\n");
+			process.stdout.write(String(result.release.body || "") + "\n");
 		}
 	} catch (e) {
 		console.error("Error:", e);
