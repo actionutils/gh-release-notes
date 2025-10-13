@@ -13,20 +13,30 @@ async function checkSponsorPageExists(
 	const sponsorUrl = `https://github.com/sponsors/${login}`;
 
 	try {
+		// Use redirect: 'manual' to prevent automatic following of redirects
+		// GitHub redirects non-existent sponsor pages to user profiles
 		const response = await fetch(sponsorUrl, {
 			method: "HEAD",
 			headers: {
 				"User-Agent": "actionutils-gh-release-notes",
 			},
+			redirect: "manual",
 		});
 
-		// If we get a 200 OK, the sponsor page exists
+		// If we get a 200 OK without redirect, the sponsor page exists
 		if (response.status === 200) {
 			logVerbose(`[SponsorHTML] Found sponsor page for ${login}`);
 			return sponsorUrl;
 		}
 
-		// 404 means no sponsor page
+		// 301/302/303/307/308 are redirects - means no sponsor page
+		// (GitHub redirects to user profile when sponsor page doesn't exist)
+		if (response.status >= 300 && response.status < 400) {
+			logVerbose(`[SponsorHTML] No sponsor page for ${login} (redirected)`);
+			return undefined;
+		}
+
+		// 404 means no sponsor page (shouldn't happen with current GitHub behavior)
 		if (response.status === 404) {
 			logVerbose(`[SponsorHTML] No sponsor page for ${login}`);
 			return undefined;
