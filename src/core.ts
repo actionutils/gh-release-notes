@@ -136,19 +136,11 @@ export type CategorizedPullRequests = {
 	}>;
 };
 
-// Type for contributor information - preserve all fields from GraphQL
+// Type for contributor - just the author data from GraphQL
 export type Contributor = Author;
 
-// Type for new contributor - from new-contributors module with specific fields
-export type NewContributor = {
-	login: string;
-	isBot: boolean;
-	pullRequests: Array<{
-		number: number;
-		title: string;
-		url: string;
-		mergedAt: string;
-	}>;
+// Type for new contributor - author data plus firstPullRequest
+export type NewContributor = Author & {
 	firstPullRequest: {
 		number: number;
 		title: string;
@@ -737,8 +729,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}
 	}
 
+	// Map new contributors back to include full author data
 	const newContributorsOutput = newContributorsData
-		? (newContributorsData as { newContributors: NewContributor[] }).newContributors
+		? (newContributorsData as { newContributors: Array<{ login: string; firstPullRequest: { number: number; title: string; url: string; mergedAt: string } }> }).newContributors.map(
+				(c) => {
+					const base = contributorsMap.get(c.login);
+					return { ...base, firstPullRequest: c.firstPullRequest } as NewContributor;
+				},
+			)
 		: null;
 
 	// Build categorized pull requests for JSON output using local workaround

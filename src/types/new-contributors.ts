@@ -11,8 +11,10 @@ export interface Contributor {
 	pullRequests: PullRequestInfo[];
 }
 
-export interface NewContributor extends Contributor {
+export interface NewContributor {
+	login: string;
 	firstPullRequest: PullRequestInfo;
+	[key: string]: unknown; // Allow any other fields from GraphQL
 }
 
 export interface ContributorCheckResult {
@@ -26,7 +28,14 @@ export interface ContributorCheckResult {
 export interface NewContributorsOptions {
 	owner: string;
 	repo: string;
-	pullRequests: PullRequestInfo[];
+	pullRequests: Array<{
+		number: number;
+		title: string;
+		url?: string;
+		mergedAt?: string;
+		author?: Record<string, unknown>;
+		[key: string]: unknown;
+	}>;
 	token: string;
 	prevReleaseDate?: string;
 }

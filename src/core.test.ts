@@ -498,7 +498,7 @@ describe("actionutils/gh-release-notes core", () => {
 			expect(Array.isArray(res.newContributors)).toBe(true);
 			expect(res.newContributors?.length).toBe(1);
 			expect(res.newContributors?.[0].login).toBe("github-actions");
-			expect(res.newContributors?.[0].isBot).toBe(true);
+			expect(res.newContributors?.[0].type).toBe("Bot");
 
 			// Should include minimal contributors list in run() result
 			expect(res.contributors).toBeDefined();

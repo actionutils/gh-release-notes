@@ -267,8 +267,6 @@ export async function findNewContributors(
 		.filter((result) => result.isNewContributor && result.firstPullRequest)
 		.map((result) => ({
 			login: result.login,
-			isBot: result.isBot,
-			pullRequests: contributorsMap.get(result.login)?.pullRequests || [],
 			firstPullRequest: result.firstPullRequest!,
 		}))
 		.sort((a, b) => a.login.localeCompare(b.login));
