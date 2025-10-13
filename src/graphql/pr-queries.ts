@@ -17,7 +17,7 @@ export type SearchPRParams = {
 	repo: string;
 	sinceDate?: string;
 	baseBranch?: string;
-	graphqlFn: (query: string, variables?: any) => Promise<any>;
+	graphqlFn: (query: string, variables?: Record<string, unknown>) => Promise<unknown>;
 	withBody: boolean;
 	withBaseRefName: boolean;
 	withHeadRefName: boolean;
@@ -66,9 +66,9 @@ function buildSearchQuery(): string {
 
 const {
 	paginate,
-}: { paginate: any } = require("release-drafter/lib/pagination");
+}: { paginate: (graphqlFn: (query: string, variables?: Record<string, unknown>) => Promise<unknown>, query: string, variables: Record<string, unknown>, path: string[]) => Promise<{ search: { nodes: unknown[] } }> } = require("release-drafter/lib/pagination");
 
-export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
+export async function fetchMergedPRs(params: SearchPRParams): Promise<unknown[]> {
 	const {
 		owner,
 		repo,

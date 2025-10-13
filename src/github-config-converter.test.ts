@@ -294,7 +294,7 @@ describe("GitHub Config Converter", () => {
 				},
 			};
 
-			const result = normalizeConfig(githubConfig);
+			const result = normalizeConfig(githubConfig) as any;
 
 			// Since verbose is disabled by default, no log output expected
 			expect(result.categories).toBeDefined();

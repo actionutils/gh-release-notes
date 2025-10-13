@@ -27,7 +27,7 @@ describe("HTTPSContentLoader", () => {
 				}) as Response,
 		);
 
-		global.fetch = mockFetch as any;
+		global.fetch = mockFetch as unknown as typeof fetch;
 
 		const result = await loader.load("https://example.com/content.yaml");
 
@@ -53,7 +53,7 @@ describe("HTTPSContentLoader", () => {
 				}) as Response,
 		);
 
-		global.fetch = mockFetch as any;
+		global.fetch = mockFetch as unknown as typeof fetch;
 
 		expect(loader.load("https://example.com/nonexistent.yaml")).rejects.toThrow(
 			"Failed to fetch content from https://example.com/nonexistent.yaml: Failed to fetch content: HTTP 404 Not Found",
@@ -65,7 +65,7 @@ describe("HTTPSContentLoader", () => {
 			throw new Error("Network error");
 		});
 
-		global.fetch = mockFetch as any;
+		global.fetch = mockFetch as unknown as typeof fetch;
 
 		expect(loader.load("https://example.com/content.yaml")).rejects.toThrow(
 			"Network error",
@@ -97,7 +97,7 @@ describe("HTTPSContentLoader", () => {
 				}) as Response,
 		);
 
-		global.fetch = mockFetch as any;
+		global.fetch = mockFetch as unknown as typeof fetch;
 
 		await loader.load("https://example.com/content.yaml");
 

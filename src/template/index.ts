@@ -11,7 +11,7 @@ export class TemplateRenderer {
 		this.contentLoader = new ContentLoaderFactory(githubToken);
 	}
 
-	async loadAndRender(templateSource: string, data: any): Promise<string> {
+	async loadAndRender(templateSource: string, data: Record<string, unknown>): Promise<string> {
 		logVerbose(`[TemplateRenderer] Loading template from: ${templateSource}`);
 
 		// Load template content using the content loader

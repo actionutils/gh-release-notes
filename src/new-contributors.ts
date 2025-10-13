@@ -31,7 +31,7 @@ async function batchCheckContributors(
 	repo: string,
 	contributors: Contributor[],
 	releasePRNumbers: Set<number>,
-	graphqlFn: (query: string, variables?: any) => Promise<any>,
+	graphqlFn: (query: string, variables?: Record<string, unknown>) => Promise<Record<string, unknown>>,
 	prevReleaseDate?: string,
 ): Promise<ContributorCheckResult[]> {
 	const results: ContributorCheckResult[] = [];
@@ -60,9 +60,9 @@ async function batchCheckContributors(
 
 		for (const contributor of batch) {
 			const alias = generateAlias(contributor.login);
-			const searchResult = response[alias];
+			const searchResult = response[alias] as { issueCount: number; nodes?: unknown[] };
 
-			if (!searchResult) {
+			if (!searchResult || typeof searchResult !== 'object') {
 				logVerbose(
 					`[New Contributors] No search result for ${contributor.login} (alias: ${alias})`,
 				);
@@ -78,7 +78,7 @@ async function batchCheckContributors(
 
 			if (prevReleaseDate) {
 				// When we have a previous release date, check if user has any PRs before that date
-				const prsBeforeDate = searchResult.issueCount;
+				const prsBeforeDate = searchResult.issueCount || 0;
 
 				if (prsBeforeDate === 0) {
 					// No PRs before the prev release = new contributor
@@ -100,7 +100,7 @@ async function batchCheckContributors(
 				}
 			} else {
 				// When we don't have a previous release date, check if all PRs are in current release
-				const totalPRCount = searchResult.issueCount;
+				const totalPRCount = searchResult.issueCount || 0;
 				const releasePRCount = contributorReleasePRs.length;
 
 				logVerbose(
@@ -133,7 +133,7 @@ async function batchCheckContributors(
 				login: contributor.login,
 				isBot: contributor.isBot,
 				isNewContributor,
-				prCount: searchResult.issueCount,
+				prCount: searchResult.issueCount || 0,
 				firstPullRequest,
 			});
 		}
@@ -145,7 +145,21 @@ async function batchCheckContributors(
 function extractContributorsFromPRs(
 	owner: string,
 	repo: string,
-	pullRequests: any[],
+	pullRequests: Array<{
+		number: number;
+		title: string;
+		url?: string;
+		merged_at?: string;
+		mergedAt?: string;
+		author?: {
+			login?: string;
+			__typename?: string;
+		};
+		baseRepository?: {
+			nameWithOwner?: string;
+		};
+		[key: string]: unknown;
+	}>,
 ): Map<string, Contributor> {
 	const contributorsMap = new Map<string, Contributor>();
 
@@ -169,7 +183,7 @@ function extractContributorsFromPRs(
 			number: pr.number,
 			title: pr.title,
 			url: pr.url || `https://github.com/${repoName}/pull/${pr.number}`,
-			mergedAt: pr.merged_at || pr.mergedAt,
+			mergedAt: (pr.merged_at || pr.mergedAt) as string,
 		});
 	}
 
@@ -184,7 +198,7 @@ export async function findNewContributors(
 		`[New Contributors] Starting detection for ${pullRequests.length} PRs in ${owner}/${repo}`,
 	);
 
-	const graphqlFn = async (query: string, variables?: any): Promise<any> => {
+	const graphqlFn = async (query: string, variables?: Record<string, unknown>): Promise<Record<string, unknown>> => {
 		const res = await fetch("https://api.github.com/graphql", {
 			method: "POST",
 			headers: {
@@ -201,16 +215,30 @@ export async function findNewContributors(
 			throw new Error(`GitHub GraphQL error: ${res.status} - ${text}`);
 		}
 
-		const payload: any = await res.json();
+		const payload = await res.json() as { data?: Record<string, unknown>; errors?: unknown[] };
 		if (payload.errors) {
 			throw new Error(
 				`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`,
 			);
 		}
-		return payload.data;
+		return payload.data || {};
 	};
 
-	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests);
+	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests as Array<{
+		number: number;
+		title: string;
+		url?: string;
+		merged_at?: string;
+		mergedAt?: string;
+		author?: {
+			login?: string;
+			__typename?: string;
+		};
+		baseRepository?: {
+			nameWithOwner?: string;
+		};
+		[key: string]: unknown;
+	}>);
 	const contributors = Array.from(contributorsMap.values());
 	logVerbose(
 		`[New Contributors] Extracted ${contributors.length} unique contributors from PRs`,

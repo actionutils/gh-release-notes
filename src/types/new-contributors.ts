@@ -26,7 +26,7 @@ export interface ContributorCheckResult {
 export interface NewContributorsOptions {
 	owner: string;
 	repo: string;
-	pullRequests: any[];
+	pullRequests: PullRequestInfo[];
 	token: string;
 	prevReleaseDate?: string;
 }

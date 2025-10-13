@@ -20,7 +20,7 @@ describe("actionutils/gh-release-notes core", () => {
 		originalReadFileSync = fs.readFileSync;
 
 		// Mock all GitHub API calls
-		global.fetch = mock(async (url: any) => {
+		global.fetch = mock(async (url: string | URL | Request) => {
 			const u = url.toString();
 
 			// Repo info
@@ -94,12 +94,12 @@ describe("actionutils/gh-release-notes core", () => {
 	test("auto-loads local .github/release-drafter.yml when --config is omitted", async () => {
 		const localCfg = path.resolve(process.cwd(), ".github/release-drafter.yml");
 
-		fs.existsSync = mock((p: any) => {
+		fs.existsSync = mock((p: fs.PathLike) => {
 			if (p === localCfg) return true;
 			return originalExistsSync(p);
 		});
 
-		fs.readFileSync = mock((p: any, enc: any) => {
+		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: any) => {
 			if (p === localCfg) return 'template: "Hello from local config"\n';
 			return originalReadFileSync(p, enc);
 		}) as any;
@@ -112,7 +112,7 @@ describe("actionutils/gh-release-notes core", () => {
 	test("uses provided local --config file (yaml)", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "tmp-config.yml");
 
-		fs.readFileSync = mock((p: any, enc: any) => {
+		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: any) => {
 			if (p === cfgPath) return 'template: "Custom config"\n';
 			return originalReadFileSync(p, enc);
 		}) as any;
@@ -125,7 +125,7 @@ describe("actionutils/gh-release-notes core", () => {
 	test("passes flags to findReleases and tag to generateReleaseInfo", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "test-config.yml");
 
-		fs.readFileSync = mock((p: any, enc: any) => {
+		fs.readFileSync = mock((p: fs.PathOrFileDescriptor, enc?: any) => {
 			if (p === cfgPath) return 'template: "Test template"\n';
 			return originalReadFileSync(p, enc);
 		}) as any;
@@ -153,7 +153,7 @@ describe("actionutils/gh-release-notes core", () => {
 
 		// Override fetch mock to include PR data with authors
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
+		global.fetch = mock(async (url: string | URL | Request) => {
 			const u = url.toString();
 
 			// Repo info
@@ -281,7 +281,7 @@ describe("actionutils/gh-release-notes core", () => {
 		);
 
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
+		global.fetch = mock(async (url: string | URL | Request) => {
 			const u = url.toString();
 
 			// Repo info
@@ -369,7 +369,7 @@ describe("actionutils/gh-release-notes core", () => {
 
 		// Override fetch mock to include PR data
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
+		global.fetch = mock(async (url: string | URL | Request) => {
 			const u = url.toString();
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -526,7 +526,7 @@ describe("actionutils/gh-release-notes core", () => {
 
 		// Override fetch mock
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
+		global.fetch = mock(async (url: string | URL | Request) => {
 			const u = url.toString();
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -645,7 +645,7 @@ describe("actionutils/gh-release-notes core", () => {
 		process.env.GITHUB_TOKEN = "ghs_testtoken123";
 
 		let sponsorFetchMode: string | undefined;
-		global.fetch = mock(async (url: any, options?: any) => {
+		global.fetch = mock(async (url: string | URL | Request, options?: { body?: string; headers?: Record<string, string> }) => {
 			const u = url.toString();
 
 			// Repo info
@@ -723,7 +723,7 @@ describe("actionutils/gh-release-notes core", () => {
 		process.env.GITHUB_TOKEN = "ghp_testtoken123";
 
 		let sponsorFetchMode: string | undefined;
-		global.fetch = mock(async (url: any, options?: any) => {
+		global.fetch = mock(async (url: string | URL | Request, options?: { body?: string; headers?: Record<string, string> }) => {
 			const u = url.toString();
 
 			// Repo info
@@ -801,7 +801,7 @@ describe("actionutils/gh-release-notes core", () => {
 		process.env.GITHUB_TOKEN = "ghp_testtoken123";
 
 		let sponsorFetchMode: string | undefined;
-		global.fetch = mock(async (url: any, options?: any) => {
+		global.fetch = mock(async (url: string | URL | Request, options?: { body?: string; headers?: Record<string, string> }) => {
 			const u = url.toString();
 
 			// Repo info

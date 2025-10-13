@@ -18,20 +18,20 @@ import {
 } from "./categorize";
 const {
 	validateSchema,
-}: { validateSchema: any } = require("release-drafter/lib/schema");
+}: { validateSchema: (context: unknown, config: unknown) => unknown } = require("release-drafter/lib/schema");
 const {
 	generateReleaseInfo,
 	findReleases,
 }: {
-	generateReleaseInfo: any;
-	findReleases: any;
+	generateReleaseInfo: (params: unknown) => unknown;
+	findReleases: (params: unknown) => Promise<{ draftRelease: unknown; lastRelease: unknown }>;
 } = require("release-drafter/lib/releases");
 
 // release-drafter exports sortPullRequests; rely on it being present
 const {
 	sortPullRequests,
 }: {
-	sortPullRequests: any;
+	sortPullRequests: (pullRequests: unknown[], sortBy?: string, sortDirection?: string) => unknown[];
 } = require("release-drafter/lib/sort-pull-requests");
 
 import type { SponsorFetchMode } from "./graphql/pr-queries";
@@ -55,12 +55,28 @@ export type RunResult = {
 	owner: string;
 	repo: string;
 	defaultBranch: string;
-	lastRelease: any;
-	mergedPullRequests: any[];
-	categorizedPullRequests: any;
-	contributors: any[];
-	newContributors: any;
-	release: any;
+	lastRelease: {
+		id: unknown;
+		tag_name: string;
+		created_at: string;
+	} | null;
+	mergedPullRequests: unknown[];
+	categorizedPullRequests: {
+		uncategorized: unknown[];
+		categories: Array<{ title: string; pullRequests: unknown[]; [key: string]: unknown }>;
+	};
+	contributors: Array<{ login: string; [key: string]: unknown }>;
+	newContributors: Array<{ login: string; firstPullRequest: unknown; [key: string]: unknown }> | null;
+	release: {
+		name: string;
+		tag: string;
+		body: string;
+		targetCommitish: string;
+		resolvedVersion: unknown;
+		majorVersion: unknown;
+		minorVersion: unknown;
+		patchVersion: unknown;
+	};
 	fullChangelogLink: string;
 };
 
@@ -70,7 +86,7 @@ async function ghRest(
 		token,
 		method = "GET" as const,
 	}: { token: string; method?: "GET" | "POST" },
-): Promise<any> {
+): Promise<unknown> {
 	const url = new URL(`https://api.github.com${pathname}`);
 	const res = await fetch(url, {
 		method,
@@ -84,14 +100,14 @@ async function ghRest(
 		const text = await res.text();
 		throw new Error(`GitHub REST ${method} ${url} -> ${res.status}: ${text}`);
 	}
-	return res.json() as Promise<any>;
+	return res.json() as Promise<unknown>;
 }
 
 async function ghGraphQL(
 	query: string,
-	variables: any,
+	variables: Record<string, unknown>,
 	{ token }: { token: string },
-): Promise<any> {
+): Promise<unknown> {
 	const res = await fetch("https://api.github.com/graphql", {
 		method: "POST",
 		headers: {
@@ -106,11 +122,11 @@ async function ghGraphQL(
 		const text = await res.text();
 		throw new Error(`GitHub GraphQL -> ${res.status}: ${text}`);
 	}
-	const payload: any = await res.json();
+	const payload = await res.json() as { data?: unknown; errors?: unknown[] };
 	if (payload.errors) {
 		throw new Error(`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`);
 	}
-	return payload.data as any;
+	return payload.data;
 }
 
 function buildContext({
@@ -132,17 +148,17 @@ function buildContext({
 				default_branch: defaultBranch,
 			},
 		},
-		repo: (obj: Record<string, any> = {}) => ({ owner, repo, ...obj }),
+		repo: (obj: Record<string, unknown> = {}) => ({ owner, repo, ...obj }),
 		log: { info: () => {}, warn: () => {} },
-		octokit: octokit as any,
+		octokit: octokit as unknown,
 	};
 	// Provide graphql compatible with release-drafter's expectation
-	ctx.octokit.graphql = async (query: string, variables: any): Promise<any> =>
+	(ctx as { octokit: { graphql: (query: string, variables: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql = async (query: string, variables: Record<string, unknown>): Promise<unknown> =>
 		ghGraphQL(query, variables, { token });
-	return ctx as any;
+	return ctx as unknown;
 }
 
-function parseConfigString(source: string, filename = ""): any {
+function parseConfigString(source: string, filename = ""): unknown {
 	const lower = filename.toLowerCase();
 	if (lower.endsWith(".yml") || lower.endsWith(".yaml")) {
 		try {
@@ -256,7 +272,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	}
 
 	// Load config (optional). If not provided, try local configs then fallback.
-	let cfg: any;
+	let cfg: unknown;
 	if (config) {
 		logVerbose(`[Config] Loading config from: ${config}`);
 		// Use config loader for remote config support
@@ -317,30 +333,30 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Set minimal release-drafter template if custom template is provided
 	// This prevents release-drafter from generating its full body
 	// We use a single space because release-drafter doesn't allow empty template strings
-	if (template && cfg.template) {
+	if (template && (cfg as { template?: unknown }).template) {
 		logVerbose(
 			"[Config] Setting minimal release-drafter template (using custom template instead)",
 		);
-		cfg.template = " "; // Empty string causes validation error, so use single space
+		(cfg as { template: string }).template = " "; // Empty string causes validation error, so use single space
 	}
 
 	logVerbose(`[GitHub] Fetching repository info for ${owner}/${repo}`);
-	const repoInfo: any = await ghRest(`/repos/${owner}/${repo}`, { token });
+	const repoInfo = await ghRest(`/repos/${owner}/${repo}`, { token }) as { default_branch: string };
 	const defaultBranch: string = repoInfo.default_branch as string;
 	logVerbose(`[GitHub] Default branch: ${defaultBranch}`);
 
-	const context: any = buildContext({ owner, repo, token, defaultBranch });
-	const rdConfig: any = validateSchema(context, cfg);
+	const context = buildContext({ owner, repo, token, defaultBranch });
+	const rdConfig = validateSchema(context, cfg) as Record<string, unknown>;
 
-	let lastRelease: any = null;
+	let lastRelease: { id: unknown; tag_name: string; created_at: string; published_at?: string } | null = null;
 	if (prevTag) {
 		logVerbose(`[Releases] Using explicit previous tag: ${prevTag}`);
-		const rel: any = await context.octokit.repos.getReleaseByTag({
+		const rel = await (context as { octokit: { repos: { getReleaseByTag: (params: { owner: string; repo: string; tag: string }) => Promise<{ data: unknown }> } } }).octokit.repos.getReleaseByTag({
 			owner,
 			repo,
 			tag: prevTag,
 		});
-		lastRelease = rel.data;
+		lastRelease = rel.data as { id: unknown; tag_name: string; created_at: string; published_at?: string };
 	} else {
 		logVerbose(
 			`[Releases] Auto-detecting previous release (target=${target || defaultBranch})`,
@@ -349,7 +365,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		// When autoPrev is false, should generate changelog from the beginning of commit history
 		// (matching GitHub's "Generate release notes" behavior when no previous tag exists)
 		// This would require passing autoPrev from CLI and conditionally skipping findReleases
-		const { draftRelease: _draftRelease, lastRelease: lr }: any =
+		const { draftRelease: _draftRelease, lastRelease: lr } =
 			await findReleases({
 				context,
 				targetCommitish: target || defaultBranch,
@@ -357,7 +373,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				includePreReleases: !!rdConfig["include-pre-releases"],
 				tagPrefix: String(rdConfig["tag-prefix"] || ""),
 			});
-		lastRelease = lr || null;
+		lastRelease = (lr as { id: unknown; tag_name: string; created_at: string; published_at?: string } | null) || null;
 		if (lastRelease?.tag_name) {
 			logVerbose(`[Releases] Detected last release: ${lastRelease.tag_name}`);
 		} else {
@@ -377,11 +393,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	});
 
 	// Replace $FULL_CHANGELOG_LINK placeholder in template if it exists
-	if (rdConfig.template && rdConfig.template.includes("$FULL_CHANGELOG_LINK")) {
+	if ((rdConfig as { template?: string }).template && (rdConfig as { template: string }).template.includes("$FULL_CHANGELOG_LINK")) {
 		logVerbose(
 			`[Template] Injecting FULL_CHANGELOG_LINK: ${fullChangelogLink}`,
 		);
-		rdConfig.template = rdConfig.template.replaceAll(
+		(rdConfig as { template: string }).template = (rdConfig as { template: string }).template.replaceAll(
 			"$FULL_CHANGELOG_LINK",
 			fullChangelogLink,
 		);
@@ -406,17 +422,17 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Use the repository default branch for base filtering to avoid issues when
 	// targetCommitish is a tag or non-branch ref.
 	const baseBranchName = String(defaultBranch).replace(/^refs\/heads\//, "");
-	let pullRequests: any[] = await fetchMergedPRs({
+	let pullRequests = await fetchMergedPRs({
 		owner,
 		repo,
 		sinceDate,
 		baseBranch: baseBranchName,
-		graphqlFn: context.octokit.graphql,
+		graphqlFn: ((context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql) as any,
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
 		sponsorFetchMode,
-	});
+	}) as MinimalPullRequest[];
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
 		? rdConfig["include-paths"]
@@ -428,34 +444,34 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		pullRequests = await filterByChangedFilesGraphQL({
 			owner,
 			repo,
-			pullRequests,
+			pullRequests: pullRequests as unknown as any,
 			includePaths,
-			graphqlFn: context.octokit.graphql,
-		});
+			graphqlFn: ((context as { octokit: { graphql: (query: string, variables?: Record<string, unknown>) => Promise<unknown> } }).octokit.graphql) as any,
+		}) as unknown as MinimalPullRequest[];
 	}
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
 
 	// Start sponsor enrichment in parallel (don't await yet)
-	let sponsorEnrichmentPromise: Promise<any[]> | null = null;
+	let sponsorEnrichmentPromise: Promise<unknown[]> | null = null;
 	if (sponsorFetchMode === "html" && pullRequests.length > 0) {
 		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
 		sponsorEnrichmentPromise = import("./sponsor-html-checker").then(
 			({ enrichWithHtmlSponsorData }) =>
-				enrichWithHtmlSponsorData(pullRequests, 10),
+				enrichWithHtmlSponsorData(pullRequests as any, 10),
 		);
 	}
 
 	// Align PR order with release-drafter by applying its exported sorter
 	const mergedPullRequestsSorted = Array.isArray(pullRequests)
-		? (sortPullRequests as any)(
+		? sortPullRequests(
 				pullRequests,
-				rdConfig["sort-by"],
-				rdConfig["sort-direction"],
+				rdConfig["sort-by"] as string | undefined,
+				rdConfig["sort-direction"] as string | undefined,
 			)
 		: pullRequests;
 
 	logVerbose("[Release] Generating release info from commits/PRs...");
-	const releaseInfo: any = generateReleaseInfo({
+	const releaseInfo = generateReleaseInfo({
 		context,
 		commits: [],
 		config: rdConfig,
@@ -466,7 +482,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		latest: rdConfig.latest,
 		shouldDraft: true,
 		targetCommitish,
-	});
+	}) as any;
 	logVerbose(
 		`[Release] Generated release: name=${String(releaseInfo.name || "")} tag=${String(
 			releaseInfo.tag || tag || "",
@@ -476,12 +492,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
 	let newContributorsData = null;
-	let newContributorsPromise: Promise<any> | null = null;
+	let newContributorsPromise: Promise<unknown> | null = null;
 
 	const shouldFetchNewContributors =
 		!options.skipNewContributors &&
 		(includeAllData ||
-			(rdConfig.template && rdConfig.template.includes("$NEW_CONTRIBUTORS")));
+			(rdConfig.template && (rdConfig.template as string).includes("$NEW_CONTRIBUTORS")));
 
 	if (shouldFetchNewContributors) {
 		// Get the date of the previous release if available
@@ -498,7 +514,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			newContributorsPromise = findNewContributors({
 				owner,
 				repo,
-				pullRequests: pullRequests,
+				pullRequests: pullRequests as any,
 				token,
 				prevReleaseDate,
 			});
@@ -517,14 +533,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (sponsorEnrichmentPromise) {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
 			if (enrichedPullRequests) {
-				pullRequests = enrichedPullRequests;
+				pullRequests = enrichedPullRequests as any;
 				// Update the sorted version too
 				if (Array.isArray(mergedPullRequestsSorted)) {
 					// Re-sort with enriched data
-					const sortedEnriched = (sortPullRequests as any)(
-						enrichedPullRequests,
-						rdConfig["sort-direction"],
-						rdConfig["sort-by"],
+					const sortedEnriched = sortPullRequests(
+						enrichedPullRequests as any,
+						rdConfig["sort-direction"] as string | undefined,
+						rdConfig["sort-by"] as string | undefined,
 					);
 					mergedPullRequestsSorted.length = 0;
 					mergedPullRequestsSorted.push(...sortedEnriched);
@@ -535,7 +551,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 		// Wait for new contributors detection if it was started
 		if (newContributorsPromise) {
-			const newContributorsResult = await newContributorsPromise;
+			const newContributorsResult = await newContributorsPromise as any;
 			newContributorsSection = formatNewContributorsSection(
 				newContributorsResult.newContributors,
 			);
@@ -547,7 +563,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Replace $NEW_CONTRIBUTORS placeholder in the release body if needed
 	if (
 		rdConfig.template &&
-		rdConfig.template.includes("$NEW_CONTRIBUTORS") &&
+		(rdConfig.template as string).includes("$NEW_CONTRIBUTORS") &&
 		releaseInfo.body
 	) {
 		// If new contributors section is empty, also remove the preceding whitespace/newline
@@ -578,19 +594,19 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	)
 		? rdConfig["exclude-contributors"]
 		: [];
-	const contributorsMap = new Map<string, any>();
+	const contributorsMap = new Map<string, { login: string; [key: string]: unknown }>();
 	for (const pr of mergedPullRequestsSorted || []) {
-		const login = pr?.author?.login as string | undefined;
+		const login = (pr as any)?.author?.login as string | undefined;
 		if (!login) continue;
 		if (excludeContributors.includes(login)) continue;
 		if (!contributorsMap.has(login)) {
-			const author = pr.author || {};
+			const author = (pr as any).author || {};
 			contributorsMap.set(login, { ...author });
 		}
 	}
 	const newContributorsOutput = newContributorsData
-		? newContributorsData.newContributors.map(
-				(c: { login: string; firstPullRequest: any }) => {
+		? (newContributorsData as any).newContributors.map(
+				(c: { login: string; firstPullRequest: unknown }) => {
 					const base = contributorsMap.get(c.login);
 					return { ...base, firstPullRequest: c.firstPullRequest };
 				},

@@ -128,9 +128,26 @@ async function processBatch(
  * @returns Pull requests with sponsor URLs added where available
  */
 export async function enrichWithHtmlSponsorData(
-	pullRequests: any[],
+	pullRequests: Array<{
+		number: number;
+		author?: {
+			login?: string;
+			__typename?: string;
+			[key: string]: unknown;
+		};
+		[key: string]: unknown;
+	}>,
 	maxConcurrency = 5,
-): Promise<any[]> {
+): Promise<Array<{
+	number: number;
+	author?: {
+		login?: string;
+		__typename?: string;
+		sponsorsListing?: { url: string };
+		[key: string]: unknown;
+	};
+	[key: string]: unknown;
+}>> {
 	logVerbose(
 		`[SponsorHTML] Checking sponsor pages for ${pullRequests.length} PRs (max ${maxConcurrency} parallel)`,
 	);

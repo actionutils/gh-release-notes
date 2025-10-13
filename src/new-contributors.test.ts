@@ -13,21 +13,21 @@ describe("new-contributors", () => {
 					number: 100,
 					title: "Add new feature",
 					url: "https://github.com/owner/repo/pull/100",
-					merged_at: "2024-01-15T10:00:00Z",
+					mergedAt: "2024-01-15T10:00:00Z",
 					author: { login: "user1", __typename: "User" },
 				},
 				{
 					number: 101,
 					title: "Fix bug",
 					url: "https://github.com/owner/repo/pull/101",
-					merged_at: "2024-01-16T10:00:00Z",
+					mergedAt: "2024-01-16T10:00:00Z",
 					author: { login: "existing-user", __typename: "User" },
 				},
 				{
 					number: 102,
 					title: "Update docs",
 					url: "https://github.com/owner/repo/pull/102",
-					merged_at: "2024-01-17T10:00:00Z",
+					mergedAt: "2024-01-17T10:00:00Z",
 					author: { login: "github-actions", __typename: "Bot" },
 				},
 			];
@@ -86,7 +86,7 @@ describe("new-contributors", () => {
 				});
 			});
 
-			global.fetch = mockFetch as any;
+			global.fetch = mockFetch as unknown as typeof fetch;
 
 			const result = await findNewContributors({
 				owner: "owner",
@@ -113,7 +113,7 @@ describe("new-contributors", () => {
 				});
 			});
 
-			global.fetch = mockFetch as any;
+			global.fetch = mockFetch as unknown as typeof fetch;
 
 			const result = await findNewContributors({
 				owner: "owner",
@@ -133,14 +133,14 @@ describe("new-contributors", () => {
 					number: 200,
 					title: "New feature from new contributor",
 					url: "https://github.com/owner/repo/pull/200",
-					merged_at: "2024-02-15T10:00:00Z",
+					mergedAt: "2024-02-15T10:00:00Z",
 					author: { login: "newuser", __typename: "User" },
 				},
 				{
 					number: 201,
 					title: "Another PR from existing user",
 					url: "https://github.com/owner/repo/pull/201",
-					merged_at: "2024-02-16T10:00:00Z",
+					mergedAt: "2024-02-16T10:00:00Z",
 					author: { login: "olduser", __typename: "User" },
 				},
 			];
@@ -175,7 +175,7 @@ describe("new-contributors", () => {
 				});
 			});
 
-			global.fetch = mockFetch as any;
+			global.fetch = mockFetch as unknown as typeof fetch;
 
 			const result = await findNewContributors({
 				owner: "owner",
@@ -199,7 +199,7 @@ describe("new-contributors", () => {
 					number: 200,
 					title: "Numeric user PR",
 					url: "https://github.com/owner/repo/pull/200",
-					merged_at: "2024-01-20T10:00:00Z",
+					mergedAt: "2024-01-20T10:00:00Z",
 					author: { login: "0xFANGO", __typename: "User" },
 				},
 			];
@@ -230,7 +230,7 @@ describe("new-contributors", () => {
 				});
 			});
 
-			global.fetch = mockFetch as any;
+			global.fetch = mockFetch as unknown as typeof fetch;
 
 			const result = await findNewContributors({
 				owner: "owner",

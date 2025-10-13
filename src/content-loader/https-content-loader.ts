@@ -48,7 +48,7 @@ export class HTTPSContentLoader implements ContentLoader {
 		} catch (error) {
 			clearTimeout(timeoutId);
 
-			if ((error as any).name === "AbortError") {
+			if (error instanceof Error && error.name === "AbortError") {
 				throw new Error(`Request timeout after ${this.timeout}ms`);
 			}
 
