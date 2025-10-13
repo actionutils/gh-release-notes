@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { HTTPSConfigLoader } from "./https-config-loader";
+import { HTTPSContentLoader } from "./https-content-loader";
 
-describe("HTTPSConfigLoader", () => {
-	let loader: HTTPSConfigLoader;
+describe("HTTPSContentLoader", () => {
+	let loader: HTTPSContentLoader;
 	let originalFetch: typeof global.fetch;
 
 	beforeEach(() => {
-		loader = new HTTPSConfigLoader();
+		loader = new HTTPSContentLoader();
 		originalFetch = global.fetch;
 	});
 
@@ -14,8 +14,8 @@ describe("HTTPSConfigLoader", () => {
 		global.fetch = originalFetch;
 	});
 
-	it("loads config from HTTPS URL", async () => {
-		const configContent = "name: Remote Config\nversion: 2.0";
+	it("loads content from HTTPS URL", async () => {
+		const contentContent = "name: Remote Config\nversion: 2.0";
 
 		const mockFetch = mock(
 			async () =>
@@ -23,17 +23,17 @@ describe("HTTPSConfigLoader", () => {
 					ok: true,
 					status: 200,
 					statusText: "OK",
-					text: async () => configContent,
+					text: async () => contentContent,
 				}) as Response,
 		);
 
 		global.fetch = mockFetch as any;
 
-		const result = await loader.load("https://example.com/config.yaml");
+		const result = await loader.load("https://example.com/content.yaml");
 
-		expect(result).toBe(configContent);
+		expect(result).toBe(contentContent);
 		expect(mockFetch).toHaveBeenCalledWith(
-			"https://example.com/config.yaml",
+			"https://example.com/content.yaml",
 			expect.objectContaining({
 				headers: {
 					"User-Agent": "gh-release-notes",
@@ -56,7 +56,7 @@ describe("HTTPSConfigLoader", () => {
 		global.fetch = mockFetch as any;
 
 		expect(loader.load("https://example.com/nonexistent.yaml")).rejects.toThrow(
-			"Failed to fetch config from https://example.com/nonexistent.yaml: Failed to fetch config: HTTP 404 Not Found",
+			"Failed to fetch content from https://example.com/nonexistent.yaml: Failed to fetch content: HTTP 404 Not Found",
 		);
 	});
 
@@ -67,21 +67,21 @@ describe("HTTPSConfigLoader", () => {
 
 		global.fetch = mockFetch as any;
 
-		expect(loader.load("https://example.com/config.yaml")).rejects.toThrow(
+		expect(loader.load("https://example.com/content.yaml")).rejects.toThrow(
 			"Network error",
 		);
 	});
 
 	it("only accepts HTTPS URLs", async () => {
-		expect(loader.load("http://example.com/config.yaml")).rejects.toThrow(
+		expect(loader.load("http://example.com/content.yaml")).rejects.toThrow(
 			"URL must use HTTPS protocol",
 		);
 
-		expect(loader.load("ftp://example.com/config.yaml")).rejects.toThrow(
+		expect(loader.load("ftp://example.com/content.yaml")).rejects.toThrow(
 			"URL must use HTTPS protocol",
 		);
 
-		expect(loader.load("file:///local/config.yaml")).rejects.toThrow(
+		expect(loader.load("file:///local/content.yaml")).rejects.toThrow(
 			"URL must use HTTPS protocol",
 		);
 	});
@@ -93,16 +93,16 @@ describe("HTTPSConfigLoader", () => {
 					ok: true,
 					status: 200,
 					statusText: "OK",
-					text: async () => "config content",
+					text: async () => "content content",
 				}) as Response,
 		);
 
 		global.fetch = mockFetch as any;
 
-		await loader.load("https://example.com/config.yaml");
+		await loader.load("https://example.com/content.yaml");
 
 		expect(mockFetch).toHaveBeenCalledWith(
-			"https://example.com/config.yaml",
+			"https://example.com/content.yaml",
 			expect.objectContaining({
 				headers: {
 					"User-Agent": "gh-release-notes",

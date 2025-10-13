@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
-import { PurlGitHubConfigLoader } from "./purl-github-config-loader";
+import { PurlGitHubContentLoader } from "./purl-github-content-loader";
 
-describe("PurlGitHubConfigLoader", () => {
+describe("PurlGitHubContentLoader", () => {
 	let originalFetch: typeof global.fetch;
 	let originalEnv: NodeJS.ProcessEnv;
 
@@ -20,7 +20,7 @@ describe("PurlGitHubConfigLoader", () => {
 
 	describe("purl parsing and validation", () => {
 		test("throws on non-GitHub purl", async () => {
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 
 			expect(loader.load("pkg:npm/package#file.json")).rejects.toThrow(
 				"Unsupported purl type: npm",
@@ -28,7 +28,7 @@ describe("PurlGitHubConfigLoader", () => {
 		});
 
 		test("throws when subpath is missing", async () => {
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 
 			expect(loader.load("pkg:github/owner/repo")).rejects.toThrow(
 				"purl must include a subpath",
@@ -36,7 +36,7 @@ describe("PurlGitHubConfigLoader", () => {
 		});
 
 		test("throws when subpath is missing with version", async () => {
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 
 			expect(loader.load("pkg:github/owner/repo@v1.0.0")).rejects.toThrow(
 				"purl must include a subpath",
@@ -45,8 +45,8 @@ describe("PurlGitHubConfigLoader", () => {
 	});
 
 	describe("GitHub API interaction", () => {
-		test("loads config from GitHub purl", async () => {
-			const configContent = "name: GitHub Config";
+		test("loads content from GitHub purl", async () => {
+			const contentContent = "name: GitHub Config";
 
 			global.fetch = mock(async (url: string | URL) => {
 				const urlStr = url.toString();
@@ -63,23 +63,23 @@ describe("PurlGitHubConfigLoader", () => {
 				if (urlStr.includes("/repos/owner/repo/contents/")) {
 					return {
 						ok: true,
-						text: async () => configContent,
+						text: async () => contentContent,
 					} as Response;
 				}
 
 				throw new Error(`Unexpected URL: ${urlStr}`);
 			}) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 			const result = (await loader.load(
-				"pkg:github/owner/repo#.github/config.yaml",
+				"pkg:github/owner/repo#.github/content.yaml",
 			)) as any;
 
-			expect(result).toBe(configContent);
+			expect(result).toBe(contentContent);
 		});
 
-		test("loads config with specific version", async () => {
-			const configContent = "version: specific";
+		test("loads content with specific version", async () => {
+			const contentContent = "version: specific";
 
 			global.fetch = mock(async (url: string | URL) => {
 				const urlStr = url.toString();
@@ -87,63 +87,63 @@ describe("PurlGitHubConfigLoader", () => {
 				// Mock API call for file content with specific ref
 				if (
 					urlStr.includes(
-						"/repos/owner/repo/contents/config/release.yaml?ref=v1.0.0",
+						"/repos/owner/repo/contents/content/release.yaml?ref=v1.0.0",
 					)
 				) {
 					return {
 						ok: true,
-						text: async () => configContent,
+						text: async () => contentContent,
 					} as Response;
 				}
 
 				throw new Error(`Unexpected URL: ${urlStr}`);
 			}) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 			const result = (await loader.load(
-				"pkg:github/owner/repo@v1.0.0#config/release.yaml",
+				"pkg:github/owner/repo@v1.0.0#content/release.yaml",
 			)) as any;
 
-			expect(result).toBe(configContent);
+			expect(result).toBe(contentContent);
 		});
 
 		test("validates checksum when provided", async () => {
-			const configContent = "Hello, World!";
+			const contentContent = "Hello, World!";
 
 			global.fetch = mock(
 				async () =>
 					({
 						ok: true,
-						text: async () => configContent,
+						text: async () => contentContent,
 					}) as Response,
 			) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 
 			// Correct sha256 hash of "Hello, World!"
 			const result = (await loader.load(
-				"pkg:github/owner/repo@main?checksum=sha256:dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f#config.yaml",
+				"pkg:github/owner/repo@main?checksum=sha256:dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f#content.yaml",
 			)) as any;
 
-			expect(result).toBe(configContent);
+			expect(result).toBe(contentContent);
 		});
 
 		test("throws on checksum mismatch", async () => {
-			const configContent = "Hello, World!";
+			const contentContent = "Hello, World!";
 
 			global.fetch = mock(
 				async () =>
 					({
 						ok: true,
-						text: async () => configContent,
+						text: async () => contentContent,
 					}) as Response,
 			) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 
 			expect(
 				loader.load(
-					"pkg:github/owner/repo@main?checksum=sha256:incorrect#config.yaml",
+					"pkg:github/owner/repo@main?checksum=sha256:incorrect#content.yaml",
 				),
 			).rejects.toThrow("Checksum validation failed");
 		});
@@ -158,7 +158,7 @@ describe("PurlGitHubConfigLoader", () => {
 					}) as Response,
 			) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 
 			expect(
 				loader.load("pkg:github/owner/repo@main#missing.yaml"),
@@ -176,17 +176,17 @@ describe("PurlGitHubConfigLoader", () => {
 					}) as Response,
 			) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 
 			expect(
 				loader.load("pkg:github/owner/repo@main#large.yaml"),
-			).rejects.toThrow("Config file too large");
+			).rejects.toThrow("Content file too large");
 		});
 	});
 
 	describe("token resolution", () => {
 		test("uses provided token", async () => {
-			const loader = new PurlGitHubConfigLoader("provided-token");
+			const loader = new PurlGitHubContentLoader("provided-token");
 			let capturedHeaders: any = {};
 
 			global.fetch = mock(async (_url: string | URL, options?: any) => {
@@ -215,7 +215,7 @@ describe("PurlGitHubConfigLoader", () => {
 				} as Response;
 			}) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 			await loader.load("pkg:github/org/team/repo@main#file.yaml");
 
 			expect(capturedUrl).toContain(
@@ -234,7 +234,7 @@ describe("PurlGitHubConfigLoader", () => {
 				} as Response;
 			}) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
+			const loader = new PurlGitHubContentLoader("test-token");
 			(await loader.load(
 				"pkg:github/owner/repo@main#path%20with%20spaces/file.yaml",
 			)) as any;
@@ -268,8 +268,8 @@ describe("PurlGitHubConfigLoader", () => {
 				throw new Error(`Unexpected URL: ${urlStr}`);
 			}) as any;
 
-			const loader = new PurlGitHubConfigLoader("test-token");
-			await loader.load("pkg:github/owner/repo#config.yaml");
+			const loader = new PurlGitHubContentLoader("test-token");
+			await loader.load("pkg:github/owner/repo#content.yaml");
 
 			expect(defaultBranchFetched).toBe(true);
 		});

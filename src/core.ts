@@ -5,7 +5,7 @@ import { Octokit } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
-import { ConfigLoaderFactory } from "./config-loader";
+import { ContentLoaderFactory } from "./content-loader";
 import {
 	findNewContributors,
 	formatNewContributorsSection,
@@ -39,6 +39,7 @@ import type { SponsorFetchMode } from "./graphql/pr-queries";
 export type RunOptions = {
 	repo: string;
 	config?: string;
+	template?: string;
 	prevTag?: string;
 	tag?: string;
 	target?: string;
@@ -244,8 +245,8 @@ export async function run(options: RunOptions) {
 	if (config) {
 		logVerbose(`[Config] Loading config from: ${config}`);
 		// Use config loader for remote config support
-		const configLoader = new ConfigLoaderFactory(token);
-		const rawCfg = await configLoader.load(config);
+		const contentLoader = new ContentLoaderFactory(token);
+		const rawCfg = await contentLoader.load(config);
 		// For purl sources, extract the filename from the subpath
 		let configFilename = config;
 		if (config.startsWith("pkg:")) {
@@ -595,5 +596,6 @@ export async function run(options: RunOptions) {
 		owner,
 		repo,
 		fullChangelogLink,
+		githubToken: token,
 	};
 }

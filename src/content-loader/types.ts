@@ -1,8 +1,8 @@
-export interface ConfigLoader {
+export interface ContentLoader {
 	load(source: string): Promise<string>;
 }
 
-export interface ConfigSource {
+export interface ContentSource {
 	type: "local" | "https" | "purl";
 	location: string;
 }
