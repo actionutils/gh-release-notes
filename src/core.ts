@@ -45,7 +45,7 @@ export type RunOptions = {
 	target?: string;
 	token?: string;
 	preview?: boolean;
-	includeNewContributors?: boolean;
+	skipNewContributors?: boolean;
 	sponsorFetchMode?: SponsorFetchMode;
 	isJsonMode?: boolean;
 };
@@ -453,11 +453,12 @@ export async function run(options: RunOptions) {
 	let newContributorsData = null;
 	let newContributorsPromise: Promise<any> | null = null;
 
-	if (
-		rdConfig.template &&
-		(rdConfig.template.includes("$NEW_CONTRIBUTORS") ||
-			options.includeNewContributors)
-	) {
+	const shouldFetchNewContributors =
+		!options.skipNewContributors &&
+		(options.isJsonMode ||
+			(rdConfig.template && rdConfig.template.includes("$NEW_CONTRIBUTORS")));
+
+	if (shouldFetchNewContributors) {
 		// Get the date of the previous release if available
 		const prevReleaseDate =
 			lastRelease?.published_at || lastRelease?.created_at;
