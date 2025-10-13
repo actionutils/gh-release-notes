@@ -110,7 +110,8 @@ export async function fetchMergedPRs(params: SearchPRParams): Promise<any[]> {
 		const { enrichWithHtmlSponsorData } = await import(
 			"../sponsor-html-checker"
 		);
-		nodes = await enrichWithHtmlSponsorData(nodes);
+		// Use 10 parallel requests for better performance
+		nodes = await enrichWithHtmlSponsorData(nodes, 10);
 	}
 
 	return nodes;

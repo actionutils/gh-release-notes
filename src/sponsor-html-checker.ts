@@ -71,18 +71,82 @@ async function checkSponsorPageExists(
 }
 
 /**
+ * Process a batch of authors in parallel with error tracking
+ */
+async function processBatch(
+	batch: string[],
+	sponsorResults: Map<string, string | undefined>,
+	errorTracker: {
+		count: number;
+		shouldStop: boolean;
+		warnedLogins: Set<string>;
+	},
+): Promise<{ successCount: number }> {
+	// Store current console.warn to capture warnings
+	const originalWarn = console.warn;
+	const warnedInBatch = new Set<string>();
+
+	// Temporarily override console.warn to track warnings
+	console.warn = (...args: any[]) => {
+		originalWarn(...args);
+		const message = args.join(" ");
+		// Extract login from warning message
+		for (const login of batch) {
+			if (message.includes(login)) {
+				warnedInBatch.add(login);
+				errorTracker.warnedLogins.add(login);
+				break;
+			}
+		}
+	};
+
+	const promises = batch.map(async (login) => {
+		const sponsorUrl = await checkSponsorPageExists(login);
+		sponsorResults.set(login, sponsorUrl);
+		return { login, sponsorUrl };
+	});
+
+	const results = await Promise.all(promises);
+
+	// Restore original console.warn
+	console.warn = originalWarn;
+
+	// Count successes and check for errors
+	let batchSuccessCount = 0;
+	for (const result of results) {
+		if (result.sponsorUrl) {
+			batchSuccessCount++;
+		} else if (warnedInBatch.has(result.login)) {
+			// This was an error (rate limit, network issue, etc.)
+			errorTracker.count++;
+			if (errorTracker.count > 5) {
+				errorTracker.shouldStop = true;
+				console.warn(
+					`[SponsorHTML] Too many errors checking sponsor pages. ` +
+						`Stopping sponsor enrichment to avoid rate limits.`,
+				);
+			}
+		}
+	}
+
+	return { successCount: batchSuccessCount };
+}
+
+/**
  * Enrich pull requests with sponsor information using HTML HEAD requests.
  * If any errors occur (rate limits, 4xx errors, network issues),
  * returns the original data without sponsor information rather than failing.
  *
  * @param pullRequests Array of pull requests from GraphQL
+ * @param maxConcurrency Maximum number of parallel requests (default: 5)
  * @returns Pull requests with sponsor URLs added where available
  */
 export async function enrichWithHtmlSponsorData(
 	pullRequests: any[],
+	maxConcurrency = 5,
 ): Promise<any[]> {
 	logVerbose(
-		`[SponsorHTML] Checking sponsor pages for ${pullRequests.length} PRs`,
+		`[SponsorHTML] Checking sponsor pages for ${pullRequests.length} PRs (max ${maxConcurrency} parallel)`,
 	);
 
 	// Collect unique authors to check
@@ -97,51 +161,49 @@ export async function enrichWithHtmlSponsorData(
 		}
 	}
 
+	const authorsList = Array.from(uniqueAuthors.keys());
 	logVerbose(
-		`[SponsorHTML] Found ${uniqueAuthors.size} unique authors to check`,
+		`[SponsorHTML] Found ${authorsList.length} unique authors to check`,
 	);
 
-	// Check sponsor pages for all unique authors
+	// Check sponsor pages in parallel batches
 	const sponsorResults = new Map<string, string | undefined>();
-	let successCount = 0;
-	let errorCount = 0;
+	let totalSuccessCount = 0;
+	const errorTracker = {
+		count: 0,
+		shouldStop: false,
+		warnedLogins: new Set<string>(),
+	};
 
-	for (const login of uniqueAuthors.keys()) {
-		const sponsorUrl = await checkSponsorPageExists(login);
-		sponsorResults.set(login, sponsorUrl);
-
-		if (sponsorUrl) {
-			successCount++;
-		} else if (sponsorUrl === undefined) {
-			// Only count as error if we got an explicit error (not just 404)
-			const lastWarning = console.warn.toString();
-			if (lastWarning.includes(login)) {
-				errorCount++;
-			}
-		}
-
-		// If we're getting too many errors, bail out early to avoid issues
-		if (errorCount > 5) {
-			console.warn(
-				`[SponsorHTML] Too many errors checking sponsor pages. ` +
-					`Stopping sponsor enrichment to avoid rate limits.`,
-			);
+	// Process authors in batches
+	for (let i = 0; i < authorsList.length; i += maxConcurrency) {
+		if (errorTracker.shouldStop) {
 			// Clear remaining results to ensure we don't return partial data
-			for (const remainingLogin of uniqueAuthors.keys()) {
-				if (!sponsorResults.has(remainingLogin)) {
-					sponsorResults.set(remainingLogin, undefined);
-				}
+			for (let j = i; j < authorsList.length; j++) {
+				sponsorResults.set(authorsList[j], undefined);
 			}
 			break;
 		}
+
+		const batch = authorsList.slice(i, i + maxConcurrency);
+		logVerbose(
+			`[SponsorHTML] Processing batch ${Math.floor(i / maxConcurrency) + 1}/${Math.ceil(authorsList.length / maxConcurrency)} (${batch.length} authors)`,
+		);
+
+		const { successCount } = await processBatch(
+			batch,
+			sponsorResults,
+			errorTracker,
+		);
+		totalSuccessCount += successCount;
 	}
 
 	logVerbose(
-		`[SponsorHTML] Found ${successCount} sponsors out of ${uniqueAuthors.size} authors checked`,
+		`[SponsorHTML] Found ${totalSuccessCount} sponsors out of ${authorsList.length} authors checked`,
 	);
 
 	// If we had too many errors, return original data without modifications
-	if (errorCount > 5) {
+	if (errorTracker.count > 5) {
 		logVerbose(`[SponsorHTML] Returning original data due to errors`);
 		return pullRequests;
 	}
