@@ -136,9 +136,6 @@ export type CategorizedPullRequests = {
 	}>;
 };
 
-// Type for contributor - just the author data from GraphQL
-export type Contributor = Author;
-
 // Type for new contributor - author data plus firstPullRequest
 export type NewContributor = Author & {
 	firstPullRequest: {
@@ -180,7 +177,7 @@ export type RunResult = {
 	lastRelease: LastRelease;
 	mergedPullRequests: MergedPullRequest[];
 	categorizedPullRequests: CategorizedPullRequests;
-	contributors: Contributor[];
+	contributors: Author[];
 	newContributors: NewContributor[] | null;
 	release: ReleaseInfo;
 	fullChangelogLink: string;
