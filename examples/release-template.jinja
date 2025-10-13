@@ -1,0 +1,26 @@
+# {{ release.name }}
+
+{% if categorizedPullRequests %}
+{% for category in categorizedPullRequests %}
+## {{ category.title }}
+
+{% for pr in category.pullRequests %}
+* {{ pr.title }} by @{{ pr.user.login }} in #{{ pr.number }}
+{%- endfor %}
+{% endfor %}
+{% else %}
+## What's Changed
+
+{% for pr in mergedPullRequests %}
+* {{ pr.title }} by @{{ pr.user.login }} in #{{ pr.number }}
+{%- endfor %}
+{% endif %}
+
+{% if newContributors %}
+## New Contributors
+{% for contributor in newContributors %}
+* @{{ contributor.login }} made their first contribution in #{{ contributor.firstPullRequest.number }}
+{%- endfor %}
+{% endif %}
+
+**Full Changelog**: {{ fullChangelogLink }}

@@ -4,10 +4,12 @@ import { hideBin } from "yargs/helpers";
 import { run } from "./core";
 import { setVerbose, logVerbose } from "./logger";
 import { resolveBaseRepo } from "./repo-detector";
+import { TemplateRenderer } from "./template";
 
 interface Args {
 	repo?: string;
 	config?: string;
+	template?: string;
 	"prev-tag"?: string;
 	tag?: string;
 	target?: string;
@@ -36,6 +38,12 @@ async function main() {
 			type: "string",
 			description: "Config source: local file, HTTPS URL, or purl (optional)",
 			example: ".github/release-drafter.yml",
+		})
+		.option("template", {
+			alias: "t",
+			type: "string",
+			description: "Template source: local file, HTTPS URL, or purl (optional)",
+			example: "release-notes.jinja",
 		})
 		.option("prev-tag", {
 			type: "string",
@@ -101,6 +109,10 @@ async function main() {
 			"Use remote config from GitHub",
 		)
 		.example(
+			"$0 --template release.jinja --json",
+			"Use minijinja template with JSON data",
+		)
+		.example(
 			"$0 --preview --tag v2.0.0",
 			"Preview release notes with changelog comparing to current target",
 		)
@@ -154,55 +166,55 @@ async function main() {
 		const result = await run({
 			repo: repoString,
 			config: args.config,
+			template: args.template,
 			prevTag: args["prev-tag"],
 			tag: args.tag,
 			target: args.target,
 			preview: args.preview,
 			includeNewContributors: args["include-new-contributors"],
 			sponsorFetchMode: args["sponsor-fetch-mode"],
-			isJsonMode: args.json,
+			isJsonMode: args.json || !!args.template,
 		});
 
-		if (args.json) {
-			// Remove fields that don't make sense for this CLI's output
-			// Unlike release-drafter, this tool doesn't create releases, so
-			// fields like `draft` and `make_latest` are meaningless in --json output.
-			// Allowlist only fields meaningful for consumers of this CLI
-			// Include version fields which are useful for creating releases based on this output
-			const allowlistedRelease = {
-				name: result.release.name,
-				tag: result.release.tag,
-				body: result.release.body,
-				targetCommitish: result.release.targetCommitish,
-				resolvedVersion: result.release.resolvedVersion,
-				majorVersion: result.release.majorVersion,
-				minorVersion: result.release.minorVersion,
-				patchVersion: result.release.patchVersion,
-			};
+		// Prepare JSON data structure
+		const allowlistedRelease = {
+			name: result.release.name,
+			tag: result.release.tag,
+			body: result.release.body,
+			targetCommitish: result.release.targetCommitish,
+			resolvedVersion: result.release.resolvedVersion,
+			majorVersion: result.release.majorVersion,
+			minorVersion: result.release.minorVersion,
+			patchVersion: result.release.patchVersion,
+		};
 
-			// newContributors is a direct array aligned to contributors shape
-			const shapedNewContributors = result.newContributors;
+		const shapedNewContributors = result.newContributors;
 
+		const jsonData = {
+			owner: result.owner,
+			repo: result.repo,
+			defaultBranch: result.defaultBranch,
+			lastRelease: result.lastRelease,
+			mergedPullRequests: result.pullRequests,
+			categorizedPullRequests: result.categorizedPullRequests,
+			contributors: result.contributors,
+			newContributors: shapedNewContributors,
+			release: allowlistedRelease,
+			fullChangelogLink: result.fullChangelogLink,
+		};
+
+		if (args.template) {
+			// Use template rendering
+			logVerbose("[CLI] Output mode: Template rendering");
+			const renderer = new TemplateRenderer(result.githubToken);
+			const rendered = await renderer.loadAndRender(args.template, jsonData);
+			process.stdout.write(rendered + "\n");
+		} else if (args.json) {
+			// Output JSON format
 			logVerbose("[CLI] Output mode: JSON");
-			process.stdout.write(
-				JSON.stringify(
-					{
-						owner: result.owner,
-						repo: result.repo,
-						defaultBranch: result.defaultBranch,
-						lastRelease: result.lastRelease,
-						mergedPullRequests: result.pullRequests,
-						categorizedPullRequests: result.categorizedPullRequests,
-						contributors: result.contributors,
-						newContributors: shapedNewContributors,
-						release: allowlistedRelease,
-						fullChangelogLink: result.fullChangelogLink,
-					},
-					null,
-					2,
-				) + "\n",
-			);
+			process.stdout.write(JSON.stringify(jsonData, null, 2) + "\n");
 		} else {
+			// Output markdown body
 			logVerbose("[CLI] Output mode: Markdown body");
 			process.stdout.write(String((result.release as any).body || "") + "\n");
 		}

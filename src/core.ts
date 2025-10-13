@@ -39,6 +39,7 @@ import type { SponsorFetchMode } from "./graphql/pr-queries";
 export type RunOptions = {
 	repo: string;
 	config?: string;
+	template?: string;
 	prevTag?: string;
 	tag?: string;
 	target?: string;
@@ -595,5 +596,6 @@ export async function run(options: RunOptions) {
 		owner,
 		repo,
 		fullChangelogLink,
+		githubToken: token,
 	};
 }
