@@ -45,7 +45,7 @@ export type RunOptions = {
 	target?: string;
 	token?: string;
 	preview?: boolean;
-	includeNewContributors?: boolean;
+	skipNewContributors?: boolean;
 	sponsorFetchMode?: SponsorFetchMode;
 	isJsonMode?: boolean;
 };
@@ -455,8 +455,8 @@ export async function run(options: RunOptions) {
 
 	if (
 		rdConfig.template &&
-		(rdConfig.template.includes("$NEW_CONTRIBUTORS") ||
-			options.includeNewContributors)
+		rdConfig.template.includes("$NEW_CONTRIBUTORS") &&
+		!options.skipNewContributors
 	) {
 		// Get the date of the previous release if available
 		const prevReleaseDate =

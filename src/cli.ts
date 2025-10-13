@@ -171,7 +171,7 @@ async function main() {
 			tag: args.tag,
 			target: args.target,
 			preview: args.preview,
-			includeNewContributors: (args.json || !!args.template) && !args["skip-new-contributors"],
+			skipNewContributors: args["skip-new-contributors"],
 			sponsorFetchMode: args["sponsor-fetch-mode"],
 			isJsonMode: args.json || !!args.template,
 		});

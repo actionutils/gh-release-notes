@@ -356,7 +356,7 @@ describe("actionutils/gh-release-notes core", () => {
 		}
 	});
 
-	test("includes new contributors when includeNewContributors flag is set", async () => {
+	test("includes new contributors when template has placeholder and not skipped", async () => {
 		// Create a real temp file for the config
 		const tmpDir = await fsPromises.mkdtemp(
 			path.join(os.tmpdir(), "test-basic-"),
@@ -364,7 +364,7 @@ describe("actionutils/gh-release-notes core", () => {
 		const cfgPath = path.join(tmpDir, "test-basic-config.yml");
 		await fsPromises.writeFile(
 			cfgPath,
-			'template: "## Changes\n$PULL_REQUESTS"\n',
+			'template: "## Changes\n$PULL_REQUESTS\n$NEW_CONTRIBUTORS"\n',
 		);
 
 		// Override fetch mock to include PR data
@@ -489,7 +489,6 @@ describe("actionutils/gh-release-notes core", () => {
 			const res = await run({
 				repo: `${owner}/${repo}`,
 				config: cfgPath,
-				includeNewContributors: true,
 				prevTag: "v0.9.0",
 			});
 
@@ -508,6 +507,125 @@ describe("actionutils/gh-release-notes core", () => {
 			expect(res.contributors[0].avatarUrl).toBe(
 				"https://avatars.githubusercontent.com/in/15368?v=4",
 			);
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("skips new contributors when skipNewContributors flag is set", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-skip-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-skip-config.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			'template: "## Changes\n$PULL_REQUESTS\n$NEW_CONTRIBUTORS"\n',
+		);
+
+		// Override fetch mock
+		let graphqlCallCount = 0;
+		global.fetch = mock(async (url: any) => {
+			const u = url.toString();
+
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Get release by tag for v0.9.0
+			if (u.includes("/releases/tags/v0.9.0")) {
+				const releaseData = {
+					tag_name: "v0.9.0",
+					published_at: "2023-11-01T00:00:00Z",
+					created_at: "2023-11-01T00:00:00Z",
+				};
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => releaseData,
+					text: async () => JSON.stringify(releaseData),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [
+						{
+							tag_name: "v0.9.0",
+							published_at: "2023-11-01T00:00:00Z",
+							created_at: "2023-11-01T00:00:00Z",
+						},
+					],
+				};
+			}
+
+			if (u.includes("/graphql")) {
+				graphqlCallCount++;
+
+				// Should only get PR search, not contributor check
+				if (graphqlCallCount === 1) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 20,
+											title: "Test PR",
+											url: "https://github.com/owner/repo/pull/20",
+											mergedAt: "2024-01-02T00:00:00Z",
+											labels: { nodes: [] },
+											author: {
+												login: "testuser",
+												__typename: "User",
+												url: "https://github.com/testuser",
+												avatarUrl: "https://avatars.githubusercontent.com/u/123?v=4",
+											},
+										},
+									],
+								},
+							},
+						}),
+					};
+				}
+
+				// Should not reach here if skipNewContributors works
+				throw new Error("Unexpected GraphQL call for contributor check");
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as any;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				skipNewContributors: true,
+				prevTag: "v0.9.0",
+			});
+
+			// Should NOT have new contributors data when skipped
+			expect(res.newContributors).toBeNull();
+			// Should still have regular contributors list
+			expect(res.contributors).toBeDefined();
+			expect(res.contributors.length).toBe(1);
+			// Only 1 GraphQL call should have been made (for PRs)
+			expect(graphqlCallCount).toBe(1);
 		} finally {
 			// Cleanup
 			await fsPromises.rm(tmpDir, { recursive: true });
