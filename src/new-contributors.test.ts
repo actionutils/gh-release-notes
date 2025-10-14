@@ -114,9 +114,7 @@ describe("new-contributors", () => {
 
 			expect(result.newContributors).toHaveLength(2);
 			expect(result.newContributors[0].login).toBe("github-actions");
-			// isBot field removed - using GraphQL data as-is
 			expect(result.newContributors[1].login).toBe("user1");
-			// isBot field removed - using GraphQL data as-is
 			expect(result.totalContributors).toBe(3);
 			expect(result.apiCallsUsed).toBe(2);
 		});
@@ -216,7 +214,6 @@ describe("new-contributors", () => {
 
 			expect(result.newContributors).toHaveLength(1);
 			expect(result.newContributors[0].login).toBe("newuser");
-			// isBot field removed - using GraphQL data as-is
 			expect(result.newContributors[0].firstPullRequest.number).toBe(200);
 			expect(result.totalContributors).toBe(2);
 			expect(result.apiCallsUsed).toBe(2);

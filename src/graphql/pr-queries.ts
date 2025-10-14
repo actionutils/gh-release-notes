@@ -48,7 +48,7 @@ export interface PullRequest {
 	body?: string;
 	baseRefName?: string;
 	headRefName?: string;
-	labels: { nodes: GraphQLLabel[] }; // Keep nodes structure for categorize compatibility
+	labels: { nodes: GraphQLLabel[] };
 	author: {
 		login: string;
 		type: string; // Normalized from __typename
@@ -178,7 +178,7 @@ export async function fetchMergedPRs(
 			body: node.body,
 			baseRefName: node.baseRefName,
 			headRefName: node.headRefName,
-			labels: node.labels, // Keep the nodes structure for categorize compatibility
+			labels: node.labels || { nodes: [] },
 			author: {
 				login: node.author.login,
 				type: node.author.__typename, // Normalize __typename to type

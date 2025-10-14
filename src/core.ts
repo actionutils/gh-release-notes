@@ -125,9 +125,7 @@ export type RunOptions = {
 };
 
 // Type for label in final output (flattened)
-export type Label = {
-	name: string;
-};
+export type Label = string;
 
 // Type for MergedPullRequest - flattens labels for final output
 export type MergedPullRequest = Omit<PullRequest, "labels"> & {
@@ -826,17 +824,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const flattenedCategorized: CategorizedPullRequests = {
 		uncategorized: categorizedPullRequests.uncategorized.map((pr) => ({
 			...pr,
-			labels: pr.labels?.nodes?.map((node: { name: string }) => ({
-				name: node.name,
-			})),
+			labels: pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
 		})),
 		categories: categorizedPullRequests.categories.map((cat) => ({
 			...cat,
 			pullRequests: cat.pullRequests.map((pr) => ({
 				...pr,
-				labels: pr.labels?.nodes?.map((node: { name: string }) => ({
-					name: node.name,
-				})),
+				labels: pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
 			})),
 		})),
 	};
@@ -849,7 +843,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		lastRelease,
 		mergedPullRequests: pullRequestsSorted.map((pr) => ({
 			...pr,
-			labels: pr.labels?.nodes?.map((node) => ({ name: node.name })),
+			labels: pr.labels?.nodes?.map((node) => node.name) || [],
 		})),
 		categorizedPullRequests: flattenedCategorized,
 		contributors: Array.from(contributorsMap.values()),
