@@ -22,7 +22,7 @@ describe("actionutils/gh-release-notes core", () => {
 
 		// Mock all GitHub API calls
 		global.fetch = mock(async (url: string | URL | Request) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -155,7 +155,7 @@ describe("actionutils/gh-release-notes core", () => {
 		// Override fetch mock to include PR data with authors
 		let graphqlCallCount = 0;
 		global.fetch = mock(async (url: string | URL | Request) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -283,7 +283,7 @@ describe("actionutils/gh-release-notes core", () => {
 
 		let graphqlCallCount = 0;
 		global.fetch = mock(async (url: string | URL | Request) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -371,7 +371,7 @@ describe("actionutils/gh-release-notes core", () => {
 		// Override fetch mock to include PR data
 		let graphqlCallCount = 0;
 		global.fetch = mock(async (url: string | URL | Request) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
@@ -528,7 +528,7 @@ describe("actionutils/gh-release-notes core", () => {
 		// Override fetch mock
 		let graphqlCallCount = 0;
 		global.fetch = mock(async (url: string | URL | Request) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
@@ -647,7 +647,7 @@ describe("actionutils/gh-release-notes core", () => {
 
 		let sponsorFetchMode: string | undefined;
 		global.fetch = mock(async (url: string | URL | Request, options?: { body?: string; headers?: Record<string, string> }) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -725,7 +725,7 @@ describe("actionutils/gh-release-notes core", () => {
 
 		let sponsorFetchMode: string | undefined;
 		global.fetch = mock(async (url: string | URL | Request, options?: { body?: string; headers?: Record<string, string> }) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -803,7 +803,7 @@ describe("actionutils/gh-release-notes core", () => {
 
 		let sponsorFetchMode: string | undefined;
 		global.fetch = mock(async (url: string | URL | Request, options?: { body?: string; headers?: Record<string, string> }) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {

@@ -34,7 +34,7 @@ describe("PR sorting via release-drafter", () => {
 		mergedAt?: [string, string];
 	}) {
 		global.fetch = mock(async (url: string | URL | Request) => {
-			const u = url.toString();
+			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
