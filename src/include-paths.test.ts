@@ -39,7 +39,12 @@ describe("include-paths via GraphQL files filter", () => {
 
 		let graphqlCallCount = 0;
 		global.fetch = mock(async (url: string | URL | Request) => {
-			const u = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
 					ok: true,
@@ -126,7 +131,9 @@ describe("include-paths via GraphQL files filter", () => {
 		try {
 			const { run } = await import(sourcePath);
 			const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
-			const numbers = (res.mergedPullRequests || []).map((p: { number: number }) => p.number);
+			const numbers = (res.mergedPullRequests || []).map(
+				(p: { number: number }) => p.number,
+			);
 			expect(numbers).toEqual([1]);
 		} finally {
 			await fsPromises.rm(tmpDir, { recursive: true });

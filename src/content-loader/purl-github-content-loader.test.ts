@@ -189,13 +189,18 @@ describe("PurlGitHubContentLoader", () => {
 			const loader = new PurlGitHubContentLoader("provided-token");
 			let capturedHeaders: Record<string, unknown> = {};
 
-			global.fetch = mock(async (_url: string | URL, options?: { headers?: Record<string, unknown> }) => {
-				capturedHeaders = options?.headers || {};
-				return {
-					ok: true,
-					text: async () => "content",
-				} as unknown as Response;
-			}) as unknown as typeof fetch;
+			global.fetch = mock(
+				async (
+					_url: string | URL,
+					options?: { headers?: Record<string, unknown> },
+				) => {
+					capturedHeaders = options?.headers || {};
+					return {
+						ok: true,
+						text: async () => "content",
+					} as unknown as Response;
+				},
+			) as unknown as typeof fetch;
 
 			await loader.load("pkg:github/owner/repo@main#file.yaml");
 

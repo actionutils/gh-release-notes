@@ -138,16 +138,18 @@ export async function enrichWithHtmlSponsorData(
 		[key: string]: unknown;
 	}>,
 	maxConcurrency = 5,
-): Promise<Array<{
-	number: number;
-	author?: {
-		login?: string;
-		__typename?: string;
-		sponsorsListing?: { url: string };
+): Promise<
+	Array<{
+		number: number;
+		author?: {
+			login?: string;
+			__typename?: string;
+			sponsorsListing?: { url: string };
+			[key: string]: unknown;
+		};
 		[key: string]: unknown;
-	};
-	[key: string]: unknown;
-}>> {
+	}>
+> {
 	logVerbose(
 		`[SponsorHTML] Checking sponsor pages for ${pullRequests.length} PRs (max ${maxConcurrency} parallel)`,
 	);

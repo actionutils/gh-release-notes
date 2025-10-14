@@ -54,9 +54,15 @@ function generateAlias(login: string): string {
 async function batchCheckContributors(
 	owner: string,
 	repo: string,
-	contributorData: Map<string, { type: string; pullRequests: PullRequestInfo[] }>,
+	contributorData: Map<
+		string,
+		{ type: string; pullRequests: PullRequestInfo[] }
+	>,
 	releasePRNumbers: Set<number>,
-	graphqlFn: (query: string, variables?: Record<string, unknown>) => Promise<Record<string, unknown>>,
+	graphqlFn: (
+		query: string,
+		variables?: Record<string, unknown>,
+	) => Promise<Record<string, unknown>>,
 	prevReleaseDate?: string,
 ): Promise<ContributorCheckResult[]> {
 	const results: ContributorCheckResult[] = [];
@@ -70,11 +76,13 @@ async function batchCheckContributors(
 		);
 	}
 
-	const contributors = Array.from(contributorData.entries()).map(([login, data]) => ({
-		login,
-		isBot: data.type === "Bot",
-		pullRequests: data.pullRequests
-	}));
+	const contributors = Array.from(contributorData.entries()).map(
+		([login, data]) => ({
+			login,
+			isBot: data.type === "Bot",
+			pullRequests: data.pullRequests,
+		}),
+	);
 
 	const batches = chunk(contributors, DEFAULT_BATCH_SIZE);
 	for (const batch of batches) {
@@ -91,9 +99,12 @@ async function batchCheckContributors(
 
 		for (const contributor of batch) {
 			const alias = generateAlias(contributor.login);
-			const searchResult = response[alias] as { issueCount: number; nodes?: unknown[] };
+			const searchResult = response[alias] as {
+				issueCount: number;
+				nodes?: unknown[];
+			};
 
-			if (!searchResult || typeof searchResult !== 'object') {
+			if (!searchResult || typeof searchResult !== "object") {
 				logVerbose(
 					`[New Contributors] No search result for ${contributor.login} (alias: ${alias})`,
 				);
@@ -175,7 +186,10 @@ async function batchCheckContributors(
 function extractContributorsFromPRs(
 	pullRequests: PullRequest[],
 ): Map<string, { type: string; pullRequests: PullRequestInfo[] }> {
-	const contributorsMap = new Map<string, { type: string; pullRequests: PullRequestInfo[] }>();
+	const contributorsMap = new Map<
+		string,
+		{ type: string; pullRequests: PullRequestInfo[] }
+	>();
 
 	for (const pr of pullRequests) {
 		if (!pr.author?.login) continue;
@@ -210,7 +224,10 @@ export async function findNewContributors(
 		`[New Contributors] Starting detection for ${pullRequests.length} PRs in ${owner}/${repo}`,
 	);
 
-	const graphqlFn = async (query: string, variables?: Record<string, unknown>): Promise<Record<string, unknown>> => {
+	const graphqlFn = async (
+		query: string,
+		variables?: Record<string, unknown>,
+	): Promise<Record<string, unknown>> => {
 		const res = await fetch("https://api.github.com/graphql", {
 			method: "POST",
 			headers: {
@@ -227,7 +244,10 @@ export async function findNewContributors(
 			throw new Error(`GitHub GraphQL error: ${res.status} - ${text}`);
 		}
 
-		const payload = await res.json() as { data?: Record<string, unknown>; errors?: unknown[] };
+		const payload = (await res.json()) as {
+			data?: Record<string, unknown>;
+			errors?: unknown[];
+		};
 		if (payload.errors) {
 			throw new Error(
 				`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`,

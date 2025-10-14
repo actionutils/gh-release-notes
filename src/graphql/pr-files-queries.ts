@@ -1,4 +1,4 @@
-import type { PullRequest } from './pr-queries';
+import type { PullRequest } from "./pr-queries";
 
 interface GraphQLFileNode {
 	path: string;
@@ -26,7 +26,10 @@ interface GraphQLVariables {
 	[key: string]: string | null;
 }
 
-type GraphQLFn = (query: string, variables?: GraphQLVariables) => Promise<GraphQLResponse>;
+type GraphQLFn = (
+	query: string,
+	variables?: GraphQLVariables,
+) => Promise<GraphQLResponse>;
 
 export interface FilterByChangedFilesParams {
 	owner: string;
