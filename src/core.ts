@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { Octokit } from "@octokit/rest";
+import type { RestEndpointMethodTypes } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
@@ -491,7 +492,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const context = buildContext({ owner, repo, token, defaultBranch });
 	const rdConfig = validateSchema(context, cfg);
 
+	// Type alias for GitHub release response
+	type GitHubRelease =
+		RestEndpointMethodTypes["repos"]["getReleaseByTag"]["response"]["data"];
+
 	let lastRelease: LastRelease = null;
+	let rawReleaseData: GitHubRelease | null = null;
+
 	if (prevTag) {
 		logVerbose(`[Releases] Using explicit previous tag: ${prevTag}`);
 		const rel = await context.octokit.repos.getReleaseByTag({
@@ -499,7 +506,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			repo,
 			tag: prevTag,
 		});
-		lastRelease = rel.data as LastRelease;
+		rawReleaseData = rel.data as GitHubRelease;
 	} else {
 		logVerbose(
 			`[Releases] Auto-detecting previous release (target=${target || defaultBranch})`,
@@ -517,22 +524,25 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				tagPrefix: String(rdConfig["tag-prefix"] || ""),
 			},
 		);
-		// Map the raw GitHub API response to our LastRelease type
-		lastRelease = lr
-			? {
-					id: lr.id,
-					tag_name: lr.tag_name,
-					created_at: lr.created_at,
-					published_at: lr.published_at,
-					name: lr.name,
-					prerelease: lr.prerelease,
-				}
-			: null;
+		rawReleaseData = lr as GitHubRelease | null;
+	}
+
+	// Map the raw release data to our LastRelease type
+	if (rawReleaseData) {
+		lastRelease = {
+			id: rawReleaseData.id,
+			tag_name: rawReleaseData.tag_name,
+			created_at: rawReleaseData.created_at,
+			published_at: rawReleaseData.published_at || undefined,
+			name: rawReleaseData.name || undefined,
+			prerelease: rawReleaseData.prerelease || undefined,
+		};
+
 		if (lastRelease?.tag_name) {
-			logVerbose(`[Releases] Detected last release: ${lastRelease.tag_name}`);
-		} else {
-			logVerbose("[Releases] No previous release detected");
+			logVerbose(`[Releases] Using release: ${lastRelease.tag_name}`);
 		}
+	} else {
+		logVerbose("[Releases] No previous release found, starting from beginning");
 	}
 
 	// Generate full changelog link
