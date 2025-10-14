@@ -824,13 +824,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const flattenedCategorized: CategorizedPullRequests = {
 		uncategorized: categorizedPullRequests.uncategorized.map((pr) => ({
 			...pr,
-			labels: pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
+			labels:
+				pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
 		})),
 		categories: categorizedPullRequests.categories.map((cat) => ({
 			...cat,
 			pullRequests: cat.pullRequests.map((pr) => ({
 				...pr,
-				labels: pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
+				labels:
+					pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
 			})),
 		})),
 	};
