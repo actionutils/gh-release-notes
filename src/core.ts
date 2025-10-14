@@ -171,8 +171,6 @@ export type LastRelease = {
 	created_at: string;
 	published_at?: string;
 	name?: string;
-	body?: string;
-	draft?: boolean;
 	prerelease?: boolean;
 } | null;
 
@@ -519,7 +517,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				tagPrefix: String(rdConfig["tag-prefix"] || ""),
 			},
 		);
-		lastRelease = lr || null;
+		// Map the raw GitHub API response to our LastRelease type
+		lastRelease = lr ? {
+			id: lr.id,
+			tag_name: lr.tag_name,
+			created_at: lr.created_at,
+			published_at: lr.published_at,
+			name: lr.name,
+			prerelease: lr.prerelease,
+		} : null;
 		if (lastRelease?.tag_name) {
 			logVerbose(`[Releases] Detected last release: ${lastRelease.tag_name}`);
 		} else {
