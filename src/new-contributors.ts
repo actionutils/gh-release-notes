@@ -10,15 +10,8 @@ interface PullRequestInfo {
 	mergedAt: string;
 }
 
-interface Contributor {
-	login: string;
-	isBot: boolean;
-	pullRequests: PullRequestInfo[];
-}
-
 interface ContributorCheckResult {
 	login: string;
-	isBot: boolean;
 	isNewContributor: boolean;
 	prCount: number;
 	firstPullRequest?: PullRequestInfo;
@@ -61,7 +54,7 @@ function generateAlias(login: string): string {
 async function batchCheckContributors(
 	owner: string,
 	repo: string,
-	contributors: Contributor[],
+	contributorData: Map<string, { type: string; pullRequests: PullRequestInfo[] }>,
 	releasePRNumbers: Set<number>,
 	graphqlFn: (query: string, variables?: Record<string, unknown>) => Promise<Record<string, unknown>>,
 	prevReleaseDate?: string,
@@ -69,13 +62,19 @@ async function batchCheckContributors(
 	const results: ContributorCheckResult[] = [];
 
 	logVerbose(
-		`[New Contributors] Checking ${contributors.length} contributors for first-time contributions`,
+		`[New Contributors] Checking ${contributorData.size} contributors for first-time contributions`,
 	);
 	if (prevReleaseDate) {
 		logVerbose(
 			`[New Contributors] Using previous release date: ${prevReleaseDate}`,
 		);
 	}
+
+	const contributors = Array.from(contributorData.entries()).map(([login, data]) => ({
+		login,
+		isBot: data.type === "Bot",
+		pullRequests: data.pullRequests
+	}));
 
 	const batches = chunk(contributors, DEFAULT_BATCH_SIZE);
 	for (const batch of batches) {
@@ -163,7 +162,6 @@ async function batchCheckContributors(
 
 			results.push({
 				login: contributor.login,
-				isBot: contributor.isBot,
 				isNewContributor,
 				prCount: searchResult.issueCount || 0,
 				firstPullRequest,
@@ -175,23 +173,19 @@ async function batchCheckContributors(
 }
 
 function extractContributorsFromPRs(
-	owner: string,
-	repo: string,
 	pullRequests: PullRequest[],
-): Map<string, Contributor> {
-	const contributorsMap = new Map<string, Contributor>();
+): Map<string, { type: string; pullRequests: PullRequestInfo[] }> {
+	const contributorsMap = new Map<string, { type: string; pullRequests: PullRequestInfo[] }>();
 
 	for (const pr of pullRequests) {
 		if (!pr.author?.login) continue;
 
 		const login = pr.author.login;
-		// Check type field (normalized from __typename in pr-queries.ts)
-		const isBot = pr.author.type === "Bot";
+		const type = pr.author.type;
 
 		if (!contributorsMap.has(login)) {
 			contributorsMap.set(login, {
-				login,
-				isBot,
+				type,
 				pullRequests: [],
 			});
 		}
@@ -242,10 +236,9 @@ export async function findNewContributors(
 		return payload.data || {};
 	};
 
-	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests);
-	const contributors = Array.from(contributorsMap.values());
+	const contributorData = extractContributorsFromPRs(pullRequests);
 	logVerbose(
-		`[New Contributors] Extracted ${contributors.length} unique contributors from PRs`,
+		`[New Contributors] Extracted ${contributorData.size} unique contributors from PRs`,
 	);
 
 	const prNumbers = pullRequests.map((pr) => pr.number);
@@ -254,14 +247,14 @@ export async function findNewContributors(
 	const checkResults = await batchCheckContributors(
 		owner,
 		repo,
-		contributors,
+		contributorData,
 		releasePRNumbers,
 		graphqlFn,
 		prevReleaseDate,
 	);
 
 	logVerbose(
-		`[New Contributors] Found ${checkResults.filter((r) => r.isNewContributor).length} new contributors out of ${contributors.length} total`,
+		`[New Contributors] Found ${checkResults.filter((r) => r.isNewContributor).length} new contributors out of ${contributorData.size} total`,
 	);
 
 	const newContributors = checkResults
@@ -274,13 +267,13 @@ export async function findNewContributors(
 
 	const apiCallsUsed =
 		Math.ceil(prNumbers.length / 50) +
-		Math.ceil(contributors.length / DEFAULT_BATCH_SIZE);
+		Math.ceil(contributorData.size / DEFAULT_BATCH_SIZE);
 
 	logVerbose(`[New Contributors] Total API calls used: ${apiCallsUsed}`);
 
 	return {
 		newContributors,
-		totalContributors: contributors.length,
+		totalContributors: contributorData.size,
 		apiCallsUsed,
 	};
 }
