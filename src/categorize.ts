@@ -89,7 +89,7 @@ export function categorizePullRequests<T extends MinimalPullRequest>(
 
 		if (
 			labels.length === 0 ||
-			!labels.some((label: any) => allCategoryLabels.has(label.name))
+			!labels.some((label: LabelNode) => allCategoryLabels.has(label.name))
 		) {
 			if (uncategorizedCategoryIndex === -1) {
 				uncategorizedPullRequests.push(pullRequest);

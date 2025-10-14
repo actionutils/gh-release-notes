@@ -1,12 +1,43 @@
-type GraphQLFn = (query: string, variables?: any) => Promise<any>;
+import type { PullRequest } from "./pr-queries";
 
-export type FilterByChangedFilesParams = {
+interface GraphQLFileNode {
+	path: string;
+	previousFilePath?: string | null;
+}
+
+interface GraphQLFilesResponse {
+	pageInfo: { hasNextPage: boolean; endCursor: string | null };
+	nodes: GraphQLFileNode[];
+}
+
+interface GraphQLPullRequestFiles {
+	files?: GraphQLFilesResponse;
+}
+
+interface GraphQLResponse {
+	repo?: {
+		[key: string]: GraphQLPullRequestFiles;
+	};
+}
+
+interface GraphQLVariables {
+	owner: string;
+	name: string;
+	[key: string]: string | null;
+}
+
+type GraphQLFn = (
+	query: string,
+	variables?: GraphQLVariables,
+) => Promise<GraphQLResponse>;
+
+export interface FilterByChangedFilesParams {
 	owner: string;
 	repo: string;
-	pullRequests: any[];
+	pullRequests: PullRequest[];
 	includePaths: string[];
 	graphqlFn: GraphQLFn;
-};
+}
 
 function buildFilesBatchQuery(
 	prNumbers: number[],
@@ -44,14 +75,12 @@ function matchesIncludePaths(path: string, includes: string[]): boolean {
 
 export async function filterByChangedFilesGraphQL(
 	params: FilterByChangedFilesParams,
-): Promise<any[]> {
+): Promise<PullRequest[]> {
 	const { owner, repo, pullRequests, includePaths, graphqlFn } = params;
 	if (includePaths.length === 0 || pullRequests.length === 0)
 		return pullRequests;
 
-	const numbers: number[] = pullRequests
-		.map((p) => p?.number)
-		.filter((n) => typeof n === "number");
+	const numbers: number[] = pullRequests.map((p) => p.number);
 
 	const kept = new Set<number>();
 	const perPrCursors = new Map<number, string | null>();
@@ -63,7 +92,7 @@ export async function filterByChangedFilesGraphQL(
 	while (pending.size > 0) {
 		const batch = Array.from(pending).slice(0, CHUNK);
 		const query = buildFilesBatchQuery(batch);
-		const variables: any = { owner, name: repo };
+		const variables: GraphQLVariables = { owner, name: repo };
 		for (const n of batch) {
 			variables[`after_pr_${n}`] = perPrCursors.get(n) || null;
 		}
@@ -72,11 +101,10 @@ export async function filterByChangedFilesGraphQL(
 		for (const n of batch) {
 			const prNode = repoNode?.[`pr_${n}`];
 			const files = prNode?.files;
-			const nodes: any[] = Array.isArray(files?.nodes) ? files.nodes : [];
+			const nodes = files?.nodes || [];
 			let matched = false;
 			for (const f of nodes) {
-				const cur = String(f?.path || "");
-				if (cur && matchesIncludePaths(cur, includePaths)) {
+				if (f.path && matchesIncludePaths(f.path, includePaths)) {
 					matched = true;
 					break;
 				}

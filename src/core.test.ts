@@ -1,6 +1,19 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import path from "node:path";
 import fs from "node:fs";
+type BufferEncoding =
+	| "ascii"
+	| "utf8"
+	| "utf-8"
+	| "utf16le"
+	| "utf-16le"
+	| "ucs2"
+	| "ucs-2"
+	| "base64"
+	| "base64url"
+	| "latin1"
+	| "binary"
+	| "hex";
 import * as os from "node:os";
 import * as fsPromises from "node:fs/promises";
 
@@ -20,8 +33,13 @@ describe("actionutils/gh-release-notes core", () => {
 		originalReadFileSync = fs.readFileSync;
 
 		// Mock all GitHub API calls
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -81,7 +99,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 	});
 
 	afterEach(() => {
@@ -94,15 +112,17 @@ describe("actionutils/gh-release-notes core", () => {
 	test("auto-loads local .github/release-drafter.yml when --config is omitted", async () => {
 		const localCfg = path.resolve(process.cwd(), ".github/release-drafter.yml");
 
-		fs.existsSync = mock((p: any) => {
+		fs.existsSync = mock((p: fs.PathLike) => {
 			if (p === localCfg) return true;
 			return originalExistsSync(p);
 		});
 
-		fs.readFileSync = mock((p: any, enc: any) => {
-			if (p === localCfg) return 'template: "Hello from local config"\n';
-			return originalReadFileSync(p, enc);
-		}) as any;
+		fs.readFileSync = mock(
+			(p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
+				if (p === localCfg) return 'template: "Hello from local config"\n';
+				return originalReadFileSync(p, enc);
+			},
+		) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}` });
@@ -112,10 +132,12 @@ describe("actionutils/gh-release-notes core", () => {
 	test("uses provided local --config file (yaml)", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "tmp-config.yml");
 
-		fs.readFileSync = mock((p: any, enc: any) => {
-			if (p === cfgPath) return 'template: "Custom config"\n';
-			return originalReadFileSync(p, enc);
-		}) as any;
+		fs.readFileSync = mock(
+			(p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
+				if (p === cfgPath) return 'template: "Custom config"\n';
+				return originalReadFileSync(p, enc);
+			},
+		) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
@@ -125,10 +147,12 @@ describe("actionutils/gh-release-notes core", () => {
 	test("passes flags to findReleases and tag to generateReleaseInfo", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "test-config.yml");
 
-		fs.readFileSync = mock((p: any, enc: any) => {
-			if (p === cfgPath) return 'template: "Test template"\n';
-			return originalReadFileSync(p, enc);
-		}) as any;
+		fs.readFileSync = mock(
+			(p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
+				if (p === cfgPath) return 'template: "Test template"\n';
+				return originalReadFileSync(p, enc);
+			},
+		) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({
@@ -153,8 +177,13 @@ describe("actionutils/gh-release-notes core", () => {
 
 		// Override fetch mock to include PR data with authors
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -246,7 +275,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -281,8 +310,13 @@ describe("actionutils/gh-release-notes core", () => {
 		);
 
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -334,7 +368,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -369,8 +403,13 @@ describe("actionutils/gh-release-notes core", () => {
 
 		// Override fetch mock to include PR data
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
@@ -482,7 +521,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -497,13 +536,13 @@ describe("actionutils/gh-release-notes core", () => {
 			expect(Array.isArray(res.newContributors)).toBe(true);
 			expect(res.newContributors?.length).toBe(1);
 			expect(res.newContributors?.[0].login).toBe("github-actions");
-			expect(res.newContributors?.[0].__typename).toBe("Bot");
+			expect(res.newContributors?.[0].type).toBe("Bot");
 
 			// Should include minimal contributors list in run() result
 			expect(res.contributors).toBeDefined();
 			expect(res.contributors.length).toBe(1);
 			expect(res.contributors[0].login).toBe("github-actions");
-			expect(res.contributors[0].__typename).toBe("Bot");
+			expect(res.contributors[0].type).toBe("Bot");
 			expect(res.contributors[0].avatarUrl).toBe(
 				"https://avatars.githubusercontent.com/in/15368?v=4",
 			);
@@ -526,8 +565,13 @@ describe("actionutils/gh-release-notes core", () => {
 
 		// Override fetch mock
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
@@ -609,7 +653,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -645,54 +689,64 @@ describe("actionutils/gh-release-notes core", () => {
 		process.env.GITHUB_TOKEN = "ghs_testtoken123";
 
 		let sponsorFetchMode: string | undefined;
-		global.fetch = mock(async (url: any, options?: any) => {
-			const u = url.toString();
+		global.fetch = mock(
+			async (
+				url: string | URL | Request,
+				options?: { body?: string; headers?: Record<string, string> },
+			) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
 
-			// Repo info
-			if (u.endsWith(`/repos/${owner}/${repo}`)) {
-				return {
-					ok: true,
-					status: 200,
-					headers: new Map([["content-type", "application/json"]]),
-					json: async () => ({ default_branch: "main" }),
-				};
-			}
-
-			// Releases list
-			if (u.includes("/releases")) {
-				return {
-					ok: true,
-					status: 200,
-					headers: new Map([["content-type", "application/json"]]),
-					json: async () => [],
-				};
-			}
-
-			// GraphQL - check the query to detect sponsor fetch mode
-			if (u.includes("/graphql")) {
-				const body = JSON.parse(options?.body || "{}");
-				if (body.variables?.withSponsor === true) {
-					sponsorFetchMode = "graphql";
-				} else if (body.variables?.withSponsor === false) {
-					sponsorFetchMode = "none";
+				// Repo info
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
 				}
 
-				return {
-					ok: true,
-					status: 200,
-					json: async () => ({
-						data: {
-							search: {
-								pageInfo: { hasNextPage: false, endCursor: null },
-								nodes: [],
-							},
-						},
-					}),
-				};
-			}
+				// Releases list
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
 
-			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+				// GraphQL - check the query to detect sponsor fetch mode
+				if (u.includes("/graphql")) {
+					const body = JSON.parse(options?.body || "{}");
+					if (body.variables?.withSponsor === true) {
+						sponsorFetchMode = "graphql";
+					} else if (body.variables?.withSponsor === false) {
+						sponsorFetchMode = "none";
+					}
+
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			},
+		) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -723,54 +777,64 @@ describe("actionutils/gh-release-notes core", () => {
 		process.env.GITHUB_TOKEN = "ghp_testtoken123";
 
 		let sponsorFetchMode: string | undefined;
-		global.fetch = mock(async (url: any, options?: any) => {
-			const u = url.toString();
+		global.fetch = mock(
+			async (
+				url: string | URL | Request,
+				options?: { body?: string; headers?: Record<string, string> },
+			) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
 
-			// Repo info
-			if (u.endsWith(`/repos/${owner}/${repo}`)) {
-				return {
-					ok: true,
-					status: 200,
-					headers: new Map([["content-type", "application/json"]]),
-					json: async () => ({ default_branch: "main" }),
-				};
-			}
-
-			// Releases list
-			if (u.includes("/releases")) {
-				return {
-					ok: true,
-					status: 200,
-					headers: new Map([["content-type", "application/json"]]),
-					json: async () => [],
-				};
-			}
-
-			// GraphQL - check the query to detect sponsor fetch mode
-			if (u.includes("/graphql")) {
-				const body = JSON.parse(options?.body || "{}");
-				if (body.variables?.withSponsor === true) {
-					sponsorFetchMode = "graphql";
-				} else if (body.variables?.withSponsor === false) {
-					sponsorFetchMode = "none";
+				// Repo info
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
 				}
 
-				return {
-					ok: true,
-					status: 200,
-					json: async () => ({
-						data: {
-							search: {
-								pageInfo: { hasNextPage: false, endCursor: null },
-								nodes: [],
-							},
-						},
-					}),
-				};
-			}
+				// Releases list
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
 
-			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+				// GraphQL - check the query to detect sponsor fetch mode
+				if (u.includes("/graphql")) {
+					const body = JSON.parse(options?.body || "{}");
+					if (body.variables?.withSponsor === true) {
+						sponsorFetchMode = "graphql";
+					} else if (body.variables?.withSponsor === false) {
+						sponsorFetchMode = "none";
+					}
+
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			},
+		) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -801,54 +865,64 @@ describe("actionutils/gh-release-notes core", () => {
 		process.env.GITHUB_TOKEN = "ghp_testtoken123";
 
 		let sponsorFetchMode: string | undefined;
-		global.fetch = mock(async (url: any, options?: any) => {
-			const u = url.toString();
+		global.fetch = mock(
+			async (
+				url: string | URL | Request,
+				options?: { body?: string; headers?: Record<string, string> },
+			) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
 
-			// Repo info
-			if (u.endsWith(`/repos/${owner}/${repo}`)) {
-				return {
-					ok: true,
-					status: 200,
-					headers: new Map([["content-type", "application/json"]]),
-					json: async () => ({ default_branch: "main" }),
-				};
-			}
-
-			// Releases list
-			if (u.includes("/releases")) {
-				return {
-					ok: true,
-					status: 200,
-					headers: new Map([["content-type", "application/json"]]),
-					json: async () => [],
-				};
-			}
-
-			// GraphQL - check the query to detect sponsor fetch mode
-			if (u.includes("/graphql")) {
-				const body = JSON.parse(options?.body || "{}");
-				if (body.variables?.withSponsor === true) {
-					sponsorFetchMode = "graphql";
-				} else if (body.variables?.withSponsor === false) {
-					sponsorFetchMode = "none";
+				// Repo info
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
 				}
 
-				return {
-					ok: true,
-					status: 200,
-					json: async () => ({
-						data: {
-							search: {
-								pageInfo: { hasNextPage: false, endCursor: null },
-								nodes: [],
-							},
-						},
-					}),
-				};
-			}
+				// Releases list
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
 
-			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+				// GraphQL - check the query to detect sponsor fetch mode
+				if (u.includes("/graphql")) {
+					const body = JSON.parse(options?.body || "{}");
+					if (body.variables?.withSponsor === true) {
+						sponsorFetchMode = "graphql";
+					} else if (body.variables?.withSponsor === false) {
+						sponsorFetchMode = "none";
+					}
+
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			},
+		) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
