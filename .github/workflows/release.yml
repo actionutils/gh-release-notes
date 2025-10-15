@@ -73,6 +73,7 @@ jobs:
             --target main \
             --prev-tag "$PREV_TAG" \
             --tag "$TAG" \
+            --verbose \
             --preview)
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
@@ -92,6 +93,7 @@ jobs:
           body: |
             ## Release Notes (default)
             <hr>
+
             ${{ steps.release-notes.outputs.notes }}
 
       - id: release-notes-table
@@ -105,6 +107,7 @@ jobs:
             --prev-tag "$PREV_TAG" \
             --tag "$TAG" \
             --template ./templates/table.md.jinja \
+            --verbose \
             --preview)
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
@@ -119,6 +122,7 @@ jobs:
           body: |
             ## Release Notes (Table ver.)
             <hr>
+
             ${{ steps.release-notes-table.outputs.notes }}
 
       # Post Dependency Review
@@ -208,6 +212,7 @@ jobs:
           RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
             --target main \
             --prev-tag "$PREV_TAG" \
+            --template ./templates/table.md.jinja \
             --tag "$TAG")
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
