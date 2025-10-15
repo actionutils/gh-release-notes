@@ -1145,13 +1145,13 @@ include-labels:
 
 			// Should only include PR #1 and #2, not #3
 			expect(res.mergedPullRequests.length).toBe(2);
-			const prNumbers = res.mergedPullRequests.map(pr => pr.number);
+			const prNumbers = res.mergedPullRequests.map((pr: any) => pr.number);
 			expect(prNumbers).toContain(1);
 			expect(prNumbers).toContain(2);
 
 			// Contributors should include user1 and user2, not user3
 			expect(res.contributors.length).toBe(2);
-			const logins = res.contributors.map(c => c.login);
+			const logins = res.contributors.map((c: any) => c.login);
 			expect(logins).toContain("user1");
 			expect(logins).toContain("user2");
 			expect(logins).not.toContain("user3");
@@ -1220,7 +1220,11 @@ exclude-contributors:
 										url: "https://github.com/owner/repo/pull/1",
 										mergedAt: "2024-01-01T00:00:00Z",
 										labels: { nodes: [] },
-										author: { login: "human-user", __typename: "User", url: "" },
+										author: {
+											login: "human-user",
+											__typename: "User",
+											url: "",
+										},
 									},
 									{
 										number: 2,
@@ -1348,7 +1352,11 @@ exclude-contributors:
 											url: "https://github.com/owner/repo/pull/2",
 											mergedAt: "2024-01-02T00:00:00Z",
 											labels: { nodes: [{ name: "ignore" }] },
-											author: { login: "ignoreduser", __typename: "User", url: "" },
+											author: {
+												login: "ignoreduser",
+												__typename: "User",
+												url: "",
+											},
 										},
 										{
 											number: 3,
@@ -1356,7 +1364,11 @@ exclude-contributors:
 											url: "https://github.com/owner/repo/pull/3",
 											mergedAt: "2024-01-03T00:00:00Z",
 											labels: { nodes: [] },
-											author: { login: "bot-user", __typename: "User", url: "" },
+											author: {
+												login: "bot-user",
+												__typename: "User",
+												url: "",
+											},
 										},
 									],
 								},
@@ -1399,7 +1411,9 @@ exclude-contributors:
 			expect(res.newContributors?.[0].login).toBe("newuser");
 
 			// Verify the body contains only the new contributor
-			expect(res.release.body).toContain("@newuser made their first contribution");
+			expect(res.release.body).toContain(
+				"@newuser made their first contribution",
+			);
 			expect(res.release.body).not.toContain("ignoreduser");
 			expect(res.release.body).not.toContain("bot-user");
 		} finally {

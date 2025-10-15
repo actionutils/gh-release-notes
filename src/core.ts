@@ -658,19 +658,23 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Filter by exclude-labels
 	if (excludeLabels.length > 0) {
 		filteredPullRequests = filteredPullRequests.filter((pr) => {
-			const prLabels = pr.labels?.nodes?.map(node => node.name) || [];
-			return !prLabels.some(label => excludeLabels.includes(label));
+			const prLabels = pr.labels?.nodes?.map((node) => node.name) || [];
+			return !prLabels.some((label) => excludeLabels.includes(label));
 		});
-		logVerbose(`[Filtering] Applied exclude-labels filter, ${filteredPullRequests.length} PRs remaining`);
+		logVerbose(
+			`[Filtering] Applied exclude-labels filter, ${filteredPullRequests.length} PRs remaining`,
+		);
 	}
 
 	// Filter by include-labels
 	if (includeLabels.length > 0) {
 		filteredPullRequests = filteredPullRequests.filter((pr) => {
-			const prLabels = pr.labels?.nodes?.map(node => node.name) || [];
-			return prLabels.some(label => includeLabels.includes(label));
+			const prLabels = pr.labels?.nodes?.map((node) => node.name) || [];
+			return prLabels.some((label) => includeLabels.includes(label));
 		});
-		logVerbose(`[Filtering] Applied include-labels filter, ${filteredPullRequests.length} PRs remaining`);
+		logVerbose(
+			`[Filtering] Applied include-labels filter, ${filteredPullRequests.length} PRs remaining`,
+		);
 	}
 
 	// Filter by exclude-contributors
@@ -678,14 +682,19 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		filteredPullRequests = filteredPullRequests.filter((pr) => {
 			return pr.author?.login && !excludeContributors.includes(pr.author.login);
 		});
-		logVerbose(`[Filtering] Applied exclude-contributors filter, ${filteredPullRequests.length} PRs remaining`);
+		logVerbose(
+			`[Filtering] Applied exclude-contributors filter, ${filteredPullRequests.length} PRs remaining`,
+		);
 	}
 
 	// Start sponsor enrichment in parallel (don't await yet)
 	let sponsorEnrichmentPromise: Promise<PullRequest[]> | null = null;
 	if (sponsorFetchMode === "html" && filteredPullRequests.length > 0) {
 		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
-		sponsorEnrichmentPromise = enrichWithHtmlSponsorData(filteredPullRequests, 10);
+		sponsorEnrichmentPromise = enrichWithHtmlSponsorData(
+			filteredPullRequests,
+			10,
+		);
 	}
 
 	// Align PR order with release-drafter by applying its exported sorter
