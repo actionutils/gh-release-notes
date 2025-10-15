@@ -34,6 +34,7 @@ interface ReleaseDrafterConfig {
 	template?: string;
 	categories?: ReleaseDrafterCategory[];
 	"exclude-labels"?: string[];
+	"include-labels"?: string[];
 	"exclude-contributors"?: string[];
 	[key: string]: unknown;
 }

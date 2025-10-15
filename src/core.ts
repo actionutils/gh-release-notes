@@ -44,6 +44,8 @@ interface ReleaseDrafterConfig {
 	"filter-by-commitish"?: boolean;
 	"include-pre-releases"?: boolean;
 	"tag-prefix"?: string;
+	"exclude-labels"?: string[];
+	"include-labels"?: string[];
 	"exclude-contributors"?: string[];
 	"include-paths"?: string[];
 	"sort-by"?: string;
@@ -374,6 +376,27 @@ function generateFullChangelogLink(params: {
 	return `https://github.com/${owner}/${repo}/commits/${nextTag}`;
 }
 
+function buildContributors(
+	pullRequestsSorted: PullRequest[] | null | undefined,
+	excludeContributors: string[],
+): Map<string, Author> {
+	const contributorsMap = new Map<string, Author>();
+	for (const pr of pullRequestsSorted || []) {
+		const author = pr.author as Author | undefined;
+		if (!author) continue;
+		const login = author.login;
+		if (!login) continue;
+		// Apply exclude-contributors filter
+		if (excludeContributors.includes(login)) continue;
+
+		if (!contributorsMap.has(login)) {
+			contributorsMap.set(login, { ...author });
+		}
+	}
+
+	return contributorsMap;
+}
+
 export async function run(options: RunOptions): Promise<RunResult> {
 	const {
 		repo: repoNameWithOwner,
@@ -589,6 +612,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Use the repository default branch for base filtering to avoid issues when
 	// targetCommitish is a tag or non-branch ref.
 	const baseBranchName = String(defaultBranch).replace(/^refs\/heads\//, "");
+	const includeLabels: string[] = Array.isArray(rdConfig["include-labels"])
+		? rdConfig["include-labels"]
+		: [];
+	const excludeLabels: string[] = Array.isArray(rdConfig["exclude-labels"])
+		? rdConfig["exclude-labels"]
+		: [];
+
 	let pullRequests = await fetchMergedPRs({
 		owner,
 		repo,
@@ -602,6 +632,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
 		sponsorFetchMode,
+		includeLabels,
+		excludeLabels,
 	});
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
@@ -646,6 +678,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Align PR order with release-drafter by applying its exported sorter
 	// Keep nodes structure for release-drafter compatibility
+	// Note: Type casting through unknown is necessary due to structural differences
+	// between our PullRequest type and release-drafter's MergedPullRequest type
 	const pullRequestsSorted: PullRequest[] = Array.isArray(pullRequests)
 		? (sortPullRequests(
 				pullRequests as unknown as MergedPullRequest[],
@@ -673,6 +707,19 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		)}`,
 	);
 
+	// Build contributors list from PRs first (with exclude-contributors applied)
+	const excludeContributors: string[] = Array.isArray(
+		rdConfig["exclude-contributors"],
+	)
+		? rdConfig["exclude-contributors"]
+		: [];
+
+	const contributorsMap = buildContributors(
+		pullRequestsSorted,
+		excludeContributors,
+	);
+	const contributors = Array.from(contributorsMap.values());
+
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
 	let newContributorsData = null;
@@ -699,7 +746,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			newContributorsPromise = findNewContributors({
 				owner,
 				repo,
-				pullRequests,
+				contributors,
+				filteredPullRequests: pullRequests,
 				token,
 				prevReleaseDate,
 			});
@@ -718,7 +766,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (sponsorEnrichmentPromise) {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
 			if (enrichedPullRequests) {
-				// Update both the raw and sorted versions
+				// Update both the base and sorted versions
 				pullRequests = enrichedPullRequests;
 				// Re-sort with enriched data (keep nodes structure)
 				const sortedEnriched = sortPullRequests(
@@ -770,28 +818,6 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			logVerbose(
 				"[Template] Replaced $NEW_CONTRIBUTORS placeholder with generated section",
 			);
-		}
-	}
-
-	// Build contributors directly from PR authors (GraphQL data)
-	const excludeContributors: string[] = Array.isArray(
-		rdConfig["exclude-contributors"],
-	)
-		? rdConfig["exclude-contributors"]
-		: [];
-	// Build contributors from PR authors - preserve all author fields as-is
-	const contributorsMap = new Map<string, Author>();
-	for (const pr of pullRequestsSorted || []) {
-		// Since MergedPullRequest extends PullRequest, author should always exist
-		// and have the right type, but TypeScript needs explicit handling
-		const author = pr.author as Author | undefined;
-		if (!author) continue;
-		const login = author.login;
-		if (!login) continue;
-		if (excludeContributors.includes(login)) continue;
-		if (!contributorsMap.has(login)) {
-			// Preserve the author object exactly as received
-			contributorsMap.set(login, author);
 		}
 	}
 
@@ -853,7 +879,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			labels: pr.labels?.nodes?.map((node) => node.name) || [],
 		})),
 		categorizedPullRequests: flattenedCategorized,
-		contributors: Array.from(contributorsMap.values()),
+		contributors,
 		newContributors: newContributorsOutput,
 		release: {
 			name: releaseInfo.name,

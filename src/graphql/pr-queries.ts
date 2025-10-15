@@ -1,3 +1,5 @@
+import { logVerbose } from "../logger";
+
 /**
  * Sponsor fetch mode controls how sponsor information is retrieved.
  * Using an enum-like type instead of boolean to allow future extensibility.
@@ -72,6 +74,8 @@ export type SearchPRParams = {
 	withBaseRefName: boolean;
 	withHeadRefName: boolean;
 	sponsorFetchMode?: SponsorFetchMode;
+	includeLabels?: string[];
+	excludeLabels?: string[];
 };
 
 function buildSearchQuery(): string {
@@ -141,6 +145,8 @@ export async function fetchMergedPRs(
 		withBaseRefName,
 		withHeadRefName,
 		sponsorFetchMode = "none",
+		includeLabels = [],
+		excludeLabels = [],
 	} = params;
 
 	const qParts = [`repo:${owner}/${repo}`, `is:pr`, `is:merged`];
@@ -150,7 +156,20 @@ export async function fetchMergedPRs(
 	if (sinceDate) {
 		qParts.push(`merged:>${sinceDate}`);
 	}
+	// Apply label filtering at search-level when possible
+	// Exclude labels: remove PRs that have any of these labels
+	for (const l of excludeLabels) {
+		const name = String(l).replaceAll('"', '\\"');
+		qParts.push(`-label:"${name}"`);
+	}
+	// Include labels: PR must have at least one of them (OR semantics using , separeated labels.)
+	// https://github.blog/changelog/2021-08-02-search-issues-by-label-using-logical-or/
+	if (includeLabels.length > 0) {
+		const q = "label:" + includeLabels.map((l) => `"${l}"`).join(",");
+		qParts.push(q);
+	}
 	const q = qParts.join(" ");
+	logVerbose(`[PR Query] ${q}`);
 
 	const query = buildSearchQuery();
 	const data = await paginate(

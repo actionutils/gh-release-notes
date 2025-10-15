@@ -1,8 +1,30 @@
 import { describe, expect, it, mock } from "bun:test";
+import type { Author } from "./core";
 import {
 	findNewContributors,
 	formatNewContributorsSection,
 } from "./new-contributors";
+
+// Helper function to extract unique authors from PRs
+function extractAuthorsFromPRs(
+	pullRequests: Array<{
+		author?: { login?: string; [key: string]: unknown };
+		number: number;
+		title: string;
+		url: string;
+		mergedAt: string;
+	}>,
+) {
+	const authorsMap = new Map<string, Author>();
+	for (const pr of pullRequests) {
+		if (!pr.author?.login) continue;
+		const login = pr.author.login as string;
+		if (!authorsMap.has(login)) {
+			authorsMap.set(login, { ...(pr.author as Author) });
+		}
+	}
+	return Array.from(authorsMap.values());
+}
 
 describe("new-contributors", () => {
 	describe("findNewContributors", () => {
@@ -108,7 +130,8 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				pullRequests: mockPullRequests,
+				contributors: extractAuthorsFromPRs(mockPullRequests),
+				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 			});
 
@@ -133,7 +156,8 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				pullRequests: [],
+				contributors: [],
+				filteredPullRequests: [],
 				token: "test-token",
 			});
 
@@ -207,7 +231,8 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				pullRequests: mockPullRequests,
+				contributors: extractAuthorsFromPRs(mockPullRequests),
+				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 				prevReleaseDate: "2024-02-01T00:00:00Z",
 			});
@@ -267,7 +292,8 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				pullRequests: mockPullRequests,
+				contributors: extractAuthorsFromPRs(mockPullRequests),
+				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 			});
 

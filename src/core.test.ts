@@ -16,6 +16,7 @@ type BufferEncoding =
 	| "hex";
 import * as os from "node:os";
 import * as fsPromises from "node:fs/promises";
+import type { MergedPullRequest } from "./core";
 
 describe("actionutils/gh-release-notes core", () => {
 	const sourcePath = path.resolve(import.meta.dir, "./core.ts");
@@ -935,6 +936,122 @@ describe("actionutils/gh-release-notes core", () => {
 
 			// Without includeAllData, should not fetch sponsors
 			expect(sponsorFetchMode).toBe("none");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("filters contributors with exclude-contributors", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-exclude-contributors-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-exclude-contributors.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			`template: "## Changes\\n$CHANGES"
+exclude-contributors:
+  - "bot-user"
+  - "automated"
+`,
+		);
+
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			// GraphQL endpoint - return PRs from different users
+			if (u.includes("/graphql")) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [
+									{
+										number: 1,
+										title: "Human PR",
+										url: "https://github.com/owner/repo/pull/1",
+										mergedAt: "2024-01-01T00:00:00Z",
+										labels: { nodes: [] },
+										author: {
+											login: "human-user",
+											__typename: "User",
+											url: "",
+										},
+									},
+									{
+										number: 2,
+										title: "Bot PR",
+										url: "https://github.com/owner/repo/pull/2",
+										mergedAt: "2024-01-02T00:00:00Z",
+										labels: { nodes: [] },
+										author: { login: "bot-user", __typename: "User", url: "" },
+									},
+									{
+										number: 3,
+										title: "Automated PR",
+										url: "https://github.com/owner/repo/pull/3",
+										mergedAt: "2024-01-03T00:00:00Z",
+										labels: { nodes: [] },
+										author: { login: "automated", __typename: "User", url: "" },
+									},
+								],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+			});
+
+			// Should include all PRs (exclude-contributors doesn't filter PRs)
+			expect(res.mergedPullRequests.length).toBe(3);
+			const prNumbers = res.mergedPullRequests.map(
+				(pr: MergedPullRequest) => pr.number,
+			);
+			expect(prNumbers).toContain(1);
+			expect(prNumbers).toContain(2);
+			expect(prNumbers).toContain(3);
+
+			// Contributors should only include human-user (bot-user and automated are excluded)
+			expect(res.contributors.length).toBe(1);
+			expect(res.contributors[0].login).toBe("human-user");
 		} finally {
 			// Cleanup
 			await fsPromises.rm(tmpDir, { recursive: true });
