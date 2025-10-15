@@ -1,15 +1,17 @@
 ## What's Changed
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
+### {{ category.title }}
 {%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+
 <details>
-<summary>{{ category.title }} ({{ category.pullRequests | length }})</summary>
+<summary>Show all {{ category.pullRequests | length }} items</summary>
 
 <table width="100%">
 <thead>
 <tr>
 <th width="80">PR</th>
-<th>Title</th>
+<th width="800">Title</th>
 <th width="200">Author</th>
 </tr>
 </thead>
@@ -32,13 +34,12 @@
 
 </details>
 {%- else %}
-### {{ category.title }}
 
 <table width="100%">
 <thead>
 <tr>
 <th width="80">PR</th>
-<th>Title</th>
+<th width="800">Title</th>
 <th width="200">Author</th>
 </tr>
 </thead>
