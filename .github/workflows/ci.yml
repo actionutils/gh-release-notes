@@ -44,3 +44,18 @@ jobs:
 
     - name: Run tests
       run: bun test
+
+    - name: Compile
+      run: bun run compile
+
+    - name: Run compiled binary
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        ./gh-release-notes --template ./templates/table.md.jinja
+
+    - name: Run built CLI
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        ./dist/cli.js --template ./templates/table.md.jinja
