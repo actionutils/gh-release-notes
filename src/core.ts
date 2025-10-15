@@ -14,6 +14,7 @@ import {
 import { logVerbose } from "./logger";
 import { categorizePullRequests, type CategorizeConfig } from "./categorize";
 import { enrichWithHtmlSponsorData } from "./sponsor-html-checker";
+import { applyLabelFilters, filterNewContributorsByExcluded } from "./filters";
 // Type definitions for release-drafter library functions
 interface ReleaseDrafterContext {
 	payload: {
@@ -639,38 +640,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	}
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
 
-	// Apply exclude-labels and include-labels filters
-	const excludeLabels: string[] = Array.isArray(rdConfig["exclude-labels"])
-		? rdConfig["exclude-labels"]
-		: [];
-	const includeLabels: string[] = Array.isArray(rdConfig["include-labels"])
-		? rdConfig["include-labels"]
-		: [];
-
-	// Filter pull requests by labels only (not by contributors)
-	let filteredPullRequests = pullRequests;
-
-	// Filter by exclude-labels
-	if (excludeLabels.length > 0) {
-		filteredPullRequests = filteredPullRequests.filter((pr) => {
-			const prLabels = pr.labels?.nodes?.map((node) => node.name) || [];
-			return !prLabels.some((label) => excludeLabels.includes(label));
-		});
-		logVerbose(
-			`[Filtering] Applied exclude-labels filter, ${filteredPullRequests.length} PRs remaining`,
-		);
-	}
-
-	// Filter by include-labels
-	if (includeLabels.length > 0) {
-		filteredPullRequests = filteredPullRequests.filter((pr) => {
-			const prLabels = pr.labels?.nodes?.map((node) => node.name) || [];
-			return prLabels.some((label) => includeLabels.includes(label));
-		});
-		logVerbose(
-			`[Filtering] Applied include-labels filter, ${filteredPullRequests.length} PRs remaining`,
-		);
-	}
+	// Apply label filters to pull requests
+	let filteredPullRequests = applyLabelFilters(pullRequests, rdConfig);
 
 	// Start sponsor enrichment in parallel (don't await yet)
 	let sponsorEnrichmentPromise: Promise<PullRequest[]> | null = null;
@@ -684,6 +655,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Align PR order with release-drafter by applying its exported sorter
 	// Keep nodes structure for release-drafter compatibility
+	// Note: Type casting through unknown is necessary due to structural differences
+	// between our PullRequest type and release-drafter's MergedPullRequest type
 	const pullRequestsSorted: PullRequest[] = Array.isArray(filteredPullRequests)
 		? (sortPullRequests(
 				filteredPullRequests as unknown as MergedPullRequest[],
@@ -835,27 +808,28 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Map new contributors back to include full author data and filter excluded contributors
 	const newContributorsOutput = newContributorsData
-		? (
-				newContributorsData as {
-					newContributors: Array<{
-						login: string;
-						firstPullRequest: {
-							number: number;
-							title: string;
-							url: string;
-							mergedAt: string;
-						};
-					}>;
-				}
-			).newContributors
-				.filter((c) => !excludeContributors.includes(c.login))
-				.map((c) => {
-					const base = contributorsMap.get(c.login);
-					return {
-						...base,
-						firstPullRequest: c.firstPullRequest,
-					} as NewContributor;
-				})
+		? filterNewContributorsByExcluded(
+				(
+					newContributorsData as {
+						newContributors: Array<{
+							login: string;
+							firstPullRequest: {
+								number: number;
+								title: string;
+								url: string;
+								mergedAt: string;
+							};
+						}>;
+					}
+				).newContributors,
+				excludeContributors,
+			).map((c) => {
+				const base = contributorsMap.get(c.login);
+				return {
+					...base,
+					firstPullRequest: c.firstPullRequest,
+				} as NewContributor;
+			})
 		: null;
 
 	// Build categorized pull requests for JSON output using local workaround
