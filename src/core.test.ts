@@ -1146,7 +1146,9 @@ include-labels:
 
 			// Should only include PR #1 and #2, not #3
 			expect(res.mergedPullRequests.length).toBe(2);
-			const prNumbers = res.mergedPullRequests.map((pr: MergedPullRequest) => pr.number);
+			const prNumbers = res.mergedPullRequests.map(
+				(pr: MergedPullRequest) => pr.number,
+			);
 			expect(prNumbers).toContain(1);
 			expect(prNumbers).toContain(2);
 
@@ -1262,7 +1264,9 @@ exclude-contributors:
 
 			// Should include all PRs (exclude-contributors doesn't filter PRs)
 			expect(res.mergedPullRequests.length).toBe(3);
-			const prNumbers = res.mergedPullRequests.map((pr: MergedPullRequest) => pr.number);
+			const prNumbers = res.mergedPullRequests.map(
+				(pr: MergedPullRequest) => pr.number,
+			);
 			expect(prNumbers).toContain(1);
 			expect(prNumbers).toContain(2);
 			expect(prNumbers).toContain(3);
@@ -1423,7 +1427,9 @@ exclude-contributors:
 
 			// Verify mergedPullRequests: should include PR #1 and #3 (PR #2 filtered by label)
 			expect(res.mergedPullRequests.length).toBe(2);
-			const prNumbers = res.mergedPullRequests.map((pr: MergedPullRequest) => pr.number);
+			const prNumbers = res.mergedPullRequests.map(
+				(pr: MergedPullRequest) => pr.number,
+			);
 			expect(prNumbers).toContain(1);
 			expect(prNumbers).toContain(3);
 		} finally {
