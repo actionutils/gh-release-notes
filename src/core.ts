@@ -14,7 +14,6 @@ import {
 import { logVerbose } from "./logger";
 import { categorizePullRequests, type CategorizeConfig } from "./categorize";
 import { enrichWithHtmlSponsorData } from "./sponsor-html-checker";
-import { applyLabelFilters } from "./filters";
 // Type definitions for release-drafter library functions
 interface ReleaseDrafterContext {
 	payload: {
@@ -380,7 +379,7 @@ function generateFullChangelogLink(params: {
 function buildContributors(
 	pullRequestsSorted: PullRequest[] | null | undefined,
 	excludeContributors: string[],
-): { contributors: Author[]; contributorsMap: Map<string, Author> } {
+): Map<string, Author> {
 	const contributorsMap = new Map<string, Author>();
 	for (const pr of pullRequestsSorted || []) {
 		const author = pr.author as Author | undefined;
@@ -395,10 +394,7 @@ function buildContributors(
 		}
 	}
 
-	return {
-		contributors: Array.from(contributorsMap.values()),
-		contributorsMap,
-	};
+	return contributorsMap;
 }
 
 export async function run(options: RunOptions): Promise<RunResult> {
@@ -616,6 +612,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Use the repository default branch for base filtering to avoid issues when
 	// targetCommitish is a tag or non-branch ref.
 	const baseBranchName = String(defaultBranch).replace(/^refs\/heads\//, "");
+	const includeLabels: string[] = Array.isArray(rdConfig["include-labels"])
+		? rdConfig["include-labels"]
+		: [];
+	const excludeLabels: string[] = Array.isArray(rdConfig["exclude-labels"])
+		? rdConfig["exclude-labels"]
+		: [];
+
 	let pullRequests = await fetchMergedPRs({
 		owner,
 		repo,
@@ -629,6 +632,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
 		sponsorFetchMode,
+		includeLabels,
+		excludeLabels,
 	});
 
 	const includePaths: string[] = Array.isArray(rdConfig["include-paths"])
@@ -664,30 +669,24 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	}
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
 
-	// Apply label filters to pull requests
-	let filteredPullRequests = applyLabelFilters(pullRequests, rdConfig);
-
 	// Start sponsor enrichment in parallel (don't await yet)
 	let sponsorEnrichmentPromise: Promise<PullRequest[]> | null = null;
-	if (sponsorFetchMode === "html" && filteredPullRequests.length > 0) {
+	if (sponsorFetchMode === "html" && pullRequests.length > 0) {
 		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
-		sponsorEnrichmentPromise = enrichWithHtmlSponsorData(
-			filteredPullRequests,
-			10,
-		);
+		sponsorEnrichmentPromise = enrichWithHtmlSponsorData(pullRequests, 10);
 	}
 
 	// Align PR order with release-drafter by applying its exported sorter
 	// Keep nodes structure for release-drafter compatibility
 	// Note: Type casting through unknown is necessary due to structural differences
 	// between our PullRequest type and release-drafter's MergedPullRequest type
-	const pullRequestsSorted: PullRequest[] = Array.isArray(filteredPullRequests)
+	const pullRequestsSorted: PullRequest[] = Array.isArray(pullRequests)
 		? (sortPullRequests(
-				filteredPullRequests as unknown as MergedPullRequest[],
+				pullRequests as unknown as MergedPullRequest[],
 				rdConfig["sort-by"],
 				rdConfig["sort-direction"],
 			) as unknown as PullRequest[])
-		: filteredPullRequests;
+		: pullRequests;
 
 	logVerbose("[Release] Generating release info from commits/PRs...");
 	const releaseInfo = generateReleaseInfo({
@@ -715,10 +714,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		? rdConfig["exclude-contributors"]
 		: [];
 
-	const { contributors, contributorsMap } = buildContributors(
+	const contributorsMap = buildContributors(
 		pullRequestsSorted,
 		excludeContributors,
 	);
+	const contributors = Array.from(contributorsMap.values());
 
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
@@ -747,7 +747,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				owner,
 				repo,
 				contributors,
-				filteredPullRequests,
+				filteredPullRequests: pullRequests,
 				token,
 				prevReleaseDate,
 			});
@@ -766,8 +766,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (sponsorEnrichmentPromise) {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
 			if (enrichedPullRequests) {
-				// Update both the filtered and sorted versions
-				filteredPullRequests = enrichedPullRequests;
+				// Update both the base and sorted versions
+				pullRequests = enrichedPullRequests;
 				// Re-sort with enriched data (keep nodes structure)
 				const sortedEnriched = sortPullRequests(
 					enrichedPullRequests as unknown as MergedPullRequest[],

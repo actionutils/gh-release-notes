@@ -72,6 +72,8 @@ export type SearchPRParams = {
 	withBaseRefName: boolean;
 	withHeadRefName: boolean;
 	sponsorFetchMode?: SponsorFetchMode;
+	includeLabels?: string[];
+	excludeLabels?: string[];
 };
 
 function buildSearchQuery(): string {
@@ -141,6 +143,8 @@ export async function fetchMergedPRs(
 		withBaseRefName,
 		withHeadRefName,
 		sponsorFetchMode = "none",
+		includeLabels = [],
+		excludeLabels = [],
 	} = params;
 
 	const qParts = [`repo:${owner}/${repo}`, `is:pr`, `is:merged`];
@@ -149,6 +153,20 @@ export async function fetchMergedPRs(
 	}
 	if (sinceDate) {
 		qParts.push(`merged:>${sinceDate}`);
+	}
+	// Apply label filtering at search-level when possible
+	// Exclude labels: remove PRs that have any of these labels
+	for (const l of excludeLabels) {
+		const name = String(l).replaceAll('"', '\\"');
+		qParts.push(`-label:"${name}"`);
+	}
+	// Include labels: PR must have at least one of them (OR semantics)
+	if (includeLabels.length > 0) {
+		const escaped = includeLabels.map(
+			(l) => `label:"${String(l).replaceAll('"', '\\"')}"`,
+		);
+		// Build an OR group; parentheses ensure proper precedence
+		qParts.push(`(${escaped.join(" OR ")})`);
 	}
 	const q = qParts.join(" ");
 
