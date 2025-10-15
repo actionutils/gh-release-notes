@@ -1057,4 +1057,108 @@ exclude-contributors:
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}
 	});
+
+	test("includes sponsor data when sponsorFetchMode=html", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-sponsor-html-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-sponsor-html.yml");
+		await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+		// Mock fetch for repo info, releases, PRs (GraphQL) and sponsor HEAD check
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			// Sponsor page HEAD check
+			if (u.includes("https://github.com/sponsors/sponsoruser")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map(),
+				};
+			}
+
+			// GraphQL - return one PR by sponsoruser
+			if (u.includes("/graphql")) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [
+									{
+										number: 1,
+										title: "Feature PR",
+										url: "https://github.com/owner/repo/pull/1",
+										mergedAt: "2024-01-01T00:00:00Z",
+										labels: { nodes: [] },
+										author: {
+											login: "sponsoruser",
+											__typename: "User",
+											url: "https://github.com/sponsoruser",
+											avatarUrl:
+												"https://avatars.githubusercontent.com/u/999?v=4",
+										},
+									},
+								],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				sponsorFetchMode: "html",
+			});
+
+			// Sponsor data should be added to PR author
+			expect(res.mergedPullRequests).toHaveLength(1);
+			expect(res.mergedPullRequests[0].author?.sponsorsListing?.url).toBe(
+				"https://github.com/sponsors/sponsoruser",
+			);
+			// And contributors should reflect the enriched data
+			expect(res.contributors).toHaveLength(1);
+			expect(res.contributors[0].login).toBe("sponsoruser");
+			expect(res.contributors[0].sponsorsListing?.url).toBe(
+				"https://github.com/sponsors/sponsoruser",
+			);
+		} finally {
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
 });
