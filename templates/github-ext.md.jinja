@@ -34,11 +34,11 @@
   <tbody>
     <tr>
 {%- for contributor in contributors %}
-      <td align="center" valign="top" width="12.5%">
+      <td align="center" valign="top" width="100">
         <a href="{{ contributor.url }}">
           <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64px" alt="{{ contributor.login }}"/><br />
         </a>
-        <sub>@{{ contributor.login }}</sub>
+        <sub>@{{ contributor.login }}{% if contributor.type == 'Bot' %}[bot]{% endif %}</sub>
         {%- if contributor.sponsorsListing %}
         <br><br>
         <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
@@ -46,7 +46,7 @@
         </a>
         {%- endif %}
       </td>
-{%- if loop.index % 8 == 0 and not loop.last %}
+{%- if loop.index % 6 == 0 and not loop.last %}
     </tr>
     <tr>
 {%- endif %}
