@@ -1,0 +1,18 @@
+## What's Changed
+{% for category in categorizedPullRequests.categories %}
+{%- if category.pullRequests | length > 0 %}
+### {{ category.title }}
+{%- for pr in category.pullRequests %}
+- {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- if newContributors | length > 0 %}
+
+## New Contributors
+{%- for contributor in newContributors %}
+- @{{ contributor.login }} made their first contribution in {{ contributor.firstPullRequest.url }}
+{%- endfor %}
+{%- endif %}
+
+**Full Changelog**: {{ fullChangelogLink }}
