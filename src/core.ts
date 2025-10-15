@@ -639,20 +639,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	}
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
 
-	// Apply exclude-labels, include-labels, and exclude-contributors filters
+	// Apply exclude-labels and include-labels filters
 	const excludeLabels: string[] = Array.isArray(rdConfig["exclude-labels"])
 		? rdConfig["exclude-labels"]
 		: [];
 	const includeLabels: string[] = Array.isArray(rdConfig["include-labels"])
 		? rdConfig["include-labels"]
 		: [];
-	const excludeContributors: string[] = Array.isArray(
-		rdConfig["exclude-contributors"],
-	)
-		? rdConfig["exclude-contributors"]
-		: [];
 
-	// Filter pull requests
+	// Filter pull requests by labels only (not by contributors)
 	let filteredPullRequests = pullRequests;
 
 	// Filter by exclude-labels
@@ -674,16 +669,6 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		});
 		logVerbose(
 			`[Filtering] Applied include-labels filter, ${filteredPullRequests.length} PRs remaining`,
-		);
-	}
-
-	// Filter by exclude-contributors
-	if (excludeContributors.length > 0) {
-		filteredPullRequests = filteredPullRequests.filter((pr) => {
-			return pr.author?.login && !excludeContributors.includes(pr.author.login);
-		});
-		logVerbose(
-			`[Filtering] Applied exclude-contributors filter, ${filteredPullRequests.length} PRs remaining`,
 		);
 	}
 
@@ -827,6 +812,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	}
 
 	// Build contributors from PR authors - preserve all author fields as-is
+	const excludeContributors: string[] = Array.isArray(
+		rdConfig["exclude-contributors"],
+	)
+		? rdConfig["exclude-contributors"]
+		: [];
 	const contributorsMap = new Map<string, Author>();
 	for (const pr of pullRequestsSorted || []) {
 		// Since MergedPullRequest extends PullRequest, author should always exist
@@ -835,14 +825,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (!author) continue;
 		const login = author.login;
 		if (!login) continue;
-		// No need to filter by excludeContributors here since PRs are already filtered
+		// Filter by excludeContributors
+		if (excludeContributors.includes(login)) continue;
 		if (!contributorsMap.has(login)) {
 			// Preserve the author object exactly as received
 			contributorsMap.set(login, author);
 		}
 	}
 
-	// Map new contributors back to include full author data
+	// Map new contributors back to include full author data and filter excluded contributors
 	const newContributorsOutput = newContributorsData
 		? (
 				newContributorsData as {
@@ -856,13 +847,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 						};
 					}>;
 				}
-			).newContributors.map((c) => {
-				const base = contributorsMap.get(c.login);
-				return {
-					...base,
-					firstPullRequest: c.firstPullRequest,
-				} as NewContributor;
-			})
+			).newContributors
+				.filter((c) => !excludeContributors.includes(c.login))
+				.map((c) => {
+					const base = contributorsMap.get(c.login);
+					return {
+						...base,
+						firstPullRequest: c.firstPullRequest,
+					} as NewContributor;
+				})
 		: null;
 
 	// Build categorized pull requests for JSON output using local workaround

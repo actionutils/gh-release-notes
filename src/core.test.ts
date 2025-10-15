@@ -1161,7 +1161,7 @@ include-labels:
 		}
 	});
 
-	test("filters PRs with exclude-contributors", async () => {
+	test("filters contributors with exclude-contributors", async () => {
 		// Create a real temp file for the config
 		const tmpDir = await fsPromises.mkdtemp(
 			path.join(os.tmpdir(), "test-exclude-contributors-"),
@@ -1259,12 +1259,14 @@ exclude-contributors:
 				config: cfgPath,
 			});
 
-			// Should only include PR #1, not #2 or #3
-			expect(res.mergedPullRequests.length).toBe(1);
-			expect(res.mergedPullRequests[0].number).toBe(1);
-			expect(res.mergedPullRequests[0].title).toBe("Human PR");
+			// Should include all PRs (exclude-contributors doesn't filter PRs)
+			expect(res.mergedPullRequests.length).toBe(3);
+			const prNumbers = res.mergedPullRequests.map((pr: any) => pr.number);
+			expect(prNumbers).toContain(1);
+			expect(prNumbers).toContain(2);
+			expect(prNumbers).toContain(3);
 
-			// Contributors should only include human-user
+			// Contributors should only include human-user (bot-user and automated are excluded)
 			expect(res.contributors.length).toBe(1);
 			expect(res.contributors[0].login).toBe("human-user");
 		} finally {
@@ -1405,7 +1407,8 @@ exclude-contributors:
 				prevTag: "v1.0.0",
 			});
 
-			// Should only have newuser as new contributor (ignoreduser and bot-user filtered out)
+			// Should only have newuser as new contributor
+			// (ignoreduser filtered by label, bot-user filtered by exclude-contributors)
 			expect(res.newContributors).toBeDefined();
 			expect(res.newContributors?.length).toBe(1);
 			expect(res.newContributors?.[0].login).toBe("newuser");
@@ -1416,6 +1419,12 @@ exclude-contributors:
 			);
 			expect(res.release.body).not.toContain("ignoreduser");
 			expect(res.release.body).not.toContain("bot-user");
+
+			// Verify mergedPullRequests: should include PR #1 and #3 (PR #2 filtered by label)
+			expect(res.mergedPullRequests.length).toBe(2);
+			const prNumbers = res.mergedPullRequests.map((pr: any) => pr.number);
+			expect(prNumbers).toContain(1);
+			expect(prNumbers).toContain(3);
 		} finally {
 			// Cleanup
 			await fsPromises.rm(tmpDir, { recursive: true });
