@@ -940,4 +940,471 @@ describe("actionutils/gh-release-notes core", () => {
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}
 	});
+
+	test("filters PRs with exclude-labels", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-exclude-labels-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-exclude-labels.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			`template: "## Changes\\n$CHANGES"
+exclude-labels:
+  - "ignore"
+  - "skip-release"
+`,
+		);
+
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			// GraphQL endpoint - return PRs with different labels
+			if (u.includes("/graphql")) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [
+									{
+										number: 1,
+										title: "Feature PR",
+										url: "https://github.com/owner/repo/pull/1",
+										mergedAt: "2024-01-01T00:00:00Z",
+										labels: { nodes: [{ name: "enhancement" }] },
+										author: { login: "user1", __typename: "User", url: "" },
+									},
+									{
+										number: 2,
+										title: "Ignored PR",
+										url: "https://github.com/owner/repo/pull/2",
+										mergedAt: "2024-01-02T00:00:00Z",
+										labels: { nodes: [{ name: "ignore" }] },
+										author: { login: "user2", __typename: "User", url: "" },
+									},
+									{
+										number: 3,
+										title: "Skipped PR",
+										url: "https://github.com/owner/repo/pull/3",
+										mergedAt: "2024-01-03T00:00:00Z",
+										labels: { nodes: [{ name: "skip-release" }] },
+										author: { login: "user3", __typename: "User", url: "" },
+									},
+								],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+			});
+
+			// Should only include PR #1, not #2 or #3
+			expect(res.mergedPullRequests.length).toBe(1);
+			expect(res.mergedPullRequests[0].number).toBe(1);
+			expect(res.mergedPullRequests[0].title).toBe("Feature PR");
+
+			// Contributors should only include user1
+			expect(res.contributors.length).toBe(1);
+			expect(res.contributors[0].login).toBe("user1");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("filters PRs with include-labels", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-include-labels-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-include-labels.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			`template: "## Changes\\n$CHANGES"
+include-labels:
+  - "release-note"
+  - "enhancement"
+`,
+		);
+
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			// GraphQL endpoint - return PRs with different labels
+			if (u.includes("/graphql")) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [
+									{
+										number: 1,
+										title: "Feature PR",
+										url: "https://github.com/owner/repo/pull/1",
+										mergedAt: "2024-01-01T00:00:00Z",
+										labels: { nodes: [{ name: "enhancement" }] },
+										author: { login: "user1", __typename: "User", url: "" },
+									},
+									{
+										number: 2,
+										title: "Release Note PR",
+										url: "https://github.com/owner/repo/pull/2",
+										mergedAt: "2024-01-02T00:00:00Z",
+										labels: { nodes: [{ name: "release-note" }] },
+										author: { login: "user2", __typename: "User", url: "" },
+									},
+									{
+										number: 3,
+										title: "Internal PR",
+										url: "https://github.com/owner/repo/pull/3",
+										mergedAt: "2024-01-03T00:00:00Z",
+										labels: { nodes: [{ name: "internal" }] },
+										author: { login: "user3", __typename: "User", url: "" },
+									},
+								],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+			});
+
+			// Should only include PR #1 and #2, not #3
+			expect(res.mergedPullRequests.length).toBe(2);
+			const prNumbers = res.mergedPullRequests.map(pr => pr.number);
+			expect(prNumbers).toContain(1);
+			expect(prNumbers).toContain(2);
+
+			// Contributors should include user1 and user2, not user3
+			expect(res.contributors.length).toBe(2);
+			const logins = res.contributors.map(c => c.login);
+			expect(logins).toContain("user1");
+			expect(logins).toContain("user2");
+			expect(logins).not.toContain("user3");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("filters PRs with exclude-contributors", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-exclude-contributors-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-exclude-contributors.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			`template: "## Changes\\n$CHANGES"
+exclude-contributors:
+  - "bot-user"
+  - "automated"
+`,
+		);
+
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [],
+				};
+			}
+
+			// GraphQL endpoint - return PRs from different users
+			if (u.includes("/graphql")) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						data: {
+							search: {
+								pageInfo: { hasNextPage: false, endCursor: null },
+								nodes: [
+									{
+										number: 1,
+										title: "Human PR",
+										url: "https://github.com/owner/repo/pull/1",
+										mergedAt: "2024-01-01T00:00:00Z",
+										labels: { nodes: [] },
+										author: { login: "human-user", __typename: "User", url: "" },
+									},
+									{
+										number: 2,
+										title: "Bot PR",
+										url: "https://github.com/owner/repo/pull/2",
+										mergedAt: "2024-01-02T00:00:00Z",
+										labels: { nodes: [] },
+										author: { login: "bot-user", __typename: "User", url: "" },
+									},
+									{
+										number: 3,
+										title: "Automated PR",
+										url: "https://github.com/owner/repo/pull/3",
+										mergedAt: "2024-01-03T00:00:00Z",
+										labels: { nodes: [] },
+										author: { login: "automated", __typename: "User", url: "" },
+									},
+								],
+							},
+						},
+					}),
+				};
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+			});
+
+			// Should only include PR #1, not #2 or #3
+			expect(res.mergedPullRequests.length).toBe(1);
+			expect(res.mergedPullRequests[0].number).toBe(1);
+			expect(res.mergedPullRequests[0].title).toBe("Human PR");
+
+			// Contributors should only include human-user
+			expect(res.contributors.length).toBe(1);
+			expect(res.contributors[0].login).toBe("human-user");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("filters apply to new contributors detection", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-filter-new-contributors-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-filter-new-contributors.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			`template: "## New Contributors\\n$NEW_CONTRIBUTORS"
+exclude-labels:
+  - "ignore"
+exclude-contributors:
+  - "bot-user"
+`,
+		);
+
+		let graphqlCallCount = 0;
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
+
+			// Repo info
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Get release by tag
+			if (u.includes("/releases/tags/v1.0.0")) {
+				const releaseData = {
+					tag_name: "v1.0.0",
+					published_at: "2023-12-01T00:00:00Z",
+					created_at: "2023-12-01T00:00:00Z",
+				};
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => releaseData,
+					text: async () => JSON.stringify(releaseData),
+				};
+			}
+
+			// GraphQL endpoint
+			if (u.includes("/graphql")) {
+				graphqlCallCount++;
+
+				// First call: PR search
+				if (graphqlCallCount === 1) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 1,
+											title: "New User PR",
+											url: "https://github.com/owner/repo/pull/1",
+											mergedAt: "2024-01-01T00:00:00Z",
+											labels: { nodes: [] },
+											author: { login: "newuser", __typename: "User", url: "" },
+										},
+										{
+											number: 2,
+											title: "Ignored PR",
+											url: "https://github.com/owner/repo/pull/2",
+											mergedAt: "2024-01-02T00:00:00Z",
+											labels: { nodes: [{ name: "ignore" }] },
+											author: { login: "ignoreduser", __typename: "User", url: "" },
+										},
+										{
+											number: 3,
+											title: "Bot PR",
+											url: "https://github.com/owner/repo/pull/3",
+											mergedAt: "2024-01-03T00:00:00Z",
+											labels: { nodes: [] },
+											author: { login: "bot-user", __typename: "User", url: "" },
+										},
+									],
+								},
+							},
+						}),
+					};
+				}
+
+				// Second call: Batch contributor check - only check for newuser since others are filtered
+				if (graphqlCallCount === 2) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								newuser: {
+									issueCount: 0, // No PRs before the previous release date
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				prevTag: "v1.0.0",
+			});
+
+			// Should only have newuser as new contributor (ignoreduser and bot-user filtered out)
+			expect(res.newContributors).toBeDefined();
+			expect(res.newContributors?.length).toBe(1);
+			expect(res.newContributors?.[0].login).toBe("newuser");
+
+			// Verify the body contains only the new contributor
+			expect(res.release.body).toContain("@newuser made their first contribution");
+			expect(res.release.body).not.toContain("ignoreduser");
+			expect(res.release.body).not.toContain("bot-user");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
 });
