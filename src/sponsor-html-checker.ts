@@ -1,4 +1,5 @@
 import { logVerbose, logWarning } from "./logger";
+import type { PullRequest } from "./graphql/pr-queries";
 
 /**
  * Result of checking a sponsor page
@@ -128,28 +129,9 @@ async function processBatch(
  * @returns Pull requests with sponsor URLs added where available
  */
 export async function enrichWithHtmlSponsorData(
-	pullRequests: Array<{
-		number: number;
-		author?: {
-			login?: string;
-			__typename?: string;
-			[key: string]: unknown;
-		};
-		[key: string]: unknown;
-	}>,
+	pullRequests: PullRequest[],
 	maxConcurrency = 5,
-): Promise<
-	Array<{
-		number: number;
-		author?: {
-			login?: string;
-			__typename?: string;
-			sponsorsListing?: { url: string };
-			[key: string]: unknown;
-		};
-		[key: string]: unknown;
-	}>
-> {
+): Promise<PullRequest[]> {
 	logVerbose(
 		`[SponsorHTML] Checking sponsor pages for ${pullRequests.length} PRs (max ${maxConcurrency} parallel)`,
 	);
@@ -157,8 +139,8 @@ export async function enrichWithHtmlSponsorData(
 	// Collect unique authors to check
 	const uniqueAuthors = new Map<string, Set<number>>();
 	for (const pr of pullRequests) {
-		const login = pr.author?.login;
-		if (login && pr.author?.__typename === "User") {
+		const login = pr.author.login;
+		if (pr.author.type === "User") {
 			if (!uniqueAuthors.has(login)) {
 				uniqueAuthors.set(login, new Set());
 			}
@@ -214,8 +196,8 @@ export async function enrichWithHtmlSponsorData(
 
 	// Enrich pull requests with sponsor data
 	return pullRequests.map((pr) => {
-		const login = pr.author?.login;
-		if (!login || pr.author?.__typename !== "User") {
+		const login = pr.author.login;
+		if (pr.author.type !== "User") {
 			return pr;
 		}
 

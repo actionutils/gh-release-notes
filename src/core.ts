@@ -13,6 +13,7 @@ import {
 } from "./new-contributors";
 import { logVerbose } from "./logger";
 import { categorizePullRequests, type CategorizeConfig } from "./categorize";
+import { enrichWithHtmlSponsorData } from "./sponsor-html-checker";
 // Type definitions for release-drafter library functions
 interface ReleaseDrafterContext {
 	payload: {
@@ -637,24 +638,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	logVerbose(`[GitHub] Collected ${pullRequests.length} merged PRs`);
 
 	// Start sponsor enrichment in parallel (don't await yet)
-	let sponsorEnrichmentPromise: Promise<MergedPullRequest[]> | null = null;
+	let sponsorEnrichmentPromise: Promise<PullRequest[]> | null = null;
 	if (sponsorFetchMode === "html" && pullRequests.length > 0) {
 		logVerbose(`[GitHub] Starting HTML sponsor enrichment in background`);
-		sponsorEnrichmentPromise = import("./sponsor-html-checker").then(
-			({ enrichWithHtmlSponsorData }) =>
-				enrichWithHtmlSponsorData(
-					pullRequests as Array<{
-						number: number;
-						author?: {
-							login?: string;
-							__typename?: string;
-							[key: string]: unknown;
-						};
-						[key: string]: unknown;
-					}>,
-					10,
-				) as unknown as Promise<MergedPullRequest[]>,
-		);
+		sponsorEnrichmentPromise = enrichWithHtmlSponsorData(pullRequests, 10);
 	}
 
 	// Align PR order with release-drafter by applying its exported sorter
@@ -732,7 +719,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
 			if (enrichedPullRequests) {
 				// Update both the raw and sorted versions
-				pullRequests = enrichedPullRequests as unknown as PullRequest[];
+				pullRequests = enrichedPullRequests;
 				// Re-sort with enriched data (keep nodes structure)
 				const sortedEnriched = sortPullRequests(
 					enrichedPullRequests as unknown as MergedPullRequest[],
