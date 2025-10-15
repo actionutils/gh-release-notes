@@ -2,9 +2,21 @@
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
 ### {{ category.title }}
+{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+{%- for pr in category.pullRequests[:category["collapse-after"]] %}
+- {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
+{%- endfor %}
+<details><summary>Show all {{ category.pullRequests | length }} items</summary>
+
 {%- for pr in category.pullRequests %}
 - {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
 {%- endfor %}
+</details>
+{%- else %}
+{%- for pr in category.pullRequests %}
+- {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
+{%- endfor %}
+{%- endif %}
 {%- endif %}
 {%- endfor %}
 {%- if newContributors | length > 0 %}
