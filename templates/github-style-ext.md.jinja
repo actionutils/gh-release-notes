@@ -25,13 +25,12 @@
       <td align="center" valign="top" width="12.5%">
         <a href="{{ contributor.url }}">
           <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64px" alt="{{ contributor.login }}"/><br />
-          <sub><b>{{ contributor.login }}</b></sub>
         </a>
+        <sub>@{{ contributor.login }}</sub>
         {%- if contributor.sponsorsListing %}
-        <br />
-        <br />
+        <br>
         <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
-          <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=githubsponsors&logoColor=EA4AAA" height="16" />
+          <img src="https://img.shields.io/github/sponsors/{{ contributor.login }}?style=for-the-badge&logo=githubsponsors&color=EA4AAA" height="24" />
         </a>
         {%- endif %}
       </td>
