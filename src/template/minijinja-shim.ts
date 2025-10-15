@@ -1,35 +1,42 @@
-// Shim for minijinja-js that works for compiled builds
-// Import WASM file directly (Bun embeds it when compiling)
-import wasmUrl from "../../node_modules/minijinja-js/dist/bundler/minijinja_js_bg.wasm";
+// Unified shim that works for both normal and compiled builds
+// This avoids code duplication by handling both cases in one file
 
-// Import the JavaScript bindings from bundler version
-import * as minijinjaBg from "minijinja-js/dist/bundler/minijinja_js_bg.js";
+// Export the Environment based on the runtime context
+export let Environment: any;
 
-// Initialize WASM
-let wasmModule: WebAssembly.Module;
+// Initialize Environment based on build type
+(function initializeEnvironment() {
+  try {
+    // Try normal minijinja-js first (for regular builds)
+    const minijinja = require('minijinja-js');
+    Environment = minijinja.Environment;
+  } catch (e) {
+    // If that fails, we're in a compiled build
+    // Use dynamic imports to avoid build errors in normal mode
+    try {
+      // These requires will be transformed by Bun during compilation
+      const wasmData = require("../../node_modules/minijinja-js/dist/bundler/minijinja_js_bg.wasm");
+      const minijinjaBg = require("minijinja-js/dist/bundler/minijinja_js_bg.js");
 
-if (typeof wasmUrl !== 'string') {
-  // Compiled binary - wasmUrl is embedded
-  if (wasmUrl instanceof WebAssembly.Module) {
-    wasmModule = wasmUrl;
-  } else if (wasmUrl instanceof ArrayBuffer || wasmUrl instanceof Uint8Array) {
-    wasmModule = new WebAssembly.Module(wasmUrl);
-  } else {
-    wasmModule = new WebAssembly.Module(wasmUrl as any);
+      // Initialize WASM
+      let wasmModule: WebAssembly.Module;
+
+      if (wasmData instanceof WebAssembly.Module) {
+        wasmModule = wasmData;
+      } else if (wasmData instanceof ArrayBuffer || wasmData instanceof Uint8Array) {
+        wasmModule = new WebAssembly.Module(wasmData);
+      } else {
+        throw new Error("Unexpected WASM data format");
+      }
+
+      const wasmInstance = new WebAssembly.Instance(wasmModule, {
+        "./minijinja_js_bg.js": minijinjaBg
+      });
+
+      minijinjaBg.__wbg_set_wasm(wasmInstance.exports);
+      Environment = minijinjaBg.Environment;
+    } catch (shimError) {
+      throw new Error(`Failed to initialize minijinja: ${shimError}`);
+    }
   }
-} else {
-  // Normal build - load WASM from file
-  const fs = require('fs');
-  const path = require('path');
-  const wasmPath = path.join(__dirname, '../../node_modules/minijinja-js/dist/bundler/minijinja_js_bg.wasm');
-  const wasmBuffer = fs.readFileSync(wasmPath);
-  wasmModule = new WebAssembly.Module(wasmBuffer);
-}
-
-const wasmInstance = new WebAssembly.Instance(wasmModule, {
-  "./minijinja_js_bg.js": minijinjaBg
-});
-
-minijinjaBg.__wbg_set_wasm(wasmInstance.exports);
-
-export const { Environment } = minijinjaBg;
+})();
