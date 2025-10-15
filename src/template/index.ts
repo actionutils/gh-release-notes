@@ -3,7 +3,7 @@ import { ContentLoaderFactory } from "../content-loader";
 import { logVerbose } from "../logger";
 
 export class TemplateRenderer {
-	private env: Environment;
+	private env: typeof Environment;
 	private contentLoader: ContentLoaderFactory;
 
 	constructor(githubToken?: string) {
