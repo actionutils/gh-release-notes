@@ -269,7 +269,7 @@ jobs:
     # Use npm publish for trusted publishing until bun publish suppports it.
     # ref: https://github.com/oven-sh/bun/issues/15601
     # Require npm version >= 11.5.1 for trusted publishing
-    - uses: actions/setup-node@v5
+    - uses: actions/setup-node@v6
       with:
         node-version: 24
     - run: npm --version
