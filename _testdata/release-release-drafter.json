@@ -1,0 +1,680 @@
+{
+  "owner": "release-drafter",
+  "repo": "release-drafter",
+  "defaultBranch": "master",
+  "lastRelease": {
+    "id": 139616007,
+    "tag_name": "v6.0.0",
+    "created_at": "2024-02-02T05:42:38Z",
+    "published_at": "2024-02-02T05:44:16Z",
+    "name": "v6.0.0"
+  },
+  "mergedPullRequests": [
+    {
+      "number": 1362,
+      "title": "Add config option for PR query limit",
+      "mergedAt": "2025-01-19T12:34:30Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1362",
+      "labels": [
+        "type: feature"
+      ],
+      "author": {
+        "login": "ssolbeck",
+        "type": "User",
+        "url": "https://github.com/ssolbeck",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/7087974?v=4",
+        "sponsorsListing": null
+      }
+    },
+    {
+      "number": 1412,
+      "title": "docs: Fix Fork Link",
+      "mergedAt": "2025-01-19T12:21:14Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1412",
+      "labels": [
+        "type: docs"
+      ],
+      "author": {
+        "login": "Dor-bl",
+        "type": "User",
+        "url": "https://github.com/Dor-bl",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/59066376?v=4",
+        "sponsorsListing": {
+          "url": "https://github.com/sponsors/Dor-bl"
+        }
+      }
+    },
+    {
+      "number": 1079,
+      "title": "Ensure support new default branch name",
+      "mergedAt": "2025-01-19T12:14:08Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1079",
+      "labels": [
+        "type: docs"
+      ],
+      "author": {
+        "login": "Triloworld",
+        "type": "User",
+        "url": "https://github.com/Triloworld",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/2671726?u=73861a3805494e509deef95e24271e986a6a277a&v=4",
+        "sponsorsListing": null
+      }
+    },
+    {
+      "number": 1376,
+      "title": "Fix: Correctly mention bot accounts in release notes",
+      "mergedAt": "2025-01-19T12:04:56Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1376",
+      "labels": [
+        "type: bug"
+      ],
+      "author": {
+        "login": "jamietanna",
+        "type": "User",
+        "url": "https://github.com/jamietanna",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/3315059?u=cb618985327f45a0b26dd6b8e5881c5ee4a4edcc&v=4",
+        "sponsorsListing": {
+          "url": "https://github.com/sponsors/jamietanna"
+        }
+      }
+    },
+    {
+      "number": 1422,
+      "title": "update schema generation and update schema to draft 07",
+      "mergedAt": "2025-01-19T12:01:15Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1422",
+      "labels": [
+        "type: docs"
+      ],
+      "author": {
+        "login": "jetersen",
+        "type": "User",
+        "url": "https://github.com/jetersen",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1661688?u=5aaefc9fe369c8c4270af48c3021f6c7d3b5c925&v=4",
+        "sponsorsListing": {
+          "url": "https://github.com/sponsors/jetersen"
+        }
+      }
+    },
+    {
+      "number": 1407,
+      "title": "fix typo: therelease",
+      "mergedAt": "2025-01-19T10:32:30Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1407",
+      "labels": [
+        "type: docs"
+      ],
+      "author": {
+        "login": "billykern",
+        "type": "User",
+        "url": "https://github.com/billykern",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/4349818?u=39f7ead313f240dd62b42f7047f88561cba94a50&v=4",
+        "sponsorsListing": null
+      }
+    },
+    {
+      "number": 1406,
+      "title": "Document added action outputs introduced in #1300",
+      "mergedAt": "2025-01-19T10:31:54Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1406",
+      "labels": [
+        "type: docs"
+      ],
+      "author": {
+        "login": "SVNKoch",
+        "type": "User",
+        "url": "https://github.com/SVNKoch",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/39488412?v=4",
+        "sponsorsListing": null
+      }
+    },
+    {
+      "number": 1421,
+      "title": "Update README.md",
+      "mergedAt": "2025-01-18T16:57:55Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1421",
+      "labels": [
+        "type: docs"
+      ],
+      "author": {
+        "login": "yusufraji",
+        "type": "User",
+        "url": "https://github.com/yusufraji",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/22890520?v=4",
+        "sponsorsListing": null
+      }
+    },
+    {
+      "number": 1385,
+      "title": "Update only drafts with the same prerelease status",
+      "mergedAt": "2025-01-18T16:55:45Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1385",
+      "labels": [
+        "type: bug"
+      ],
+      "author": {
+        "login": "jaap3",
+        "type": "User",
+        "url": "https://github.com/jaap3",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/48517?u=9eba22a4ee28a84efe91d035a2bec87565a48846&v=4",
+        "sponsorsListing": {
+          "url": "https://github.com/sponsors/jaap3"
+        }
+      }
+    },
+    {
+      "number": 1416,
+      "title": "fix: update broken link in readme",
+      "mergedAt": "2024-11-12T20:01:40Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1416",
+      "labels": [
+        "type: docs"
+      ],
+      "author": {
+        "login": "kopach",
+        "type": "User",
+        "url": "https://github.com/kopach",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/8749624?u=430e5b628ed759376b06d48d01bcc7368cf116fe&v=4",
+        "sponsorsListing": null
+      }
+    },
+    {
+      "number": 1384,
+      "title": "Update v6 README.md",
+      "mergedAt": "2024-04-26T08:23:47Z",
+      "url": "https://github.com/release-drafter/release-drafter/pull/1384",
+      "labels": [
+        "type: docs"
+      ],
+      "author": {
+        "login": "taku333",
+        "type": "User",
+        "url": "https://github.com/taku333",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/16697482?u=30535cf55303a7da139ff31e27ea6f729197a08b&v=4",
+        "sponsorsListing": null
+      }
+    }
+  ],
+  "categorizedPullRequests": {
+    "uncategorized": [],
+    "categories": [
+      {
+        "title": "Breaking",
+        "labels": [
+          "type: breaking"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      },
+      {
+        "title": "New",
+        "labels": [
+          "type: feature"
+        ],
+        "collapse-after": 0,
+        "pullRequests": [
+          {
+            "number": 1362,
+            "title": "Add config option for PR query limit",
+            "mergedAt": "2025-01-19T12:34:30Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1362",
+            "labels": [
+              "type: feature"
+            ],
+            "author": {
+              "login": "ssolbeck",
+              "type": "User",
+              "url": "https://github.com/ssolbeck",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/7087974?v=4",
+              "sponsorsListing": null
+            }
+          }
+        ]
+      },
+      {
+        "title": "Bug Fixes",
+        "labels": [
+          "type: bug"
+        ],
+        "collapse-after": 0,
+        "pullRequests": [
+          {
+            "number": 1376,
+            "title": "Fix: Correctly mention bot accounts in release notes",
+            "mergedAt": "2025-01-19T12:04:56Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1376",
+            "labels": [
+              "type: bug"
+            ],
+            "author": {
+              "login": "jamietanna",
+              "type": "User",
+              "url": "https://github.com/jamietanna",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/3315059?u=cb618985327f45a0b26dd6b8e5881c5ee4a4edcc&v=4",
+              "sponsorsListing": {
+                "url": "https://github.com/sponsors/jamietanna"
+              }
+            }
+          },
+          {
+            "number": 1385,
+            "title": "Update only drafts with the same prerelease status",
+            "mergedAt": "2025-01-18T16:55:45Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1385",
+            "labels": [
+              "type: bug"
+            ],
+            "author": {
+              "login": "jaap3",
+              "type": "User",
+              "url": "https://github.com/jaap3",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/48517?u=9eba22a4ee28a84efe91d035a2bec87565a48846&v=4",
+              "sponsorsListing": {
+                "url": "https://github.com/sponsors/jaap3"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "title": "Maintenance",
+        "labels": [
+          "type: maintenance"
+        ],
+        "collapse-after": 0,
+        "pullRequests": []
+      },
+      {
+        "title": "Documentation",
+        "labels": [
+          "type: docs"
+        ],
+        "collapse-after": 3,
+        "pullRequests": [
+          {
+            "number": 1412,
+            "title": "docs: Fix Fork Link",
+            "mergedAt": "2025-01-19T12:21:14Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1412",
+            "labels": [
+              "type: docs"
+            ],
+            "author": {
+              "login": "Dor-bl",
+              "type": "User",
+              "url": "https://github.com/Dor-bl",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/59066376?v=4",
+              "sponsorsListing": {
+                "url": "https://github.com/sponsors/Dor-bl"
+              }
+            }
+          },
+          {
+            "number": 1079,
+            "title": "Ensure support new default branch name",
+            "mergedAt": "2025-01-19T12:14:08Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1079",
+            "labels": [
+              "type: docs"
+            ],
+            "author": {
+              "login": "Triloworld",
+              "type": "User",
+              "url": "https://github.com/Triloworld",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/2671726?u=73861a3805494e509deef95e24271e986a6a277a&v=4",
+              "sponsorsListing": null
+            }
+          },
+          {
+            "number": 1422,
+            "title": "update schema generation and update schema to draft 07",
+            "mergedAt": "2025-01-19T12:01:15Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1422",
+            "labels": [
+              "type: docs"
+            ],
+            "author": {
+              "login": "jetersen",
+              "type": "User",
+              "url": "https://github.com/jetersen",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/1661688?u=5aaefc9fe369c8c4270af48c3021f6c7d3b5c925&v=4",
+              "sponsorsListing": {
+                "url": "https://github.com/sponsors/jetersen"
+              }
+            }
+          },
+          {
+            "number": 1407,
+            "title": "fix typo: therelease",
+            "mergedAt": "2025-01-19T10:32:30Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1407",
+            "labels": [
+              "type: docs"
+            ],
+            "author": {
+              "login": "billykern",
+              "type": "User",
+              "url": "https://github.com/billykern",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/4349818?u=39f7ead313f240dd62b42f7047f88561cba94a50&v=4",
+              "sponsorsListing": null
+            }
+          },
+          {
+            "number": 1406,
+            "title": "Document added action outputs introduced in #1300",
+            "mergedAt": "2025-01-19T10:31:54Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1406",
+            "labels": [
+              "type: docs"
+            ],
+            "author": {
+              "login": "SVNKoch",
+              "type": "User",
+              "url": "https://github.com/SVNKoch",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/39488412?v=4",
+              "sponsorsListing": null
+            }
+          },
+          {
+            "number": 1421,
+            "title": "Update README.md",
+            "mergedAt": "2025-01-18T16:57:55Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1421",
+            "labels": [
+              "type: docs"
+            ],
+            "author": {
+              "login": "yusufraji",
+              "type": "User",
+              "url": "https://github.com/yusufraji",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/22890520?v=4",
+              "sponsorsListing": null
+            }
+          },
+          {
+            "number": 1416,
+            "title": "fix: update broken link in readme",
+            "mergedAt": "2024-11-12T20:01:40Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1416",
+            "labels": [
+              "type: docs"
+            ],
+            "author": {
+              "login": "kopach",
+              "type": "User",
+              "url": "https://github.com/kopach",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/8749624?u=430e5b628ed759376b06d48d01bcc7368cf116fe&v=4",
+              "sponsorsListing": null
+            }
+          },
+          {
+            "number": 1384,
+            "title": "Update v6 README.md",
+            "mergedAt": "2024-04-26T08:23:47Z",
+            "url": "https://github.com/release-drafter/release-drafter/pull/1384",
+            "labels": [
+              "type: docs"
+            ],
+            "author": {
+              "login": "taku333",
+              "type": "User",
+              "url": "https://github.com/taku333",
+              "avatarUrl": "https://avatars.githubusercontent.com/u/16697482?u=30535cf55303a7da139ff31e27ea6f729197a08b&v=4",
+              "sponsorsListing": null
+            }
+          }
+        ]
+      },
+      {
+        "title": "Other changes",
+        "collapse-after": 0,
+        "labels": [],
+        "pullRequests": []
+      },
+      {
+        "title": "Dependency Updates",
+        "collapse-after": 5,
+        "labels": [
+          "type: dependencies"
+        ],
+        "pullRequests": []
+      }
+    ]
+  },
+  "contributors": [
+    {
+      "login": "ssolbeck",
+      "type": "User",
+      "url": "https://github.com/ssolbeck",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/7087974?v=4",
+      "sponsorsListing": null
+    },
+    {
+      "login": "Dor-bl",
+      "type": "User",
+      "url": "https://github.com/Dor-bl",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/59066376?v=4",
+      "sponsorsListing": {
+        "url": "https://github.com/sponsors/Dor-bl"
+      }
+    },
+    {
+      "login": "Triloworld",
+      "type": "User",
+      "url": "https://github.com/Triloworld",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/2671726?u=73861a3805494e509deef95e24271e986a6a277a&v=4",
+      "sponsorsListing": null
+    },
+    {
+      "login": "jamietanna",
+      "type": "User",
+      "url": "https://github.com/jamietanna",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/3315059?u=cb618985327f45a0b26dd6b8e5881c5ee4a4edcc&v=4",
+      "sponsorsListing": {
+        "url": "https://github.com/sponsors/jamietanna"
+      }
+    },
+    {
+      "login": "jetersen",
+      "type": "User",
+      "url": "https://github.com/jetersen",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/1661688?u=5aaefc9fe369c8c4270af48c3021f6c7d3b5c925&v=4",
+      "sponsorsListing": {
+        "url": "https://github.com/sponsors/jetersen"
+      }
+    },
+    {
+      "login": "billykern",
+      "type": "User",
+      "url": "https://github.com/billykern",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/4349818?u=39f7ead313f240dd62b42f7047f88561cba94a50&v=4",
+      "sponsorsListing": null
+    },
+    {
+      "login": "SVNKoch",
+      "type": "User",
+      "url": "https://github.com/SVNKoch",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/39488412?v=4",
+      "sponsorsListing": null
+    },
+    {
+      "login": "yusufraji",
+      "type": "User",
+      "url": "https://github.com/yusufraji",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/22890520?v=4",
+      "sponsorsListing": null
+    },
+    {
+      "login": "jaap3",
+      "type": "User",
+      "url": "https://github.com/jaap3",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/48517?u=9eba22a4ee28a84efe91d035a2bec87565a48846&v=4",
+      "sponsorsListing": {
+        "url": "https://github.com/sponsors/jaap3"
+      }
+    },
+    {
+      "login": "kopach",
+      "type": "User",
+      "url": "https://github.com/kopach",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/8749624?u=430e5b628ed759376b06d48d01bcc7368cf116fe&v=4",
+      "sponsorsListing": null
+    },
+    {
+      "login": "taku333",
+      "type": "User",
+      "url": "https://github.com/taku333",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/16697482?u=30535cf55303a7da139ff31e27ea6f729197a08b&v=4",
+      "sponsorsListing": null
+    }
+  ],
+  "newContributors": [
+    {
+      "login": "billykern",
+      "type": "User",
+      "url": "https://github.com/billykern",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/4349818?u=39f7ead313f240dd62b42f7047f88561cba94a50&v=4",
+      "sponsorsListing": null,
+      "firstPullRequest": {
+        "number": 1407,
+        "title": "fix typo: therelease",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1407",
+        "mergedAt": "2025-01-19T10:32:30Z"
+      }
+    },
+    {
+      "login": "Dor-bl",
+      "type": "User",
+      "url": "https://github.com/Dor-bl",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/59066376?v=4",
+      "sponsorsListing": {
+        "url": "https://github.com/sponsors/Dor-bl"
+      },
+      "firstPullRequest": {
+        "number": 1412,
+        "title": "docs: Fix Fork Link",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1412",
+        "mergedAt": "2025-01-19T12:21:14Z"
+      }
+    },
+    {
+      "login": "jaap3",
+      "type": "User",
+      "url": "https://github.com/jaap3",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/48517?u=9eba22a4ee28a84efe91d035a2bec87565a48846&v=4",
+      "sponsorsListing": {
+        "url": "https://github.com/sponsors/jaap3"
+      },
+      "firstPullRequest": {
+        "number": 1385,
+        "title": "Update only drafts with the same prerelease status",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1385",
+        "mergedAt": "2025-01-18T16:55:45Z"
+      }
+    },
+    {
+      "login": "jamietanna",
+      "type": "User",
+      "url": "https://github.com/jamietanna",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/3315059?u=cb618985327f45a0b26dd6b8e5881c5ee4a4edcc&v=4",
+      "sponsorsListing": {
+        "url": "https://github.com/sponsors/jamietanna"
+      },
+      "firstPullRequest": {
+        "number": 1376,
+        "title": "Fix: Correctly mention bot accounts in release notes",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1376",
+        "mergedAt": "2025-01-19T12:04:56Z"
+      }
+    },
+    {
+      "login": "kopach",
+      "type": "User",
+      "url": "https://github.com/kopach",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/8749624?u=430e5b628ed759376b06d48d01bcc7368cf116fe&v=4",
+      "sponsorsListing": null,
+      "firstPullRequest": {
+        "number": 1416,
+        "title": "fix: update broken link in readme",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1416",
+        "mergedAt": "2024-11-12T20:01:40Z"
+      }
+    },
+    {
+      "login": "ssolbeck",
+      "type": "User",
+      "url": "https://github.com/ssolbeck",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/7087974?v=4",
+      "sponsorsListing": null,
+      "firstPullRequest": {
+        "number": 1362,
+        "title": "Add config option for PR query limit",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1362",
+        "mergedAt": "2025-01-19T12:34:30Z"
+      }
+    },
+    {
+      "login": "SVNKoch",
+      "type": "User",
+      "url": "https://github.com/SVNKoch",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/39488412?v=4",
+      "sponsorsListing": null,
+      "firstPullRequest": {
+        "number": 1406,
+        "title": "Document added action outputs introduced in #1300",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1406",
+        "mergedAt": "2025-01-19T10:31:54Z"
+      }
+    },
+    {
+      "login": "taku333",
+      "type": "User",
+      "url": "https://github.com/taku333",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/16697482?u=30535cf55303a7da139ff31e27ea6f729197a08b&v=4",
+      "sponsorsListing": null,
+      "firstPullRequest": {
+        "number": 1384,
+        "title": "Update v6 README.md",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1384",
+        "mergedAt": "2024-04-26T08:23:47Z"
+      }
+    },
+    {
+      "login": "Triloworld",
+      "type": "User",
+      "url": "https://github.com/Triloworld",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/2671726?u=73861a3805494e509deef95e24271e986a6a277a&v=4",
+      "sponsorsListing": null,
+      "firstPullRequest": {
+        "number": 1079,
+        "title": "Ensure support new default branch name",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1079",
+        "mergedAt": "2025-01-19T12:14:08Z"
+      }
+    },
+    {
+      "login": "yusufraji",
+      "type": "User",
+      "url": "https://github.com/yusufraji",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/22890520?v=4",
+      "sponsorsListing": null,
+      "firstPullRequest": {
+        "number": 1421,
+        "title": "Update README.md",
+        "url": "https://github.com/release-drafter/release-drafter/pull/1421",
+        "mergedAt": "2025-01-18T16:57:55Z"
+      }
+    }
+  ],
+  "release": {
+    "name": "v6.1.0",
+    "tag": "v6.1.0",
+    "body": "# What's Changed\n\n## New\n\n* Add config option for PR query limit (#1362) @ssolbeck\n\n## Bug Fixes\n\n* Fix: Correctly mention bot accounts in release notes (#1376) @jamietanna\n* Update only drafts with the same prerelease status (#1385) @jaap3\n\n## Documentation\n\n* docs: Fix Fork Link (#1412) @Dor-bl\n* Ensure support new default branch name (#1079) @Triloworld\n* update schema generation and update schema to draft 07 (#1422) @jetersen\n* fix typo: therelease (#1407) @billykern\n* Document added action outputs introduced in #1300 (#1406) @SVNKoch\n* Update README.md (#1421) @yusufraji\n* fix: update broken link in readme (#1416) @kopach\n* Update v6 README.md (#1384) @taku333\n\n**Full Changelog**: https://github.com/release-drafter/release-drafter/compare/v6.0.0...v6.1.0\n",
+    "targetCommitish": "master",
+    "resolvedVersion": "6.1.0",
+    "majorVersion": 6,
+    "minorVersion": 1,
+    "patchVersion": 0
+  },
+  "fullChangelogLink": "https://github.com/release-drafter/release-drafter/compare/v6.0.0...master"
+}

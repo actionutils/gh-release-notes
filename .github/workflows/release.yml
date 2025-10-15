@@ -90,8 +90,36 @@ jobs:
           key: 'release-notes'
           number: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_number }}
           body: |
-            ## Release Notes
+            ## Release Notes (default)
+            <hr>
             ${{ steps.release-notes.outputs.notes }}
+
+      - id: release-notes-table
+        env:
+          PREV_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
+          TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --prev-tag "$PREV_TAG" \
+            --tag "$TAG" \
+            --template ./templates/table.md.jinja \
+            --preview)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post release notes (table)
+        if: steps.release-notes-table.outputs.notes != ''
+        uses: actionutils/sticky-comment@v1
+        with:
+          key: 'release-notes-table'
+          number: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_number }}
+          body: |
+            ## Release Notes (Table ver.)
+            <hr>
+            ${{ steps.release-notes-table.outputs.notes }}
 
       # Post Dependency Review
       - uses: actions/dependency-review-action@v4
