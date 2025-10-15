@@ -1,6 +1,19 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import path from "node:path";
 import fs from "node:fs";
+type BufferEncoding =
+	| "ascii"
+	| "utf8"
+	| "utf-8"
+	| "utf16le"
+	| "utf-16le"
+	| "ucs2"
+	| "ucs-2"
+	| "base64"
+	| "base64url"
+	| "latin1"
+	| "binary"
+	| "hex";
 import * as os from "node:os";
 import * as fsPromises from "node:fs/promises";
 
@@ -20,8 +33,13 @@ describe("actionutils/gh-release-notes core", () => {
 		originalReadFileSync = fs.readFileSync;
 
 		// Mock all GitHub API calls
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -81,7 +99,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 	});
 
 	afterEach(() => {
@@ -94,15 +112,17 @@ describe("actionutils/gh-release-notes core", () => {
 	test("auto-loads local .github/release-drafter.yml when --config is omitted", async () => {
 		const localCfg = path.resolve(process.cwd(), ".github/release-drafter.yml");
 
-		fs.existsSync = mock((p: any) => {
+		fs.existsSync = mock((p: fs.PathLike) => {
 			if (p === localCfg) return true;
 			return originalExistsSync(p);
 		});
 
-		fs.readFileSync = mock((p: any, enc: any) => {
-			if (p === localCfg) return 'template: "Hello from local config"\n';
-			return originalReadFileSync(p, enc);
-		}) as any;
+		fs.readFileSync = mock(
+			(p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
+				if (p === localCfg) return 'template: "Hello from local config"\n';
+				return originalReadFileSync(p, enc);
+			},
+		) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}` });
@@ -112,10 +132,12 @@ describe("actionutils/gh-release-notes core", () => {
 	test("uses provided local --config file (yaml)", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "tmp-config.yml");
 
-		fs.readFileSync = mock((p: any, enc: any) => {
-			if (p === cfgPath) return 'template: "Custom config"\n';
-			return originalReadFileSync(p, enc);
-		}) as any;
+		fs.readFileSync = mock(
+			(p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
+				if (p === cfgPath) return 'template: "Custom config"\n';
+				return originalReadFileSync(p, enc);
+			},
+		) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
@@ -125,10 +147,12 @@ describe("actionutils/gh-release-notes core", () => {
 	test("passes flags to findReleases and tag to generateReleaseInfo", async () => {
 		const cfgPath = path.resolve(import.meta.dir, "test-config.yml");
 
-		fs.readFileSync = mock((p: any, enc: any) => {
-			if (p === cfgPath) return 'template: "Test template"\n';
-			return originalReadFileSync(p, enc);
-		}) as any;
+		fs.readFileSync = mock(
+			(p: fs.PathOrFileDescriptor, enc?: BufferEncoding) => {
+				if (p === cfgPath) return 'template: "Test template"\n';
+				return originalReadFileSync(p, enc);
+			},
+		) as typeof fs.readFileSync;
 
 		const { run } = await import(sourcePath);
 		const res = await run({
@@ -153,8 +177,13 @@ describe("actionutils/gh-release-notes core", () => {
 
 		// Override fetch mock to include PR data with authors
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -246,7 +275,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -281,8 +310,13 @@ describe("actionutils/gh-release-notes core", () => {
 		);
 
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			// Repo info
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
@@ -334,7 +368,7 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
@@ -356,7 +390,7 @@ describe("actionutils/gh-release-notes core", () => {
 		}
 	});
 
-	test("includes new contributors when includeNewContributors flag is set", async () => {
+	test("includes new contributors when template has placeholder and not skipped", async () => {
 		// Create a real temp file for the config
 		const tmpDir = await fsPromises.mkdtemp(
 			path.join(os.tmpdir(), "test-basic-"),
@@ -364,13 +398,18 @@ describe("actionutils/gh-release-notes core", () => {
 		const cfgPath = path.join(tmpDir, "test-basic-config.yml");
 		await fsPromises.writeFile(
 			cfgPath,
-			'template: "## Changes\n$PULL_REQUESTS"\n',
+			'template: "## Changes\n$PULL_REQUESTS\n$NEW_CONTRIBUTORS"\n',
 		);
 
 		// Override fetch mock to include PR data
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
@@ -482,14 +521,13 @@ describe("actionutils/gh-release-notes core", () => {
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
 			const res = await run({
 				repo: `${owner}/${repo}`,
 				config: cfgPath,
-				includeNewContributors: true,
 				prevTag: "v0.9.0",
 			});
 
@@ -498,16 +536,405 @@ describe("actionutils/gh-release-notes core", () => {
 			expect(Array.isArray(res.newContributors)).toBe(true);
 			expect(res.newContributors?.length).toBe(1);
 			expect(res.newContributors?.[0].login).toBe("github-actions");
-			expect(res.newContributors?.[0].__typename).toBe("Bot");
+			expect(res.newContributors?.[0].type).toBe("Bot");
 
 			// Should include minimal contributors list in run() result
 			expect(res.contributors).toBeDefined();
 			expect(res.contributors.length).toBe(1);
 			expect(res.contributors[0].login).toBe("github-actions");
-			expect(res.contributors[0].__typename).toBe("Bot");
+			expect(res.contributors[0].type).toBe("Bot");
 			expect(res.contributors[0].avatarUrl).toBe(
 				"https://avatars.githubusercontent.com/in/15368?v=4",
 			);
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("skips new contributors when skipNewContributors flag is set", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-skip-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-skip-config.yml");
+		await fsPromises.writeFile(
+			cfgPath,
+			'template: "## Changes\n$PULL_REQUESTS\n$NEW_CONTRIBUTORS"\n',
+		);
+
+		// Override fetch mock
+		let graphqlCallCount = 0;
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
+
+			if (u.endsWith(`/repos/${owner}/${repo}`)) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => ({ default_branch: "main" }),
+				};
+			}
+
+			// Get release by tag for v0.9.0
+			if (u.includes("/releases/tags/v0.9.0")) {
+				const releaseData = {
+					tag_name: "v0.9.0",
+					published_at: "2023-11-01T00:00:00Z",
+					created_at: "2023-11-01T00:00:00Z",
+				};
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => releaseData,
+					text: async () => JSON.stringify(releaseData),
+				};
+			}
+
+			// Releases list
+			if (u.includes("/releases")) {
+				return {
+					ok: true,
+					status: 200,
+					headers: new Map([["content-type", "application/json"]]),
+					json: async () => [
+						{
+							tag_name: "v0.9.0",
+							published_at: "2023-11-01T00:00:00Z",
+							created_at: "2023-11-01T00:00:00Z",
+						},
+					],
+				};
+			}
+
+			if (u.includes("/graphql")) {
+				graphqlCallCount++;
+
+				// Should only get PR search, not contributor check
+				if (graphqlCallCount === 1) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 20,
+											title: "Test PR",
+											url: "https://github.com/owner/repo/pull/20",
+											mergedAt: "2024-01-02T00:00:00Z",
+											labels: { nodes: [] },
+											author: {
+												login: "testuser",
+												__typename: "User",
+												url: "https://github.com/testuser",
+												avatarUrl:
+													"https://avatars.githubusercontent.com/u/123?v=4",
+											},
+										},
+									],
+								},
+							},
+						}),
+					};
+				}
+
+				// Should not reach here if skipNewContributors works
+				throw new Error("Unexpected GraphQL call for contributor check");
+			}
+
+			throw new Error("Unexpected fetch: " + u);
+		}) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				skipNewContributors: true,
+				prevTag: "v0.9.0",
+			});
+
+			// Should NOT have new contributors data when skipped
+			expect(res.newContributors).toBeNull();
+			// Should still have regular contributors list
+			expect(res.contributors).toBeDefined();
+			expect(res.contributors.length).toBe(1);
+			// Only 1 GraphQL call should have been made (for PRs)
+			expect(graphqlCallCount).toBe(1);
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("auto sponsor-fetch-mode detects GitHub App token", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-sponsor-mode-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-sponsor-config.yml");
+		await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+		// Set GitHub App token (ghs_ prefix)
+		process.env.GITHUB_TOKEN = "ghs_testtoken123";
+
+		let sponsorFetchMode: string | undefined;
+		global.fetch = mock(
+			async (
+				url: string | URL | Request,
+				options?: { body?: string; headers?: Record<string, string> },
+			) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
+
+				// Repo info
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
+				}
+
+				// Releases list
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
+
+				// GraphQL - check the query to detect sponsor fetch mode
+				if (u.includes("/graphql")) {
+					const body = JSON.parse(options?.body || "{}");
+					if (body.variables?.withSponsor === true) {
+						sponsorFetchMode = "graphql";
+					} else if (body.variables?.withSponsor === false) {
+						sponsorFetchMode = "none";
+					}
+
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			},
+		) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				includeAllData: true, // Include all data enabled
+				// sponsorFetchMode not specified, should auto-detect
+			});
+
+			// With GitHub App token and includeAllData, should NOT use GraphQL for sponsors (uses HTML instead)
+			expect(sponsorFetchMode).toBe("none");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("auto sponsor-fetch-mode detects non-GitHub App token", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-sponsor-mode2-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-sponsor-config.yml");
+		await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+		// Set user token (ghp_ prefix)
+		process.env.GITHUB_TOKEN = "ghp_testtoken123";
+
+		let sponsorFetchMode: string | undefined;
+		global.fetch = mock(
+			async (
+				url: string | URL | Request,
+				options?: { body?: string; headers?: Record<string, string> },
+			) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
+
+				// Repo info
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
+				}
+
+				// Releases list
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
+
+				// GraphQL - check the query to detect sponsor fetch mode
+				if (u.includes("/graphql")) {
+					const body = JSON.parse(options?.body || "{}");
+					if (body.variables?.withSponsor === true) {
+						sponsorFetchMode = "graphql";
+					} else if (body.variables?.withSponsor === false) {
+						sponsorFetchMode = "none";
+					}
+
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			},
+		) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				includeAllData: true, // Include all data enabled
+				// sponsorFetchMode not specified, should auto-detect
+			});
+
+			// With non-GitHub App token and includeAllData, should use GraphQL for sponsors
+			expect(sponsorFetchMode).toBe("graphql");
+		} finally {
+			// Cleanup
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("auto sponsor-fetch-mode uses none when not in JSON mode", async () => {
+		// Create a real temp file for the config
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "test-sponsor-mode3-"),
+		);
+		const cfgPath = path.join(tmpDir, "test-sponsor-config.yml");
+		await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+		// Set user token (ghp_ prefix)
+		process.env.GITHUB_TOKEN = "ghp_testtoken123";
+
+		let sponsorFetchMode: string | undefined;
+		global.fetch = mock(
+			async (
+				url: string | URL | Request,
+				options?: { body?: string; headers?: Record<string, string> },
+			) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
+
+				// Repo info
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
+				}
+
+				// Releases list
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
+
+				// GraphQL - check the query to detect sponsor fetch mode
+				if (u.includes("/graphql")) {
+					const body = JSON.parse(options?.body || "{}");
+					if (body.variables?.withSponsor === true) {
+						sponsorFetchMode = "graphql";
+					} else if (body.variables?.withSponsor === false) {
+						sponsorFetchMode = "none";
+					}
+
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			},
+		) as unknown as typeof fetch;
+
+		try {
+			const { run } = await import(sourcePath);
+			await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				includeAllData: false, // Include all data disabled
+				// sponsorFetchMode not specified, should auto-detect
+			});
+
+			// Without includeAllData, should not fetch sponsors
+			expect(sponsorFetchMode).toBe("none");
 		} finally {
 			// Cleanup
 			await fsPromises.rm(tmpDir, { recursive: true });

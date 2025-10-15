@@ -33,8 +33,13 @@ describe("PR sorting via release-drafter", () => {
 		titles?: [string, string];
 		mergedAt?: [string, string];
 	}) {
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
@@ -42,7 +47,7 @@ describe("PR sorting via release-drafter", () => {
 					status: 200,
 					headers: new Map([["content-type", "application/json"]]),
 					json: async () => ({ default_branch: "main" }),
-				} as any;
+				} as unknown as Response;
 			}
 
 			if (u.includes("/releases")) {
@@ -51,7 +56,7 @@ describe("PR sorting via release-drafter", () => {
 					status: 200,
 					headers: new Map([["content-type", "application/json"]]),
 					json: async () => [],
-				} as any;
+				} as unknown as Response;
 			}
 
 			if (u.includes("/graphql")) {
@@ -89,11 +94,11 @@ describe("PR sorting via release-drafter", () => {
 							},
 						},
 					}),
-				} as any;
+				} as unknown as Response;
 			}
 
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 	}
 
 	test("sort-direction ascending sorts by mergedAt ascending and preserves category order", async () => {
@@ -112,13 +117,17 @@ describe("PR sorting via release-drafter", () => {
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
 
-		// pullRequests should be [1, 2]
-		const numbers = (res.pullRequests || []).map((p: any) => p.number);
+		// mergedPullRequests should be [1, 2]
+		const numbers = (res.mergedPullRequests || []).map(
+			(p: { number: number }) => p.number,
+		);
 		expect(numbers).toEqual([1, 2]);
 
 		// category Cat should preserve the same order
 		const cat = res.categorizedPullRequests.categories[0];
-		const catNumbers = cat.pullRequests.map((p: any) => p.number);
+		const catNumbers = cat.pullRequests.map(
+			(p: { number: number }) => p.number,
+		);
 		expect(catNumbers).toEqual([1, 2]);
 
 		await fsPromises.rm(path.dirname(cfgPath), { recursive: true });
@@ -140,13 +149,17 @@ describe("PR sorting via release-drafter", () => {
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
 
-		// pullRequests should be [2, 1]
-		const numbers = (res.pullRequests || []).map((p: any) => p.number);
+		// mergedPullRequests should be [2, 1]
+		const numbers = (res.mergedPullRequests || []).map(
+			(p: { number: number }) => p.number,
+		);
 		expect(numbers).toEqual([2, 1]);
 
 		// category Cat should preserve the same order
 		const cat = res.categorizedPullRequests.categories[0];
-		const catNumbers = cat.pullRequests.map((p: any) => p.number);
+		const catNumbers = cat.pullRequests.map(
+			(p: { number: number }) => p.number,
+		);
 		expect(catNumbers).toEqual([2, 1]);
 
 		await fsPromises.rm(path.dirname(cfgPath), { recursive: true });
@@ -173,12 +186,16 @@ describe("PR sorting via release-drafter", () => {
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
 
-		// pullRequests should be [1, 2] because A < B
-		const numbers = (res.pullRequests || []).map((p: any) => p.number);
+		// mergedPullRequests should be [1, 2] because A < B
+		const numbers = (res.mergedPullRequests || []).map(
+			(p: { number: number }) => p.number,
+		);
 		expect(numbers).toEqual([1, 2]);
 
 		const cat = res.categorizedPullRequests.categories[0];
-		const catNumbers = cat.pullRequests.map((p: any) => p.number);
+		const catNumbers = cat.pullRequests.map(
+			(p: { number: number }) => p.number,
+		);
 		expect(catNumbers).toEqual([1, 2]);
 
 		await fsPromises.rm(path.dirname(cfgPath), { recursive: true });
@@ -205,12 +222,16 @@ describe("PR sorting via release-drafter", () => {
 		const { run } = await import(sourcePath);
 		const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
 
-		// pullRequests should be [2, 1] because B > A
-		const numbers = (res.pullRequests || []).map((p: any) => p.number);
+		// mergedPullRequests should be [2, 1] because B > A
+		const numbers = (res.mergedPullRequests || []).map(
+			(p: { number: number }) => p.number,
+		);
 		expect(numbers).toEqual([2, 1]);
 
 		const cat = res.categorizedPullRequests.categories[0];
-		const catNumbers = cat.pullRequests.map((p: any) => p.number);
+		const catNumbers = cat.pullRequests.map(
+			(p: { number: number }) => p.number,
+		);
 		expect(catNumbers).toEqual([2, 1]);
 
 		await fsPromises.rm(path.dirname(cfgPath), { recursive: true });

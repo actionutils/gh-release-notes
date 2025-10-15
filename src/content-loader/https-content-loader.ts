@@ -1,7 +1,7 @@
-import type { ConfigLoader } from "./types";
+import type { ContentLoader } from "./types";
 import { logVerbose } from "../logger";
 
-export class HTTPSConfigLoader implements ConfigLoader {
+export class HTTPSContentLoader implements ContentLoader {
 	private timeout: number;
 
 	constructor(timeout = 30000) {
@@ -13,7 +13,7 @@ export class HTTPSConfigLoader implements ConfigLoader {
 			throw new Error("URL must use HTTPS protocol");
 		}
 
-		logVerbose(`[ConfigLoader:https] Fetching: ${source}`);
+		logVerbose(`[ContentLoader:https] Fetching: ${source}`);
 
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -30,30 +30,30 @@ export class HTTPSConfigLoader implements ConfigLoader {
 
 			if (!response.ok) {
 				throw new Error(
-					`Failed to fetch config: HTTP ${response.status} ${response.statusText}`,
+					`Failed to fetch content: HTTP ${response.status} ${response.statusText}`,
 				);
 			}
 
 			const text = await response.text();
 			logVerbose(
-				`[ConfigLoader:https] Fetched ${text.length} bytes from ${source}`,
+				`[ContentLoader:https] Fetched ${text.length} bytes from ${source}`,
 			);
 
 			// Check for reasonable size limit (1MB)
 			if (text.length > 1024 * 1024) {
-				throw new Error("Config file too large (max 1MB)");
+				throw new Error("Content file too large (max 1MB)");
 			}
 
 			return text;
 		} catch (error) {
 			clearTimeout(timeoutId);
 
-			if ((error as any).name === "AbortError") {
+			if (error instanceof Error && error.name === "AbortError") {
 				throw new Error(`Request timeout after ${this.timeout}ms`);
 			}
 
 			throw new Error(
-				`Failed to fetch config from ${source}: ${(error as Error).message}`,
+				`Failed to fetch content from ${source}: ${(error as Error).message}`,
 			);
 		}
 	}

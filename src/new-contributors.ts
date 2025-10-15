@@ -1,13 +1,38 @@
 import { buildBatchContributorQuery } from "./graphql/new-contributors-queries";
-import type {
-	Contributor,
-	ContributorCheckResult,
-	NewContributor,
-	NewContributorsOptions,
-	NewContributorsResult,
-	PullRequestInfo,
-} from "./types/new-contributors";
 import { logVerbose } from "./logger";
+import type { PullRequest } from "./graphql/pr-queries";
+
+// Internal types for new-contributors module
+interface PullRequestInfo {
+	number: number;
+	title: string;
+	url: string;
+	mergedAt: string;
+}
+
+interface ContributorCheckResult {
+	login: string;
+	isNewContributor: boolean;
+	prCount: number;
+	firstPullRequest?: PullRequestInfo;
+}
+
+export interface NewContributorsOptions {
+	owner: string;
+	repo: string;
+	pullRequests: PullRequest[];
+	token: string;
+	prevReleaseDate?: string;
+}
+
+export interface NewContributorsResult {
+	newContributors: Array<{
+		login: string;
+		firstPullRequest: PullRequestInfo;
+	}>;
+	totalContributors: number;
+	apiCallsUsed: number;
+}
 
 const DEFAULT_BATCH_SIZE = 10;
 
@@ -29,21 +54,35 @@ function generateAlias(login: string): string {
 async function batchCheckContributors(
 	owner: string,
 	repo: string,
-	contributors: Contributor[],
+	contributorData: Map<
+		string,
+		{ type: string; pullRequests: PullRequestInfo[] }
+	>,
 	releasePRNumbers: Set<number>,
-	graphqlFn: (query: string, variables?: any) => Promise<any>,
+	graphqlFn: (
+		query: string,
+		variables?: Record<string, unknown>,
+	) => Promise<Record<string, unknown>>,
 	prevReleaseDate?: string,
 ): Promise<ContributorCheckResult[]> {
 	const results: ContributorCheckResult[] = [];
 
 	logVerbose(
-		`[New Contributors] Checking ${contributors.length} contributors for first-time contributions`,
+		`[New Contributors] Checking ${contributorData.size} contributors for first-time contributions`,
 	);
 	if (prevReleaseDate) {
 		logVerbose(
 			`[New Contributors] Using previous release date: ${prevReleaseDate}`,
 		);
 	}
+
+	const contributors = Array.from(contributorData.entries()).map(
+		([login, data]) => ({
+			login,
+			isBot: data.type === "Bot",
+			pullRequests: data.pullRequests,
+		}),
+	);
 
 	const batches = chunk(contributors, DEFAULT_BATCH_SIZE);
 	for (const batch of batches) {
@@ -60,9 +99,12 @@ async function batchCheckContributors(
 
 		for (const contributor of batch) {
 			const alias = generateAlias(contributor.login);
-			const searchResult = response[alias];
+			const searchResult = response[alias] as {
+				issueCount: number;
+				nodes?: unknown[];
+			};
 
-			if (!searchResult) {
+			if (!searchResult || typeof searchResult !== "object") {
 				logVerbose(
 					`[New Contributors] No search result for ${contributor.login} (alias: ${alias})`,
 				);
@@ -78,7 +120,7 @@ async function batchCheckContributors(
 
 			if (prevReleaseDate) {
 				// When we have a previous release date, check if user has any PRs before that date
-				const prsBeforeDate = searchResult.issueCount;
+				const prsBeforeDate = searchResult.issueCount || 0;
 
 				if (prsBeforeDate === 0) {
 					// No PRs before the prev release = new contributor
@@ -100,7 +142,7 @@ async function batchCheckContributors(
 				}
 			} else {
 				// When we don't have a previous release date, check if all PRs are in current release
-				const totalPRCount = searchResult.issueCount;
+				const totalPRCount = searchResult.issueCount || 0;
 				const releasePRCount = contributorReleasePRs.length;
 
 				logVerbose(
@@ -131,9 +173,8 @@ async function batchCheckContributors(
 
 			results.push({
 				login: contributor.login,
-				isBot: contributor.isBot,
 				isNewContributor,
-				prCount: searchResult.issueCount,
+				prCount: searchResult.issueCount || 0,
 				firstPullRequest,
 			});
 		}
@@ -143,33 +184,32 @@ async function batchCheckContributors(
 }
 
 function extractContributorsFromPRs(
-	owner: string,
-	repo: string,
-	pullRequests: any[],
-): Map<string, Contributor> {
-	const contributorsMap = new Map<string, Contributor>();
+	pullRequests: PullRequest[],
+): Map<string, { type: string; pullRequests: PullRequestInfo[] }> {
+	const contributorsMap = new Map<
+		string,
+		{ type: string; pullRequests: PullRequestInfo[] }
+	>();
 
 	for (const pr of pullRequests) {
 		if (!pr.author?.login) continue;
 
 		const login = pr.author.login;
-		const isBot = pr.author.__typename === "Bot";
+		const type = pr.author.type;
 
 		if (!contributorsMap.has(login)) {
 			contributorsMap.set(login, {
-				login,
-				isBot,
+				type,
 				pullRequests: [],
 			});
 		}
 
 		const contributor = contributorsMap.get(login)!;
-		const repoName = pr.baseRepository?.nameWithOwner || `${owner}/${repo}`;
 		contributor.pullRequests.push({
 			number: pr.number,
 			title: pr.title,
-			url: pr.url || `https://github.com/${repoName}/pull/${pr.number}`,
-			mergedAt: pr.merged_at || pr.mergedAt,
+			url: pr.url,
+			mergedAt: pr.mergedAt,
 		});
 	}
 
@@ -184,7 +224,10 @@ export async function findNewContributors(
 		`[New Contributors] Starting detection for ${pullRequests.length} PRs in ${owner}/${repo}`,
 	);
 
-	const graphqlFn = async (query: string, variables?: any): Promise<any> => {
+	const graphqlFn = async (
+		query: string,
+		variables?: Record<string, unknown>,
+	): Promise<Record<string, unknown>> => {
 		const res = await fetch("https://api.github.com/graphql", {
 			method: "POST",
 			headers: {
@@ -201,19 +244,21 @@ export async function findNewContributors(
 			throw new Error(`GitHub GraphQL error: ${res.status} - ${text}`);
 		}
 
-		const payload: any = await res.json();
+		const payload = (await res.json()) as {
+			data?: Record<string, unknown>;
+			errors?: unknown[];
+		};
 		if (payload.errors) {
 			throw new Error(
 				`GitHub GraphQL errors: ${JSON.stringify(payload.errors)}`,
 			);
 		}
-		return payload.data;
+		return payload.data || {};
 	};
 
-	const contributorsMap = extractContributorsFromPRs(owner, repo, pullRequests);
-	const contributors = Array.from(contributorsMap.values());
+	const contributorData = extractContributorsFromPRs(pullRequests);
 	logVerbose(
-		`[New Contributors] Extracted ${contributors.length} unique contributors from PRs`,
+		`[New Contributors] Extracted ${contributorData.size} unique contributors from PRs`,
 	);
 
 	const prNumbers = pullRequests.map((pr) => pr.number);
@@ -222,41 +267,39 @@ export async function findNewContributors(
 	const checkResults = await batchCheckContributors(
 		owner,
 		repo,
-		contributors,
+		contributorData,
 		releasePRNumbers,
 		graphqlFn,
 		prevReleaseDate,
 	);
 
 	logVerbose(
-		`[New Contributors] Found ${checkResults.filter((r) => r.isNewContributor).length} new contributors out of ${contributors.length} total`,
+		`[New Contributors] Found ${checkResults.filter((r) => r.isNewContributor).length} new contributors out of ${contributorData.size} total`,
 	);
 
-	const newContributors: NewContributor[] = checkResults
+	const newContributors = checkResults
 		.filter((result) => result.isNewContributor && result.firstPullRequest)
 		.map((result) => ({
 			login: result.login,
-			isBot: result.isBot,
-			pullRequests: contributorsMap.get(result.login)?.pullRequests || [],
 			firstPullRequest: result.firstPullRequest!,
 		}))
 		.sort((a, b) => a.login.localeCompare(b.login));
 
 	const apiCallsUsed =
 		Math.ceil(prNumbers.length / 50) +
-		Math.ceil(contributors.length / DEFAULT_BATCH_SIZE);
+		Math.ceil(contributorData.size / DEFAULT_BATCH_SIZE);
 
 	logVerbose(`[New Contributors] Total API calls used: ${apiCallsUsed}`);
 
 	return {
 		newContributors,
-		totalContributors: contributors.length,
+		totalContributors: contributorData.size,
 		apiCallsUsed,
 	};
 }
 
 export function formatNewContributorsSection(
-	newContributors: NewContributor[],
+	newContributors: Array<{ login: string; firstPullRequest: PullRequestInfo }>,
 ): string {
 	if (newContributors.length === 0) {
 		return "";

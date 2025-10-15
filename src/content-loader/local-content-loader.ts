@@ -1,24 +1,24 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ConfigLoader } from "./types";
+import type { ContentLoader } from "./types";
 import { logVerbose } from "../logger";
 
-export class LocalConfigLoader implements ConfigLoader {
+export class LocalContentLoader implements ContentLoader {
 	async load(source: string): Promise<string> {
 		const resolvedPath = path.resolve(process.cwd(), source);
-		logVerbose(`[ConfigLoader:local] Reading file: ${resolvedPath}`);
+		logVerbose(`[ContentLoader:local] Reading file: ${resolvedPath}`);
 		try {
 			const content = await fs.readFile(resolvedPath, "utf-8");
 			logVerbose(
-				`[ConfigLoader:local] Read ${content.length} bytes from ${resolvedPath}`,
+				`[ContentLoader:local] Read ${content.length} bytes from ${resolvedPath}`,
 			);
 			return content;
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-				throw new Error(`Config file not found: ${resolvedPath}`);
+				throw new Error(`Content file not found: ${resolvedPath}`);
 			}
 			throw new Error(
-				`Failed to read config file: ${(error as Error).message}`,
+				`Failed to read content file: ${(error as Error).message}`,
 			);
 		}
 	}

@@ -1,8 +1,8 @@
 import * as crypto from "node:crypto";
 import { PackageURL } from "packageurl-js";
-import type { ConfigSource, Checksum } from "./types";
+import type { ContentSource, Checksum } from "./types";
 
-export function detectConfigSource(source: string): ConfigSource {
+export function detectContentSource(source: string): ContentSource {
 	if (source.startsWith("https://")) {
 		return {
 			type: "https",

@@ -35,14 +35,14 @@ interface ReleaseDrafterConfig {
 	categories?: ReleaseDrafterCategory[];
 	"exclude-labels"?: string[];
 	"exclude-contributors"?: string[];
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 /**
  * Detects if the config is in GitHub's release.yml format
  */
 export function isGitHubReleaseConfig(
-	config: any,
+	config: unknown,
 ): config is GitHubReleaseConfig {
 	return !!(
 		config &&
@@ -122,7 +122,7 @@ export function convertGitHubToReleaseDrafter(
 /**
  * Processes a config that might be in either format
  */
-export function normalizeConfig(config: any): any {
+export function normalizeConfig(config: unknown): unknown {
 	if (isGitHubReleaseConfig(config)) {
 		logVerbose(
 			"Detected GitHub release.yml format, converting to release-drafter format...",

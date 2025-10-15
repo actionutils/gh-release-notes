@@ -38,15 +38,20 @@ describe("include-paths via GraphQL files filter", () => {
 		);
 
 		let graphqlCallCount = 0;
-		global.fetch = mock(async (url: any) => {
-			const u = url.toString();
+		global.fetch = mock(async (url: string | URL | Request) => {
+			const u =
+				typeof url === "string"
+					? url
+					: url instanceof URL
+						? url.toString()
+						: (url as Request).url;
 			if (u.endsWith(`/repos/${owner}/${repo}`)) {
 				return {
 					ok: true,
 					status: 200,
 					headers: new Map([["content-type", "application/json"]]),
 					json: async () => ({ default_branch: "main" }),
-				} as any;
+				} as unknown as Response;
 			}
 			if (u.includes("/releases")) {
 				return {
@@ -54,7 +59,7 @@ describe("include-paths via GraphQL files filter", () => {
 					status: 200,
 					headers: new Map([["content-type", "application/json"]]),
 					json: async () => [],
-				} as any;
+				} as unknown as Response;
 			}
 			if (u.includes("/graphql")) {
 				graphqlCallCount++;
@@ -87,7 +92,7 @@ describe("include-paths via GraphQL files filter", () => {
 								},
 							},
 						}),
-					} as any;
+					} as unknown as Response;
 				}
 				// 2nd: Files batch for PRs 1 and 2
 				if (graphqlCallCount === 2) {
@@ -117,16 +122,18 @@ describe("include-paths via GraphQL files filter", () => {
 								},
 							},
 						}),
-					} as any;
+					} as unknown as Response;
 				}
 			}
 			throw new Error("Unexpected fetch: " + u);
-		}) as any;
+		}) as unknown as typeof fetch;
 
 		try {
 			const { run } = await import(sourcePath);
 			const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
-			const numbers = (res.pullRequests || []).map((p: any) => p.number);
+			const numbers = (res.mergedPullRequests || []).map(
+				(p: { number: number }) => p.number,
+			);
 			expect(numbers).toEqual([1]);
 		} finally {
 			await fsPromises.rm(tmpDir, { recursive: true });

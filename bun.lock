@@ -3,6 +3,9 @@
   "workspaces": {
     "": {
       "name": "gh-release-notes",
+      "dependencies": {
+        "minijinja-js": "^2.12.0",
+      },
       "devDependencies": {
         "@actions/core": "file:shims/actions-core",
         "@biomejs/biome": "^2.2.5",
@@ -465,6 +468,8 @@
     "mime-db": ["mime-db@1.52.0", "", {}, ""],
 
     "mime-types": ["mime-types@2.1.35", "", { "dependencies": { "mime-db": "1.52.0" } }, ""],
+
+    "minijinja-js": ["minijinja-js@2.12.0", "", {}, "sha512-knXs+kzlm/QwPFqWGOGEhnWTgghPOCh1bM6zRD0ldVdSdNcQdpFlf0Y4U9JFfYyEe2gvlgN+CWHK1wO9dkIZtg=="],
 
     "minimatch": ["minimatch@5.1.6", "", { "dependencies": { "brace-expansion": "^2.0.1" } }, ""],
 

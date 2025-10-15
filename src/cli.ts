@@ -8,16 +8,17 @@ import { resolveBaseRepo } from "./repo-detector";
 interface Args {
 	repo?: string;
 	config?: string;
+	template?: string;
 	"prev-tag"?: string;
 	tag?: string;
 	target?: string;
 	json: boolean;
 	preview: boolean;
 	verbose: boolean;
-	"include-new-contributors"?: boolean;
+	"skip-new-contributors"?: boolean;
 	// Using enum instead of boolean to allow future extensibility
 	// (e.g., fetching via HTML HEAD requests)
-	"sponsor-fetch-mode"?: "none" | "graphql" | "html";
+	"sponsor-fetch-mode"?: "none" | "graphql" | "html" | "auto";
 }
 
 async function main() {
@@ -35,7 +36,15 @@ async function main() {
 			alias: "c",
 			type: "string",
 			description: "Config source: local file, HTTPS URL, or purl (optional)",
-			example: ".github/release-drafter.yml",
+			example:
+				"pkg:github/release-drafter/release-drafter@v5#.github/release-drafter.yml",
+		})
+		.option("template", {
+			alias: "t",
+			type: "string",
+			description:
+				"MiniJinja template for release body. Template receives same data as --json output. Source: local file, HTTPS URL, or purl",
+			example: "pkg:github/myorg/templates@v1.0.0#releases/default.jinja",
 		})
 		.option("prev-tag", {
 			type: "string",
@@ -71,18 +80,18 @@ async function main() {
 			description: "Enable verbose logging",
 			default: false,
 		})
-		.option("include-new-contributors", {
+		.option("skip-new-contributors", {
 			type: "boolean",
 			description:
-				"Force include new contributors data (mainly for JSON output)",
+				"Skip fetching new contributors data to reduce API calls (only applies with --json or --template)",
 			default: false,
 		})
 		.option("sponsor-fetch-mode", {
 			type: "string",
-			choices: ["none", "graphql", "html"] as const,
+			choices: ["none", "graphql", "html", "auto"] as const,
 			description:
-				"How to fetch sponsor information. 'graphql' requires user token (even without any permissions) - GitHub blocks app tokens including GITHUB_TOKEN from accessing this public data. 'html' (experimental) checks sponsor pages via HEAD requests.",
-			default: "none",
+				"How to fetch sponsor information. 'graphql' requires non-GitHub App token (even without any permissions) - GitHub blocks GitHub App tokens (including GITHUB_TOKEN) from accessing this public data. 'html' (experimental) checks sponsor pages via HEAD requests. 'auto' automatically selects the best method based on token type.",
+			default: "auto",
 		})
 		.help("help")
 		.alias("help", "h")
@@ -93,12 +102,12 @@ async function main() {
 			"Generate notes from v1.0.0 to v1.1.0",
 		)
 		.example(
-			"$0 --config .github/release-drafter.yml",
-			"Use custom config file",
+			"$0 --config pkg:github/release-drafter/release-drafter@v5#.github/release-drafter.yml",
+			"Use remote config from GitHub repository",
 		)
 		.example(
-			"$0 --config pkg:github/myorg/.github#.github/release-notes.yaml",
-			"Use remote config from GitHub",
+			"$0 --template pkg:github/myorg/templates@v1.0.0#releases/default.jinja",
+			"Use remote MiniJinja template from GitHub",
 		)
 		.example(
 			"$0 --preview --tag v2.0.0",
@@ -123,11 +132,31 @@ async function main() {
 				"  Compatible with both:\n" +
 				"  - Release-drafter: https://github.com/release-drafter/release-drafter\n" +
 				"  - GitHub's release.yml: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes\n\n" +
-				"Remote Config Support:\n" +
+				"Remote Config/Template Support:\n" +
 				"  - Local file: ./config.yaml\n" +
 				"  - HTTPS URL: https://example.com/config.yaml\n" +
 				"  - GitHub purl: pkg:github/owner/repo@version#path/to/config.yaml\n" +
-				"  - With checksum: pkg:github/owner/repo@v1.0?checksum=sha256:abc123#config.yaml\n\n" +
+				"  - With checksum: pkg:github/owner/repo@version?checksum=sha256:abc123#config.yaml\n\n" +
+				"MiniJinja Template Usage:\n" +
+				"  Templates generate the release notes body using MiniJinja (https://github.com/mitsuhiko/minijinja).\n" +
+				"  The template receives the same data structure as --json output.\n\n" +
+				"  Example template:\n" +
+				"    ## Release {{ release.tag }}\n" +
+				"    ### ✨ Highlights\n" +
+				"    {% for pr in mergedPullRequests %}\n" +
+				"    {% if loop.index <= 5 %}\n" +
+				"    - {{ pr.title }} (#{{ pr.number }})\n" +
+				"    {% endif %}\n" +
+				"    {% endfor %}\n" +
+				"    \n" +
+				"    **Full Changelog**: {{ fullChangelogLink }}\n\n" +
+				"  Available data:\n" +
+				"    - release: name, tag, targetCommitish, resolvedVersion, etc.\n" +
+				"    - mergedPullRequests: array of all PRs with title, number, author, labels, etc.\n" +
+				"    - categorizedPullRequests: PRs grouped by category\n" +
+				"    - contributors: array of all contributors\n" +
+				"    - newContributors: first-time contributors\n" +
+				"    - owner, repo, defaultBranch, lastRelease, fullChangelogLink\n\n" +
 				"More Information:\n" +
 				"  GitHub: https://github.com/actionutils/gh-release-notes",
 		)
@@ -154,59 +183,21 @@ async function main() {
 		const result = await run({
 			repo: repoString,
 			config: args.config,
+			template: args.template,
 			prevTag: args["prev-tag"],
 			tag: args.tag,
 			target: args.target,
 			preview: args.preview,
-			includeNewContributors: args["include-new-contributors"],
+			skipNewContributors: args["skip-new-contributors"],
 			sponsorFetchMode: args["sponsor-fetch-mode"],
+			includeAllData: args.json || !!args.template, // Include all data for JSON output or template rendering
 		});
 
+		// Display the output
 		if (args.json) {
-			// Remove fields that don't make sense for this CLI's output
-			// Unlike release-drafter, this tool doesn't create releases, so
-			// fields like `draft` and `make_latest` are meaningless in --json output.
-			// Allowlist only fields meaningful for consumers of this CLI
-			// This avoids leaking release-creation specific or internal fields
-			// from release-drafter internals (e.g., draft, make_latest, prerelease,
-			// resolvedVersion, majorVersion, minorVersion, patchVersion, etc.).
-			const {
-				name,
-				tag,
-				body,
-				targetCommitish: releaseTargetCommitish,
-			} = result.release as any as Record<string, any>;
-			const allowlistedRelease = {
-				name,
-				tag,
-				body,
-				targetCommitish: releaseTargetCommitish,
-			} as Record<string, any>;
-
-			// newContributors is a direct array aligned to contributors shape
-			const shapedNewContributors = result.newContributors;
-
-			logVerbose("[CLI] Output mode: JSON");
-			process.stdout.write(
-				JSON.stringify(
-					{
-						owner: result.owner,
-						repo: result.repo,
-						defaultBranch: result.defaultBranch,
-						lastRelease: result.lastRelease,
-						mergedPullRequests: result.pullRequests,
-						categorizedPullRequests: result.categorizedPullRequests,
-						contributors: result.contributors,
-						newContributors: shapedNewContributors,
-						release: allowlistedRelease,
-					},
-					null,
-					2,
-				) + "\n",
-			);
+			process.stdout.write(JSON.stringify(result, null, 2) + "\n");
 		} else {
-			logVerbose("[CLI] Output mode: Markdown body");
-			process.stdout.write(String((result.release as any).body || "") + "\n");
+			process.stdout.write(String(result.release.body || "") + "\n");
 		}
 	} catch (e) {
 		console.error("Error:", e);

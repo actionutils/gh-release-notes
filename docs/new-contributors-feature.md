@@ -237,7 +237,7 @@ Generated output:
 
 ```yaml
 # CLI flags
---include-new-contributors  # Enable when not using template
+--skip-new-contributors  # Skip fetching to reduce API calls (when using --json or --template)
 
 # Template placeholders
 $NEW_CONTRIBUTORS           # Triggers new contributor detection
