@@ -1,9 +1,11 @@
 ## What's Changed
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
+### {{ category.title }}
 {%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+
 <details>
-<summary>{{ category.title }} ({{ category.pullRequests | length }})</summary>
+<summary>Show all {{ category.pullRequests | length }} items</summary>
 
 {% for pr in category.pullRequests %}
 - {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
@@ -11,7 +13,6 @@
 
 </details>
 {%- else %}
-### {{ category.title }}
 {%- for pr in category.pullRequests %}
 - {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
 {%- endfor %}
