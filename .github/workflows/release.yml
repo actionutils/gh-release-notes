@@ -212,6 +212,7 @@ jobs:
           RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
             --target main \
             --prev-tag "$PREV_TAG" \
+            --template ./templates/table.md.jinja \
             --tag "$TAG")
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
