@@ -1,3 +1,5 @@
+import { logVerbose } from "../logger";
+
 /**
  * Sponsor fetch mode controls how sponsor information is retrieved.
  * Using an enum-like type instead of boolean to allow future extensibility.
@@ -160,15 +162,14 @@ export async function fetchMergedPRs(
 		const name = String(l).replaceAll('"', '\\"');
 		qParts.push(`-label:"${name}"`);
 	}
-	// Include labels: PR must have at least one of them (OR semantics)
+	// Include labels: PR must have at least one of them (OR semantics using , separeated labels.)
+	// https://github.blog/changelog/2021-08-02-search-issues-by-label-using-logical-or/
 	if (includeLabels.length > 0) {
-		const escaped = includeLabels.map(
-			(l) => `label:"${String(l).replaceAll('"', '\\"')}"`,
-		);
-		// Build an OR group; parentheses ensure proper precedence
-		qParts.push(`(${escaped.join(" OR ")})`);
+		const q = "label:" + includeLabels.map((l) => `"${l}"`).join(",");
+		qParts.push(q);
 	}
 	const q = qParts.join(" ");
+	logVerbose(`[PR Query] ${q}`);
 
 	const query = buildSearchQuery();
 	const data = await paginate(
