@@ -16,6 +16,7 @@ type BufferEncoding =
 	| "hex";
 import * as os from "node:os";
 import * as fsPromises from "node:fs/promises";
+import type { MergedPullRequest, Author } from "./core";
 
 describe("actionutils/gh-release-notes core", () => {
 	const sourcePath = path.resolve(import.meta.dir, "./core.ts");
@@ -1145,13 +1146,13 @@ include-labels:
 
 			// Should only include PR #1 and #2, not #3
 			expect(res.mergedPullRequests.length).toBe(2);
-			const prNumbers = res.mergedPullRequests.map((pr: any) => pr.number);
+			const prNumbers = res.mergedPullRequests.map((pr: MergedPullRequest) => pr.number);
 			expect(prNumbers).toContain(1);
 			expect(prNumbers).toContain(2);
 
 			// Contributors should include user1 and user2, not user3
 			expect(res.contributors.length).toBe(2);
-			const logins = res.contributors.map((c: any) => c.login);
+			const logins = res.contributors.map((c: Author) => c.login);
 			expect(logins).toContain("user1");
 			expect(logins).toContain("user2");
 			expect(logins).not.toContain("user3");
@@ -1261,7 +1262,7 @@ exclude-contributors:
 
 			// Should include all PRs (exclude-contributors doesn't filter PRs)
 			expect(res.mergedPullRequests.length).toBe(3);
-			const prNumbers = res.mergedPullRequests.map((pr: any) => pr.number);
+			const prNumbers = res.mergedPullRequests.map((pr: MergedPullRequest) => pr.number);
 			expect(prNumbers).toContain(1);
 			expect(prNumbers).toContain(2);
 			expect(prNumbers).toContain(3);
@@ -1422,7 +1423,7 @@ exclude-contributors:
 
 			// Verify mergedPullRequests: should include PR #1 and #3 (PR #2 filtered by label)
 			expect(res.mergedPullRequests.length).toBe(2);
-			const prNumbers = res.mergedPullRequests.map((pr: any) => pr.number);
+			const prNumbers = res.mergedPullRequests.map((pr: MergedPullRequest) => pr.number);
 			expect(prNumbers).toContain(1);
 			expect(prNumbers).toContain(3);
 		} finally {
