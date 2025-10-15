@@ -1,0 +1,34 @@
+## What's Changed
+{% for category in categorizedPullRequests.categories %}
+{%- if category.pullRequests | length > 0 %}
+{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+<details>
+<summary>{{ category.title }} ({{ category.pullRequests | length }})</summary>
+
+| PR | Title | Author |
+| --- | --- | --- |
+{%- for pr in category.pullRequests %}
+| [#{{ pr.number }}]({{ pr.url }}) | {{ pr.title }} | <a href="{{ pr.author.url }}"><img src="https://wsrv.nl/?url={{ pr.author.avatarUrl }}&w=20&h=20&mask=circle&fit=cover&maxage=1w" width="20" height="20" alt="{{ pr.author.login }}" style="vertical-align: middle;"/></a> [@{{ pr.author.login }}]({{ pr.author.url }}) {% if pr.author.sponsorsListing %}<a href="{{ pr.author.sponsorsListing.url }}"><img src="https://img.shields.io/badge/sponsor-30363D?style=flat&logo=githubsponsors&logoColor=EA4AAA" height="14" style="vertical-align: middle;"/></a>{% endif %} |
+{%- endfor %}
+
+</details>
+{%- else %}
+### {{ category.title }}
+
+| PR | Title | Author |
+| --- | --- | --- |
+{%- for pr in category.pullRequests %}
+| [#{{ pr.number }}]({{ pr.url }}) | {{ pr.title }} | <a href="{{ pr.author.url }}"><img src="https://wsrv.nl/?url={{ pr.author.avatarUrl }}&w=20&h=20&mask=circle&fit=cover&maxage=1w" width="20" height="20" alt="{{ pr.author.login }}" style="vertical-align: middle;"/></a> [@{{ pr.author.login }}]({{ pr.author.url }}) {% if pr.author.sponsorsListing %}<a href="{{ pr.author.sponsorsListing.url }}"><img src="https://img.shields.io/badge/sponsor-30363D?style=flat&logo=githubsponsors&logoColor=EA4AAA" height="14" style="vertical-align: middle;"/></a>{% endif %} |
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+{%- if newContributors | length > 0 %}
+
+## New Contributors
+{%- for contributor in newContributors %}
+- <a href="{{ contributor.url }}"><img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=20&h=20&mask=circle&fit=cover&maxage=1w" width="20" height="20" alt="{{ contributor.login }}" style="vertical-align: middle;"/></a> @{{ contributor.login }} made their first contribution in [#{{ contributor.firstPullRequest.number }}]({{ contributor.firstPullRequest.url }})
+{%- endfor %}
+{%- endif %}
+
+**Full Changelog**: {{ fullChangelogLink }}
