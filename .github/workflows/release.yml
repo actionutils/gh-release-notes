@@ -73,6 +73,7 @@ jobs:
             --target main \
             --prev-tag "$PREV_TAG" \
             --tag "$TAG" \
+            --verbose \
             --preview)
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
@@ -106,6 +107,7 @@ jobs:
             --prev-tag "$PREV_TAG" \
             --tag "$TAG" \
             --template ./templates/table.md.jinja \
+            --verbose \
             --preview)
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
