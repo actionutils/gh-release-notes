@@ -1,11 +1,12 @@
 import { describe, expect, it, mock } from "bun:test";
+import type { Author } from "./core";
 import {
 	findNewContributors,
 	formatNewContributorsSection,
 } from "./new-contributors";
 
-// Helper function to convert PRs to contributors format
-function extractContributorsFromPRs(
+// Helper function to extract unique authors from PRs
+function extractAuthorsFromPRs(
 	pullRequests: Array<{
 		author?: { login?: string; [key: string]: unknown };
 		number: number;
@@ -14,24 +15,15 @@ function extractContributorsFromPRs(
 		mergedAt: string;
 	}>,
 ) {
-	const contributorsMap = new Map();
+	const authorsMap = new Map<string, Author>();
 	for (const pr of pullRequests) {
 		if (!pr.author?.login) continue;
-		const login = pr.author.login;
-		if (!contributorsMap.has(login)) {
-			contributorsMap.set(login, {
-				...pr.author,
-				pullRequests: [],
-			});
+		const login = pr.author.login as string;
+		if (!authorsMap.has(login)) {
+			authorsMap.set(login, { ...(pr.author as Author) });
 		}
-		contributorsMap.get(login).pullRequests.push({
-			number: pr.number,
-			title: pr.title,
-			url: pr.url,
-			mergedAt: pr.mergedAt,
-		});
 	}
-	return Array.from(contributorsMap.values());
+	return Array.from(authorsMap.values());
 }
 
 describe("new-contributors", () => {
@@ -138,7 +130,7 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				contributors: extractContributorsFromPRs(mockPullRequests),
+				contributors: extractAuthorsFromPRs(mockPullRequests),
 				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 			});
@@ -239,7 +231,7 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				contributors: extractContributorsFromPRs(mockPullRequests),
+				contributors: extractAuthorsFromPRs(mockPullRequests),
 				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 				prevReleaseDate: "2024-02-01T00:00:00Z",
@@ -300,7 +292,7 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				contributors: extractContributorsFromPRs(mockPullRequests),
+				contributors: extractAuthorsFromPRs(mockPullRequests),
 				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 			});

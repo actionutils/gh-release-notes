@@ -18,14 +18,10 @@ interface ContributorCheckResult {
 	firstPullRequest?: PullRequestInfo;
 }
 
-interface ContributorWithPRs extends Author {
-	pullRequests: PullRequestInfo[];
-}
-
 export interface NewContributorsOptions {
 	owner: string;
 	repo: string;
-	contributors: ContributorWithPRs[];
+	contributors: Author[];
 	filteredPullRequests: PullRequest[];
 	token: string;
 	prevReleaseDate?: string;
@@ -242,12 +238,33 @@ export async function findNewContributors(
 		{ type: string; pullRequests: PullRequestInfo[] }
 	>();
 
-	for (const contributor of contributors) {
-		if (!contributor.login) continue;
-		contributorData.set(contributor.login, {
-			type: contributor.type || "User",
-			pullRequests: contributor.pullRequests,
+	// Build contributor PR lists from filteredPullRequests
+	for (const pr of filteredPullRequests) {
+		const login = pr.author?.login;
+		if (!login) continue;
+		const type = pr.author?.type || "User";
+
+		if (!contributorData.has(login)) {
+			contributorData.set(login, { type, pullRequests: [] });
+		}
+		const entry = contributorData.get(login)!;
+		entry.pullRequests.push({
+			number: pr.number,
+			title: pr.title,
+			url: pr.url,
+			mergedAt: pr.mergedAt,
 		});
+	}
+
+	// Ensure we include authors with no PRs after filtering (edge case)
+	for (const author of contributors) {
+		if (!author?.login) continue;
+		if (!contributorData.has(author.login)) {
+			contributorData.set(author.login, {
+				type: author.type || "User",
+				pullRequests: [],
+			});
+		}
 	}
 
 	logVerbose(

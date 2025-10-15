@@ -140,16 +140,6 @@ export type MergedPullRequest = Omit<PullRequest, "labels"> & {
 // Export types for external consumers
 export type Author = PullRequest["author"];
 
-// Author with aggregated PRs used for contributor listing
-type ContributorWithPRs = Author & {
-	pullRequests: Array<{
-		number: number;
-		title: string;
-		url: string;
-		mergedAt: string;
-	}>;
-};
-
 // Type for release version information
 export type ReleaseVersion = {
 	resolved: string;
@@ -390,11 +380,8 @@ function generateFullChangelogLink(params: {
 function buildContributors(
 	pullRequestsSorted: PullRequest[] | null | undefined,
 	excludeContributors: string[],
-): {
-	contributors: ContributorWithPRs[];
-	contributorsMap: Map<string, ContributorWithPRs>;
-} {
-	const contributorsMap = new Map<string, ContributorWithPRs>();
+): { contributors: Author[]; contributorsMap: Map<string, Author> } {
+	const contributorsMap = new Map<string, Author>();
 	for (const pr of pullRequestsSorted || []) {
 		const author = pr.author as Author | undefined;
 		if (!author) continue;
@@ -404,21 +391,8 @@ function buildContributors(
 		if (excludeContributors.includes(login)) continue;
 
 		if (!contributorsMap.has(login)) {
-			// Initialize contributor with empty PRs array
-			contributorsMap.set(login, {
-				...author,
-				pullRequests: [],
-			} as ContributorWithPRs);
+			contributorsMap.set(login, { ...author });
 		}
-
-		// Add this PR to the contributor's list
-		const contributor = contributorsMap.get(login)!;
-		contributor.pullRequests.push({
-			number: pr.number,
-			title: pr.title,
-			url: pr.url,
-			mergedAt: pr.mergedAt,
-		});
 	}
 
 	return {
