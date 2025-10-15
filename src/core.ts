@@ -714,11 +714,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		? rdConfig["exclude-contributors"]
 		: [];
 
-	const contributorsMap = buildContributors(
+	let contributorsMap = buildContributors(
 		pullRequestsSorted,
 		excludeContributors,
 	);
-	const contributors = Array.from(contributorsMap.values());
+	let contributors = Array.from(contributorsMap.values());
 
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
@@ -762,6 +762,18 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	if (sponsorEnrichmentPromise || newContributorsPromise) {
 		logVerbose("[Parallel] Waiting for background operations to complete...");
 
+		// Wait for new contributors detection if it was started
+		if (newContributorsPromise) {
+			const newContributorsResult = (await newContributorsPromise) as {
+				newContributors: NewContributor[];
+			};
+			newContributorsSection = formatNewContributorsSection(
+				newContributorsResult.newContributors,
+			);
+			newContributorsData = newContributorsResult;
+			logVerbose("[Parallel] New contributors detection completed");
+		}
+
 		// Wait for sponsor enrichment if it was started
 		if (sponsorEnrichmentPromise) {
 			const enrichedPullRequests = await sponsorEnrichmentPromise;
@@ -776,20 +788,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				) as unknown as PullRequest[];
 				pullRequestsSorted.length = 0;
 				pullRequestsSorted.push(...sortedEnriched);
+
+				// Rebuild contributors with enriched author data (simple reassignment)
+				contributorsMap = buildContributors(
+					enrichedPullRequests,
+					excludeContributors,
+				);
+				contributors = Array.from(contributorsMap.values());
 				logVerbose("[Parallel] Sponsor enrichment completed");
 			}
-		}
-
-		// Wait for new contributors detection if it was started
-		if (newContributorsPromise) {
-			const newContributorsResult = (await newContributorsPromise) as {
-				newContributors: NewContributor[];
-			};
-			newContributorsSection = formatNewContributorsSection(
-				newContributorsResult.newContributors,
-			);
-			newContributorsData = newContributorsResult;
-			logVerbose("[Parallel] New contributors detection completed");
 		}
 	}
 
