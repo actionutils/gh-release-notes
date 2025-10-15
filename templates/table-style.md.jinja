@@ -6,6 +6,7 @@
 
 <details>
 <summary>Show all {{ category.pullRequests | length }} items</summary>
+{%- endif %}
 
 <table width="100%">
 <thead>
@@ -31,34 +32,9 @@
 {%- endfor %}
 </tbody>
 </table>
+{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
 
 </details>
-{%- else %}
-
-<table width="100%">
-<thead>
-<tr>
-<th width="80">PR</th>
-<th width="800">Title</th>
-<th width="200">Author</th>
-</tr>
-</thead>
-<tbody>
-{%- for pr in category.pullRequests %}
-<tr>
-<td align="center"><a href="{{ pr.url }}">#{{ pr.number }}</a></td>
-<td>{{ pr.title }}</td>
-<td align="center">
-<a href="{{ pr.author.url }}"><img src="https://wsrv.nl/?url={{ pr.author.avatarUrl }}&w=20&h=20&mask=circle&fit=cover&maxage=1w" width="20" height="20" alt="{{ pr.author.login }}" style="vertical-align: middle;"/></a>
-<a href="{{ pr.author.url }}">@{{ pr.author.login }}</a>
-{%- if pr.author.sponsorsListing %}
-<a href="{{ pr.author.sponsorsListing.url }}"><img src="https://img.shields.io/badge/sponsor-30363D?style=flat&logo=githubsponsors&logoColor=EA4AAA" height="14" style="vertical-align: middle;"/></a>
-{%- endif %}
-</td>
-</tr>
-{%- endfor %}
-</tbody>
-</table>
 {%- endif %}
 {%- endif %}
 {%- endfor %}
