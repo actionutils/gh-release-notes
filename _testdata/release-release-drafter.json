@@ -289,7 +289,7 @@
         "labels": [
           "type: docs"
         ],
-        "collapse-after": 0,
+        "collapse-after": 3,
         "pullRequests": [
           {
             "number": 1412,
