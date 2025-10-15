@@ -5,13 +5,15 @@ import {
 } from "./new-contributors";
 
 // Helper function to convert PRs to contributors format
-function extractContributorsFromPRs(pullRequests: Array<{
-	author?: { login?: string; [key: string]: unknown };
-	number: number;
-	title: string;
-	url: string;
-	mergedAt: string;
-}>) {
+function extractContributorsFromPRs(
+	pullRequests: Array<{
+		author?: { login?: string; [key: string]: unknown };
+		number: number;
+		title: string;
+		url: string;
+		mergedAt: string;
+	}>,
+) {
 	const contributorsMap = new Map();
 	for (const pr of pullRequests) {
 		if (!pr.author?.login) continue;
