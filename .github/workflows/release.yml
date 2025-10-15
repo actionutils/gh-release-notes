@@ -92,6 +92,7 @@ jobs:
           body: |
             ## Release Notes (default)
             <hr>
+
             ${{ steps.release-notes.outputs.notes }}
 
       - id: release-notes-table
@@ -119,6 +120,7 @@ jobs:
           body: |
             ## Release Notes (Table ver.)
             <hr>
+
             ${{ steps.release-notes-table.outputs.notes }}
 
       # Post Dependency Review
