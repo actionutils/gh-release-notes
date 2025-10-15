@@ -4,6 +4,34 @@ import {
 	formatNewContributorsSection,
 } from "./new-contributors";
 
+// Helper function to convert PRs to contributors format
+function extractContributorsFromPRs(pullRequests: Array<{
+	author?: { login?: string; [key: string]: unknown };
+	number: number;
+	title: string;
+	url: string;
+	mergedAt: string;
+}>) {
+	const contributorsMap = new Map();
+	for (const pr of pullRequests) {
+		if (!pr.author?.login) continue;
+		const login = pr.author.login;
+		if (!contributorsMap.has(login)) {
+			contributorsMap.set(login, {
+				...pr.author,
+				pullRequests: [],
+			});
+		}
+		contributorsMap.get(login).pullRequests.push({
+			number: pr.number,
+			title: pr.title,
+			url: pr.url,
+			mergedAt: pr.mergedAt,
+		});
+	}
+	return Array.from(contributorsMap.values());
+}
+
 describe("new-contributors", () => {
 	describe("findNewContributors", () => {
 		it("should identify new contributors correctly", async () => {
@@ -108,7 +136,8 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				pullRequests: mockPullRequests,
+				contributors: extractContributorsFromPRs(mockPullRequests),
+				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 			});
 
@@ -133,7 +162,8 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				pullRequests: [],
+				contributors: [],
+				filteredPullRequests: [],
 				token: "test-token",
 			});
 
@@ -207,7 +237,8 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				pullRequests: mockPullRequests,
+				contributors: extractContributorsFromPRs(mockPullRequests),
+				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 				prevReleaseDate: "2024-02-01T00:00:00Z",
 			});
@@ -267,7 +298,8 @@ describe("new-contributors", () => {
 			const result = await findNewContributors({
 				owner: "owner",
 				repo: "repo",
-				pullRequests: mockPullRequests,
+				contributors: extractContributorsFromPRs(mockPullRequests),
+				filteredPullRequests: mockPullRequests,
 				token: "test-token",
 			});
 

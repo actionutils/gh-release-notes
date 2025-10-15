@@ -3,7 +3,6 @@
  */
 
 import type { PullRequest } from "./graphql/pr-queries";
-import type { Author } from "./core";
 import { logVerbose } from "./logger";
 
 /**
@@ -48,52 +47,6 @@ export function filterPullRequestsByIncludeLabels(
 		`[Filtering] Applied include-labels filter, ${filtered.length} PRs remaining`,
 	);
 	return filtered;
-}
-
-/**
- * Filter contributors by excluded users
- */
-export function filterContributorsByExcluded(
-	contributors: Author[],
-	excludeContributors: string[],
-): Author[] {
-	if (excludeContributors.length === 0) {
-		return contributors;
-	}
-
-	return contributors.filter(
-		(author) => !excludeContributors.includes(author.login || ""),
-	);
-}
-
-/**
- * Filter new contributors by excluded users
- */
-export function filterNewContributorsByExcluded(
-	newContributors: Array<{
-		login: string;
-		firstPullRequest: {
-			number: number;
-			title: string;
-			url: string;
-			mergedAt: string;
-		};
-	}>,
-	excludeContributors: string[],
-): Array<{
-	login: string;
-	firstPullRequest: {
-		number: number;
-		title: string;
-		url: string;
-		mergedAt: string;
-	};
-}> {
-	if (excludeContributors.length === 0) {
-		return newContributors;
-	}
-
-	return newContributors.filter((c) => !excludeContributors.includes(c.login));
 }
 
 /**

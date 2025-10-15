@@ -14,7 +14,7 @@ import {
 import { logVerbose } from "./logger";
 import { categorizePullRequests, type CategorizeConfig } from "./categorize";
 import { enrichWithHtmlSponsorData } from "./sponsor-html-checker";
-import { applyLabelFilters, filterNewContributorsByExcluded } from "./filters";
+import { applyLabelFilters } from "./filters";
 // Type definitions for release-drafter library functions
 interface ReleaseDrafterContext {
 	payload: {
@@ -684,6 +684,51 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		)}`,
 	);
 
+	// Build contributors list from PRs first (with exclude-contributors applied)
+	const excludeContributors: string[] = Array.isArray(
+		rdConfig["exclude-contributors"],
+	)
+		? rdConfig["exclude-contributors"]
+		: [];
+
+	type ContributorWithPRs = Author & {
+		pullRequests: Array<{
+			number: number;
+			title: string;
+			url: string;
+			mergedAt: string;
+		}>;
+	};
+
+	const contributorsMap = new Map<string, ContributorWithPRs>();
+	for (const pr of pullRequestsSorted || []) {
+		const author = pr.author as Author | undefined;
+		if (!author) continue;
+		const login = author.login;
+		if (!login) continue;
+		// Apply exclude-contributors filter
+		if (excludeContributors.includes(login)) continue;
+
+		if (!contributorsMap.has(login)) {
+			// Initialize contributor with empty PRs array
+			contributorsMap.set(login, {
+				...author,
+				pullRequests: [],
+			} as ContributorWithPRs);
+		}
+
+		// Add this PR to the contributor's list
+		const contributor = contributorsMap.get(login)!;
+		contributor.pullRequests.push({
+			number: pr.number,
+			title: pr.title,
+			url: pr.url,
+			mergedAt: pr.mergedAt,
+		});
+	}
+
+	const contributors = Array.from(contributorsMap.values());
+
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
 	let newContributorsData = null;
@@ -710,7 +755,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			newContributorsPromise = findNewContributors({
 				owner,
 				repo,
-				pullRequests: filteredPullRequests,
+				contributors,
+				filteredPullRequests,
 				token,
 				prevReleaseDate,
 			});
@@ -784,46 +830,21 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}
 	}
 
-	// Build contributors from PR authors - preserve all author fields as-is
-	const excludeContributors: string[] = Array.isArray(
-		rdConfig["exclude-contributors"],
-	)
-		? rdConfig["exclude-contributors"]
-		: [];
-	const contributorsMap = new Map<string, Author>();
-	for (const pr of pullRequestsSorted || []) {
-		// Since MergedPullRequest extends PullRequest, author should always exist
-		// and have the right type, but TypeScript needs explicit handling
-		const author = pr.author as Author | undefined;
-		if (!author) continue;
-		const login = author.login;
-		if (!login) continue;
-		// Filter by excludeContributors
-		if (excludeContributors.includes(login)) continue;
-		if (!contributorsMap.has(login)) {
-			// Preserve the author object exactly as received
-			contributorsMap.set(login, author);
-		}
-	}
-
-	// Map new contributors back to include full author data and filter excluded contributors
+	// Map new contributors back to include full author data
 	const newContributorsOutput = newContributorsData
-		? filterNewContributorsByExcluded(
-				(
-					newContributorsData as {
-						newContributors: Array<{
-							login: string;
-							firstPullRequest: {
-								number: number;
-								title: string;
-								url: string;
-								mergedAt: string;
-							};
-						}>;
-					}
-				).newContributors,
-				excludeContributors,
-			).map((c) => {
+		? (
+				newContributorsData as {
+					newContributors: Array<{
+						login: string;
+						firstPullRequest: {
+							number: number;
+							title: string;
+							url: string;
+							mergedAt: string;
+						};
+					}>;
+				}
+			).newContributors.map((c) => {
 				const base = contributorsMap.get(c.login);
 				return {
 					...base,
@@ -867,7 +888,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			labels: pr.labels?.nodes?.map((node) => node.name) || [],
 		})),
 		categorizedPullRequests: flattenedCategorized,
-		contributors: Array.from(contributorsMap.values()),
+		contributors,
 		newContributors: newContributorsOutput,
 		release: {
 			name: releaseInfo.name,

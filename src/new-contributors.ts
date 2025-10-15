@@ -1,6 +1,7 @@
 import { buildBatchContributorQuery } from "./graphql/new-contributors-queries";
 import { logVerbose } from "./logger";
 import type { PullRequest } from "./graphql/pr-queries";
+import type { Author } from "./core";
 
 // Internal types for new-contributors module
 interface PullRequestInfo {
@@ -17,10 +18,15 @@ interface ContributorCheckResult {
 	firstPullRequest?: PullRequestInfo;
 }
 
+interface ContributorWithPRs extends Author {
+	pullRequests: PullRequestInfo[];
+}
+
 export interface NewContributorsOptions {
 	owner: string;
 	repo: string;
-	pullRequests: PullRequest[];
+	contributors: ContributorWithPRs[];
+	filteredPullRequests: PullRequest[];
 	token: string;
 	prevReleaseDate?: string;
 }
@@ -183,45 +189,19 @@ async function batchCheckContributors(
 	return results;
 }
 
-function extractContributorsFromPRs(
-	pullRequests: PullRequest[],
-): Map<string, { type: string; pullRequests: PullRequestInfo[] }> {
-	const contributorsMap = new Map<
-		string,
-		{ type: string; pullRequests: PullRequestInfo[] }
-	>();
-
-	for (const pr of pullRequests) {
-		if (!pr.author?.login) continue;
-
-		const login = pr.author.login;
-		const type = pr.author.type;
-
-		if (!contributorsMap.has(login)) {
-			contributorsMap.set(login, {
-				type,
-				pullRequests: [],
-			});
-		}
-
-		const contributor = contributorsMap.get(login)!;
-		contributor.pullRequests.push({
-			number: pr.number,
-			title: pr.title,
-			url: pr.url,
-			mergedAt: pr.mergedAt,
-		});
-	}
-
-	return contributorsMap;
-}
-
 export async function findNewContributors(
 	options: NewContributorsOptions,
 ): Promise<NewContributorsResult> {
-	const { owner, repo, pullRequests, token, prevReleaseDate } = options;
+	const {
+		owner,
+		repo,
+		contributors,
+		filteredPullRequests,
+		token,
+		prevReleaseDate,
+	} = options;
 	logVerbose(
-		`[New Contributors] Starting detection for ${pullRequests.length} PRs in ${owner}/${repo}`,
+		`[New Contributors] Starting detection for ${contributors.length} contributors in ${owner}/${repo}`,
 	);
 
 	const graphqlFn = async (
@@ -256,12 +236,25 @@ export async function findNewContributors(
 		return payload.data || {};
 	};
 
-	const contributorData = extractContributorsFromPRs(pullRequests);
+	// Convert contributors to the format expected by batchCheckContributors
+	const contributorData = new Map<
+		string,
+		{ type: string; pullRequests: PullRequestInfo[] }
+	>();
+
+	for (const contributor of contributors) {
+		if (!contributor.login) continue;
+		contributorData.set(contributor.login, {
+			type: contributor.type || "User",
+			pullRequests: contributor.pullRequests,
+		});
+	}
+
 	logVerbose(
-		`[New Contributors] Extracted ${contributorData.size} unique contributors from PRs`,
+		`[New Contributors] Processing ${contributorData.size} contributors`,
 	);
 
-	const prNumbers = pullRequests.map((pr) => pr.number);
+	const prNumbers = filteredPullRequests.map((pr) => pr.number);
 	const releasePRNumbers = new Set(prNumbers);
 
 	const checkResults = await batchCheckContributors(
