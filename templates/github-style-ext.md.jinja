@@ -1,0 +1,45 @@
+## What's Changed
+{% for category in categorizedPullRequests.categories %}
+{%- if category.pullRequests | length > 0 %}
+### {{ category.title }}
+{%- for pr in category.pullRequests %}
+- {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- if newContributors | length > 0 %}
+
+## New Contributors
+{%- for contributor in newContributors %}
+- @{{ contributor.login }} made their first contribution in {{ contributor.firstPullRequest.url }}
+{%- endfor %}
+{%- endif %}
+{%- if contributors | length > 0 %}
+
+## Contributors
+
+<table>
+<tr>
+{%- for contributor in contributors %}
+<td align="center">
+  <a href="{{ contributor.url }}">
+    <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64" height="64" alt="@{{ contributor.login }}"><br>
+    <sub><b>@{{ contributor.login }}</b></sub>
+  </a>
+  {%- if contributor.sponsorsListing %}
+  <br>
+  <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor @{{ contributor.login }}">
+    <sup>💖 Sponsor</sup>
+  </a>
+  {%- endif %}
+</td>
+{%- if loop.index % 6 == 0 and not loop.last %}
+</tr>
+<tr>
+{%- endif %}
+{%- endfor %}
+</tr>
+</table>
+{%- endif %}
+
+**Full Changelog**: {{ fullChangelogLink }}
