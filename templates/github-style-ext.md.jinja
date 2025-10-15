@@ -19,26 +19,28 @@
 ## Contributors
 
 <table>
-<tr>
+  <tbody>
+    <tr>
 {%- for contributor in contributors %}
-<td align="center">
-  <a href="{{ contributor.url }}">
-    <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64" height="64" alt="@{{ contributor.login }}"><br>
-    <sub><b>@{{ contributor.login }}</b></sub>
-  </a>
-  {%- if contributor.sponsorsListing %}
-  <br>
-  <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor @{{ contributor.login }}">
-    <sup>💖 Sponsor</sup>
-  </a>
-  {%- endif %}
-</td>
-{%- if loop.index % 6 == 0 and not loop.last %}
-</tr>
-<tr>
+      <td align="center" valign="top" width="14.28%">
+        <a href="{{ contributor.url }}">
+          <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=100&h=100&mask=circle&fit=cover&maxage=1w" width="100px" alt="{{ contributor.login }}"/><br />
+          <sub><b>{{ contributor.login }}</b></sub>
+        </a>
+        {%- if contributor.sponsorsListing %}
+        <br />
+        <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
+          💖
+        </a>
+        {%- endif %}
+      </td>
+{%- if loop.index % 7 == 0 and not loop.last %}
+    </tr>
+    <tr>
 {%- endif %}
 {%- endfor %}
-</tr>
+    </tr>
+  </tbody>
 </table>
 {%- endif %}
 
