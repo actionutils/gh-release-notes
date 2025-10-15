@@ -14,7 +14,7 @@
     "build:lib": "bun build src/core.ts --target=node --outfile=dist/index.js --external minijinja-js",
     "build:cli": "bun build src/cli.ts --target=node --outfile=dist/cli.js --external minijinja-js",
     "build": "bun run build:lib && bun run build:cli",
-    "compile": "bun build src/cli.ts --compile --external minijinja-js --outfile=gh-release-notes",
+    "compile": "bun build src/cli.ts --compile --outfile=gh-release-notes",
     "prepublishOnly": "bun run build",
     "test": "bun test",
     "lint": "oxlint --type-aware -D no-explicit-any src",

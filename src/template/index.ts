@@ -1,4 +1,4 @@
-import { Environment } from "minijinja-js";
+import { Environment } from "./minijinja-shim";
 import { ContentLoaderFactory } from "../content-loader";
 import { logVerbose } from "../logger";
 
