@@ -28,9 +28,6 @@
 </td>
 <td>
 @{{ pr.author.login }}
-{%- if pr.author.sponsorsListing %}
-<a href="{{ pr.author.sponsorsListing.url }}">💖</a>
-{%- endif %}
 </td>
 </tr>
 {%- endfor %}
@@ -42,5 +39,35 @@
 {%- endif %}
 {%- endif %}
 {%- endfor %}
+
+{%- if contributors | length > 0 %}
+
+## Contributors
+
+<table>
+  <tbody>
+    <tr>
+{%- for contributor in contributors %}
+      <td align="center" valign="top" width="12.5%">
+        <a href="{{ contributor.url }}">
+          <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64px" alt="{{ contributor.login }}"/><br />
+        </a>
+        <sub>@{{ contributor.login }}</sub>
+        {%- if contributor.sponsorsListing %}
+        <br><br>
+        <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
+          <img src="https://img.shields.io/badge/-Sponsor-ea4aaa?style=for-the-badge&logo=github&logoColor=white" height="24" />
+        </a>
+        {%- endif %}
+      </td>
+{%- if loop.index % 8 == 0 and not loop.last %}
+    </tr>
+    <tr>
+{%- endif %}
+{%- endfor %}
+    </tr>
+  </tbody>
+</table>
+{%- endif %}
 
 **Full Changelog**: {{ fullChangelogLink }}
