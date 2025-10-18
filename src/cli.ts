@@ -5,6 +5,7 @@ import { run } from "./core";
 import { setVerbose, logVerbose } from "./logger";
 import { resolveBaseRepo } from "./repo-detector";
 import { initCommand } from "./commands/init";
+import { migrateCommand } from "./commands/migrate";
 
 async function main() {
 	const parser = yargs(hideBin(process.argv))
@@ -34,6 +35,53 @@ async function main() {
 					});
 					if (res.status === "printed") {
 						process.stdout.write(res.content);
+					} else {
+						const msgMap = {
+							created: "Created",
+							overwrote: "Overwrote",
+							"up-to-date": "Up-to-date",
+						} as const;
+						console.log(`${msgMap[res.status]}: ${res.path}`);
+					}
+				} catch (e) {
+					console.error("Error:", e instanceof Error ? e.message : e);
+					process.exit(1);
+				}
+			},
+		)
+		.command(
+			"migrate",
+			"Migrate GitHub .github/release.yml(.yaml) to Release Drafter config",
+			(cmd) =>
+				cmd
+					.option("source", {
+						alias: "s",
+						type: "string",
+						description:
+							"Source path for GitHub release config (default: .github/release.yml or .yaml)",
+					})
+					.option("output", {
+						alias: "o",
+						type: "string",
+						description:
+							"Output path (default: .github/release-drafter.yml). Use '-' for stdout.",
+					})
+					.option("force", {
+						type: "boolean",
+						description: "Overwrite the output file if it exists",
+						default: false,
+					}),
+			async (argv) => {
+				try {
+					const res = await migrateCommand({
+						source: argv.source as string | undefined,
+						output: argv.output as string | undefined,
+						force: argv.force as boolean | undefined,
+					});
+					if (res.status === "printed") {
+						process.stdout.write(res.content);
+					} else if (res.status === "nothing-to-migrate") {
+						console.log("Nothing to migrate: already a Release Drafter config");
 					} else {
 						const msgMap = {
 							created: "Created",

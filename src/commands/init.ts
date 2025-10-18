@@ -15,6 +15,9 @@ export interface InitOptions {
 export function generateInitConfigYaml(): string {
 	const header = [
 		"# Release Drafter configuration initialized by gh-release-notes",
+		"# This config is compatible with Release Drafter and intended for use with gh-release-notes.",
+		"# gh-release-notes: https://github.com/actionutils/gh-release-notes",
+		"# Release Drafter: https://github.com/release-drafter/release-drafter",
 		"# Add categories to group PRs, e.g.:",
 		"# categories:",
 		"#   - title: Features",
