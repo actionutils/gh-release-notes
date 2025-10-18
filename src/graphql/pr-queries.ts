@@ -197,13 +197,13 @@ export async function fetchMergedPRs(
 	);
 	const nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];
 
-	// Normalize the GraphQL response to the expected format
-	let prs = nodes.map(
-		(node: GraphQLPullRequest): PullRequest => ({
-			number: node.number,
-			title: node.title,
-			mergedAt: node.mergedAt,
-			url: node.url,
+    // Normalize the GraphQL response to the expected format
+    const prs = nodes.map(
+        (node: GraphQLPullRequest): PullRequest => ({
+            number: node.number,
+            title: node.title,
+            mergedAt: node.mergedAt,
+            url: node.url,
 			body: node.body,
 			baseRefName: node.baseRefName,
 			headRefName: node.headRefName,
@@ -216,15 +216,7 @@ export async function fetchMergedPRs(
 				sponsorsListing: node.author.sponsorsListing,
 			},
 		}),
-	);
+    );
 
-	// Apply client-side upper bound filter when provided
-	if (untilDate) {
-		const until = new Date(untilDate).getTime();
-		if (!Number.isNaN(until)) {
-			prs = prs.filter((pr) => new Date(pr.mergedAt).getTime() <= until);
-		}
-	}
-
-	return prs;
+    return prs;
 }
