@@ -4,6 +4,7 @@ import { hideBin } from "yargs/helpers";
 import { run } from "./core";
 import { setVerbose, logVerbose } from "./logger";
 import { resolveBaseRepo } from "./repo-detector";
+import { initCommand } from "./commands/init";
 
 interface Args {
 	repo?: string;
@@ -24,75 +25,162 @@ interface Args {
 async function main() {
 	const parser = yargs(hideBin(process.argv))
 		.scriptName("gh-release-notes")
-		.usage("$0 [options]")
-		.option("repo", {
-			alias: "R",
-			type: "string",
-			description:
-				"Repository in owner/repo format (auto-detected if not provided)",
-			example: "octocat/Hello-World",
-		})
-		.option("config", {
-			alias: "c",
-			type: "string",
-			description: "Config source: local file, HTTPS URL, or purl (optional)",
-			example:
-				"pkg:github/release-drafter/release-drafter@v5#.github/release-drafter.yml",
-		})
-		.option("template", {
-			alias: "t",
-			type: "string",
-			description:
-				"MiniJinja template for release body. Template receives same data as --json output. Source: local file, HTTPS URL, or purl",
-			example: "pkg:github/myorg/templates@v1.0.0#releases/default.jinja",
-		})
-		.option("prev-tag", {
-			type: "string",
-			description:
-				"Previous release tag to generate notes from (disables auto-detection)",
-			example: "v1.0.0",
-		})
-		.option("tag", {
-			type: "string",
-			description: "New release tag",
-			example: "v1.1.0",
-		})
-		.option("target", {
-			type: "string",
-			alias: "ref",
-			description: "Target branch or commit SHA",
-			example: "main",
-		})
-		.option("json", {
-			type: "boolean",
-			description: "Output in JSON format",
-			default: false,
-		})
-		.option("preview", {
-			type: "boolean",
-			description:
-				"Preview mode (uses target instead of tag for changelog comparison)",
-			default: false,
-		})
-		.option("verbose", {
-			alias: "v",
-			type: "boolean",
-			description: "Enable verbose logging",
-			default: false,
-		})
-		.option("skip-new-contributors", {
-			type: "boolean",
-			description:
-				"Skip fetching new contributors data to reduce API calls (only applies with --json or --template)",
-			default: false,
-		})
-		.option("sponsor-fetch-mode", {
-			type: "string",
-			choices: ["none", "graphql", "html", "auto"] as const,
-			description:
-				"How to fetch sponsor information. 'graphql' requires non-GitHub App token (even without any permissions) - GitHub blocks GitHub App tokens (including GITHUB_TOKEN) from accessing this public data. 'html' (experimental) checks sponsor pages via HEAD requests. 'auto' automatically selects the best method based on token type.",
-			default: "auto",
-		})
+		.usage("$0 <command> [options]")
+		.command(
+			"init",
+			"Initialize a Release Drafter–style config",
+			(cmd) =>
+				cmd
+					.option("output", {
+						alias: "o",
+						type: "string",
+						description:
+							"Output path (default: .github/release-drafter.yml). Use '-' for stdout.",
+					})
+					.option("force", {
+						type: "boolean",
+						description: "Overwrite the output file if it exists",
+						default: false,
+					}),
+			async (argv) => {
+				try {
+					const res = await initCommand({
+						output: argv.output as string | undefined,
+						force: argv.force as boolean | undefined,
+					});
+					if (res.status === "printed") {
+						process.stdout.write(res.content);
+					} else {
+						const msgMap = {
+							created: "Created",
+							overwrote: "Overwrote",
+							"up-to-date": "Up-to-date",
+						} as const;
+						console.log(`${msgMap[res.status]}: ${res.path}`);
+					}
+				} catch (e) {
+					console.error("Error:", e instanceof Error ? e.message : e);
+					process.exit(1);
+				}
+			},
+		)
+		.command(
+			"$0",
+			"Generate release notes (default)",
+			(cmd) =>
+				cmd
+					.option("repo", {
+						alias: "R",
+						type: "string",
+						description:
+							"Repository in owner/repo format (auto-detected if not provided)",
+						example: "octocat/Hello-World",
+					})
+					.option("config", {
+						alias: "c",
+						type: "string",
+						description:
+							"Config source: local file, HTTPS URL, or purl (optional)",
+						example:
+							"pkg:github/release-drafter/release-drafter@v5#.github/release-drafter.yml",
+					})
+					.option("template", {
+						alias: "t",
+						type: "string",
+						description:
+							"MiniJinja template for release body. Template receives same data as --json output. Source: local file, HTTPS URL, or purl",
+						example: "pkg:github/myorg/templates@v1.0.0#releases/default.jinja",
+					})
+					.option("prev-tag", {
+						type: "string",
+						description:
+							"Previous release tag to generate notes from (disables auto-detection)",
+						example: "v1.0.0",
+					})
+					.option("tag", {
+						type: "string",
+						description: "New release tag",
+						example: "v1.1.0",
+					})
+					.option("target", {
+						type: "string",
+						alias: "ref",
+						description: "Target branch or commit SHA",
+						example: "main",
+					})
+					.option("json", {
+						type: "boolean",
+						description: "Output in JSON format",
+						default: false,
+					})
+					.option("preview", {
+						type: "boolean",
+						description:
+							"Preview mode (uses target instead of tag for changelog comparison)",
+						default: false,
+					})
+					.option("verbose", {
+						alias: "v",
+						type: "boolean",
+						description: "Enable verbose logging",
+						default: false,
+					})
+					.option("skip-new-contributors", {
+						type: "boolean",
+						description:
+							"Skip fetching new contributors data to reduce API calls (only applies with --json or --template)",
+						default: false,
+					})
+					.option("sponsor-fetch-mode", {
+						type: "string",
+						choices: ["none", "graphql", "html", "auto"] as const,
+						description:
+							"How to fetch sponsor information. 'graphql' requires non-GitHub App token (even without any permissions) - GitHub blocks GitHub App tokens (including GITHUB_TOKEN) from accessing this public data. 'html' (experimental) checks sponsor pages via HEAD requests. 'auto' automatically selects the best method based on token type.",
+						default: "auto",
+					}),
+			async (args) => {
+				// Set verbose mode if requested (timestamps included by default)
+				setVerbose(!!args.verbose);
+
+				logVerbose("[CLI] Verbose mode enabled");
+
+				try {
+					// Auto-detect repository if not provided
+					let repoString = args.repo as string | undefined;
+					if (!repoString) {
+						const repo = await resolveBaseRepo({
+							flagRepo: args.repo as string | undefined,
+						});
+						repoString = `${repo.owner}/${repo.name}`;
+						logVerbose(`[CLI] Auto-detected repository: ${repoString}`);
+					}
+
+					logVerbose("[CLI] Starting run() with provided options");
+					const result = await run({
+						repo: repoString,
+						config: args.config as string | undefined,
+						template: args.template as string | undefined,
+						prevTag: (args["prev-tag"] as string | undefined) ?? undefined,
+						tag: args.tag as string | undefined,
+						target: args.target as string | undefined,
+						preview: !!args.preview,
+						skipNewContributors: !!args["skip-new-contributors"],
+						sponsorFetchMode: (args["sponsor-fetch-mode"] as any) ?? "auto",
+						includeAllData: !!args.json || !!args.template,
+					});
+
+					// Display the output
+					if (args.json) {
+						process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+					} else {
+						process.stdout.write(String(result.release.body || "") + "\n");
+					}
+				} catch (e) {
+					console.error("Error:", e);
+					process.exit(1);
+				}
+			},
+		)
 		.help("help")
 		.alias("help", "h")
 		.version(false)
@@ -163,46 +251,7 @@ async function main() {
 		.strict()
 		.wrap(100);
 
-	const args = (await parser.parseAsync()) as Args;
-
-	// Set verbose mode if requested (timestamps included by default)
-	setVerbose(args.verbose);
-
-	logVerbose("[CLI] Verbose mode enabled");
-
-	try {
-		// Auto-detect repository if not provided
-		let repoString = args.repo;
-		if (!repoString) {
-			const repo = await resolveBaseRepo({ flagRepo: args.repo });
-			repoString = `${repo.owner}/${repo.name}`;
-			logVerbose(`[CLI] Auto-detected repository: ${repoString}`);
-		}
-
-		logVerbose("[CLI] Starting run() with provided options");
-		const result = await run({
-			repo: repoString,
-			config: args.config,
-			template: args.template,
-			prevTag: args["prev-tag"],
-			tag: args.tag,
-			target: args.target,
-			preview: args.preview,
-			skipNewContributors: args["skip-new-contributors"],
-			sponsorFetchMode: args["sponsor-fetch-mode"],
-			includeAllData: args.json || !!args.template, // Include all data for JSON output or template rendering
-		});
-
-		// Display the output
-		if (args.json) {
-			process.stdout.write(JSON.stringify(result, null, 2) + "\n");
-		} else {
-			process.stdout.write(String(result.release.body || "") + "\n");
-		}
-	} catch (e) {
-		console.error("Error:", e);
-		process.exit(1);
-	}
+	await parser.parseAsync();
 }
 
 void main();
