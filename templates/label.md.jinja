@@ -34,7 +34,7 @@
 <details>
 <summary>Show all {{ numbers | length }} items</summary>
 
-{%- for n in numbers %}
+{% for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
@@ -54,7 +54,7 @@
 <details>
 <summary>Show all {{ numbers | length }} items</summary>
 
-{%- for n in numbers %}
+{% for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
