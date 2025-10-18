@@ -12,6 +12,7 @@ import {
 	findNewContributors,
 	formatNewContributorsSection,
 } from "./new-contributors";
+import type { NewContributorsResult } from "./new-contributors";
 import { logVerbose } from "./logger";
 import { categorizePullRequests, type CategorizeConfig } from "./categorize";
 import { enrichWithHtmlSponsorData } from "./sponsor-html-checker";
@@ -997,7 +998,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
-	let newContributorsData = null;
+	let newContributorsData: NewContributorsResult | null = null;
 	let newContributorsPromise: Promise<unknown> | null = null;
 
 	const shouldFetchNewContributors =
@@ -1039,9 +1040,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 		// Wait for new contributors detection if it was started
 		if (newContributorsPromise) {
-			const newContributorsResult = (await newContributorsPromise) as {
-				newContributors: NewContributor[];
-			};
+			const newContributorsResult =
+				(await newContributorsPromise) as NewContributorsResult;
 			newContributorsSection = formatNewContributorsSection(
 				newContributorsResult.newContributors,
 			);
@@ -1105,19 +1105,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Map new contributors back to include full author data
 	const newContributorsOutput = newContributorsData
-		? (
-				newContributorsData as {
-					newContributors: Array<{
-						login: string;
-						firstPullRequest: {
-							number: number;
-							title: string;
-							url: string;
-							mergedAt: string;
-						};
-					}>;
-				}
-			).newContributors.map((c) => {
+		? newContributorsData.newContributors.map((c) => {
 				const base = contributorsMap.get(c.login);
 				return {
 					...base,
