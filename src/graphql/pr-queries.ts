@@ -65,6 +65,7 @@ export type SearchPRParams = {
 	owner: string;
 	repo: string;
 	sinceDate?: string;
+	untilDate?: string;
 	baseBranch?: string;
 	graphqlFn: (
 		query: string,
@@ -139,6 +140,7 @@ export async function fetchMergedPRs(
 		owner,
 		repo,
 		sinceDate,
+		untilDate,
 		baseBranch,
 		graphqlFn,
 		withBody,
@@ -153,8 +155,16 @@ export async function fetchMergedPRs(
 	if (baseBranch) {
 		qParts.push(`base:${baseBranch}`);
 	}
-	if (sinceDate) {
-		qParts.push(`merged:>${sinceDate}`);
+	// Date range for merged time: prefer a single range qualifier to avoid
+	// multiple merged: qualifiers behaving unexpectedly.
+	// GitHub search doc: https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#query-for-dates
+	// - Supports comparisons (>, >=, <, <=) and range form "from..to".
+	// - Time information like THH:MM:SSZ is allowed (same as sinceDate handling).
+	// - Open ranges supported via "*" (e.g., from..* or *..to).
+	if (sinceDate || untilDate) {
+		const lower = sinceDate ?? "*";
+		const upper = untilDate ?? "*";
+		qParts.push(`merged:${lower}..${upper}`);
 	}
 	// Apply label filtering at search-level when possible
 	// Exclude labels: remove PRs that have any of these labels
@@ -188,7 +198,7 @@ export async function fetchMergedPRs(
 	const nodes = Array.isArray(data?.search?.nodes) ? data.search.nodes : [];
 
 	// Normalize the GraphQL response to the expected format
-	return nodes.map(
+	let prs = nodes.map(
 		(node: GraphQLPullRequest): PullRequest => ({
 			number: node.number,
 			title: node.title,
@@ -207,4 +217,14 @@ export async function fetchMergedPRs(
 			},
 		}),
 	);
+
+	// Apply client-side upper bound filter when provided
+	if (untilDate) {
+		const until = new Date(untilDate).getTime();
+		if (!Number.isNaN(until)) {
+			prs = prs.filter((pr) => new Date(pr.mergedAt).getTime() <= until);
+		}
+	}
+
+	return prs;
 }
