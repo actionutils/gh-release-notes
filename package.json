@@ -33,6 +33,7 @@
     "@actions/core": "file:shims/actions-core",
     "@biomejs/biome": "^2.2.5",
     "@octokit/rest": "^22.0.0",
+    "@types/semver": "^7.5.8",
     "@types/bun": "^1.2.23",
     "@types/pino-std-serializers": "^4.0.0",
     "@types/yargs": "^17.0.33",
@@ -42,6 +43,7 @@
     "oxlint-tsgolint": "^0.2.0",
     "packageurl-js": "^2.0.1",
     "release-drafter": "github:release-drafter/release-drafter#v6.1.0",
+    "semver": "^7.6.3",
     "typescript": "^5.9.3",
     "yargs": "^18.0.0"
   },
