@@ -51,11 +51,17 @@ describe("migrate command", () => {
 		) {
 			expect(res.path!).toMatch(/\.github\/release-drafter\.yml$/);
 			const disk = await fs.readFile(res.path!, "utf8");
+			// Header should include links
+			expect(disk).toContain(
+				"https://github.com/actionutils/gh-release-notes",
+			);
+			expect(disk).toContain(
+				"https://github.com/release-drafter/release-drafter",
+			);
+			// YAML should parse to expected content
 			const expectedObj = convertGitHubToReleaseDrafter(githubConfig);
-			const expectedYaml =
-				yaml.dump(expectedObj, { indent: 2, lineWidth: -1, noRefs: true }) +
-				"\n";
-			expect(disk).toBe(expectedYaml);
+			const parsed = yaml.load(disk) as unknown;
+			expect(parsed).toEqual(expectedObj);
 			// Wildcard exclude warning isn't present here; no per-category exclude provided
 			expect(res.warnings.length).toBe(0);
 		}
@@ -79,11 +85,16 @@ describe("migrate command", () => {
 		const res = await migrateCommand({ output: "-" });
 		expect(res.status).toBe("printed");
 		if (res.status === "printed") {
+			// Header should include links
+			expect(res.content).toContain(
+				"https://github.com/actionutils/gh-release-notes",
+			);
+			expect(res.content).toContain(
+				"https://github.com/release-drafter/release-drafter",
+			);
 			const expectedObj = convertGitHubToReleaseDrafter(githubConfig);
-			const expectedYaml =
-				yaml.dump(expectedObj, { indent: 2, lineWidth: -1, noRefs: true }) +
-				"\n";
-			expect(res.content).toBe(expectedYaml);
+			const parsed = yaml.load(res.content) as unknown;
+			expect(parsed).toEqual(expectedObj);
 			// Should have a warning for per-category exclude
 			expect(res.warnings.length).toBe(1);
 			expect(res.warnings[0]).toContain("per-category excludes");
