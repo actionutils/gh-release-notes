@@ -17,14 +17,18 @@ Use cases
 
 Quick install (latest)
 - Install the binary
-  - `curl -sSfL https://github.com/actionutils/gh-release-notes/releases/latest/download/install.sh | sh`
+```console
+curl -sSfL https://github.com/actionutils/gh-release-notes/releases/latest/download/install.sh | sh
+```
 - Or run directly without installation
-  - `curl -sSfL https://github.com/actionutils/gh-release-notes/releases/latest/download/run.sh | sh`
+```console
+curl -sSfL https://github.com/actionutils/gh-release-notes/releases/latest/download/run.sh | sh
+```
 
 <details>
 <summary>Verify latest with cosign</summary>
 
-```sh
+```console
 # Choose the script to execute
 SCRIPT="install.sh"  # or "run.sh"
 DOWNLOAD_URL="https://github.com/actionutils/gh-release-notes/releases/latest/download"
@@ -48,13 +52,13 @@ curl -sL "${DOWNLOAD_URL}/${SCRIPT}" | \
 Specific version (simple)
 
 Install
-```sh
+```console
 VERSION="<version>"  # e.g., v0.6.0
 curl -sSfL "https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}/install.sh" | sh
 ```
 
 Run without installation
-```sh
+```console
 VERSION="<version>"  # e.g., v0.6.0
 curl -sSfL "https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}/run.sh" | sh
 ```
@@ -62,7 +66,7 @@ curl -sSfL "https://github.com/actionutils/gh-release-notes/releases/download/${
 Specific version (verified with cosign)
 
 Install (verified)
-```sh
+```console
 VERSION="<version>"  # e.g., v0.6.0
 BASE="https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}"
 curl -sL "${BASE}/install.sh" | \
@@ -77,7 +81,7 @@ curl -sL "${BASE}/install.sh" | \
 ```
 
 Run without installation (verified)
-```sh
+```console
 VERSION="<version>"  # e.g., v0.6.0
 BASE="https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}"
 curl -sL "${BASE}/run.sh" | \
@@ -95,23 +99,45 @@ curl -sL "${BASE}/run.sh" | \
 
 Other options
 - GitHub CLI extension:
-  - Install: `gh extension install actionutils/gh-release-notes`
-  - Upgrade: `gh extension upgrade actionutils/gh-release-notes`
-- npx (no install): `npx @actionutils/gh-release-notes`
+  - Install:
+    ```console
+    gh extension install actionutils/gh-release-notes
+    ```
+  - Upgrade:
+    ```console
+    gh extension upgrade actionutils/gh-release-notes
+    ```
+- npx (no install):
+  ```console
+  npx @actionutils/gh-release-notes
+  ```
 
 ## Usage
 
 - Generate from latest changes (auto-detects previous release):
-  - `gh-release-notes`
-  - As gh extension: `gh release-notes`
+  ```console
+  gh-release-notes
+  ```
+  As gh extension:
+  ```console
+  gh release-notes
+  ```
 - Specify previous and next tags:
-  - `gh-release-notes --prev-tag v1.0.0 --tag v1.1.0`
+  ```console
+  gh-release-notes --prev-tag v1.0.0 --tag v1.1.0
+  ```
 - Target a branch/revision:
-  - `gh-release-notes --target main`
+  ```console
+  gh-release-notes --target main
+  ```
 - Use a MiniJinja template:
-  - `gh-release-notes --template ./templates/release.jinja`
+  ```console
+  gh-release-notes --template ./templates/release.jinja
+  ```
 - JSON output (for scripting or custom rendering):
-  - `gh-release-notes --json > release.json`
+  ```console
+  gh-release-notes --json > release.json
+  ```
 
 Tip: You can read the resolved version fields from the output (e.g., `release.resolvedVersion`) to decide tagging and releasing logic in your pipeline.
 
