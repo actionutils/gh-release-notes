@@ -448,59 +448,6 @@ async function detectExistingTag(params: {
 	return null;
 }
 
-// Resolve a tag to the commit timestamp used as an upper bound for PR merging time.
-// Follows annotated tags to the underlying commit and returns the commit's committer date.
-async function resolveTagCommitDate(params: {
-	owner: string;
-	repo: string;
-	token: string;
-	tag: string;
-}): Promise<string | null> {
-	const { owner, repo, token, tag } = params;
-	try {
-		const ref = (await ghRest(`/repos/${owner}/${repo}/git/ref/tags/${tag}`, {
-			token,
-		})) as { object?: { sha?: string; type?: string } };
-		let objSha = ref?.object?.sha || "";
-		let objType = ref?.object?.type || "";
-
-		// If annotated tag, dereference to underlying object
-		let safety = 0;
-		while (objType === "tag" && objSha && safety < 3) {
-			safety++;
-			const tagObj = (await ghRest(
-				`/repos/${owner}/${repo}/git/tags/${objSha}`,
-				{ token },
-			)) as { object?: { sha?: string; type?: string } };
-			objSha = tagObj?.object?.sha || objSha;
-			objType = tagObj?.object?.type || objType;
-			if (!objSha) break;
-		}
-
-		if (objSha && objType === "commit") {
-			const commit = (await ghRest(
-				`/repos/${owner}/${repo}/commits/${objSha}`,
-				{ token },
-			)) as {
-				commit?: {
-					committer?: { date?: string };
-					author?: { date?: string };
-				};
-			};
-			const date =
-				commit?.commit?.committer?.date || commit?.commit?.author?.date;
-			if (date) return date;
-		}
-	} catch (e) {
-		logVerbose(
-			`[Releases] Failed to resolve commit date for tag ${tag}: ${
-				e instanceof Error ? e.message : String(e)
-			}`,
-		);
-	}
-	return null;
-}
-
 // Find the previous GitHub release relative to a given existing tag.
 // If the tag has no corresponding release, optionally falls back to the latest
 // release older than the tag's commit timestamp.
