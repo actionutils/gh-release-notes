@@ -223,7 +223,7 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
   <tr width="600px">
 <td>
 
-## Contributors
+## Contributors of reviewdog v0.21.0
 
 <table>
   <tbody>
@@ -341,8 +341,8 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
 </td>
 <td>
 
-```html
-## Contributors
+```jinja
+## Contributors of reviewdog v0.21.0
 
 <table>
   <tbody>
