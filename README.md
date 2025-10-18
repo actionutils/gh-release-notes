@@ -1,5 +1,7 @@
 # gh-release-notes
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/actionutils/gh-release-notes/badge)](https://scorecard.dev/viewer/?uri=github.com/actionutils/gh-release-notes)
+
 PR-based release notes generator with strong compatibility with GitHub’s Generate Release Notes and release-drafter. Zero-config works out of the box, and you can keep using your existing `.github/release.yml` or `.github/release-drafter.yml`.
 
 ### Highlights
