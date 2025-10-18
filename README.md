@@ -2,13 +2,13 @@
 
 PR-based release notes generator with strong compatibility with GitHub’s Generate Release Notes and release-drafter. Zero-config works out of the box, and you can keep using your existing `.github/release.yml` or `.github/release-drafter.yml`.
 
-Highlights
+### Highlights
 - Flexible templating with MiniJinja for finer control than release-drafter templates
 - JSON output to drive any templating engine or downstream tooling
 - Remote config/template via GitHub purl for easy organization-wide sharing
 - Works with read-only permissions; no write permission needed (see Permissions)
 
-Use cases
+### Use cases
 - Generate release notes from PRs with existing configs
 - Automate in CI/CD or preview locally
 - Shape the output via JSON or your favorite templating engine
