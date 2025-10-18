@@ -3,7 +3,7 @@
 {%- if category.pullRequests | length > 0 %}
 
 ### {{ category.title }}
-{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+{%- if category.collapse_after and category.collapse_after > 0 and category.pullRequests | length > category.collapse_after %}
 
 <details>
 <summary>Show all {{ category.pullRequests | length }} items</summary>
@@ -19,7 +19,8 @@
     </tr>
   </thead>
   <tbody>
-{%- for pr in category.pullRequests %}
+{%- for n in category.pullRequests %}
+{%- set pr = pullRequests[n|string] %}
     <tr>
       <td align="center"><a href="{{ pr.url }}">#{{ pr.number }}</a></td>
       <td>{{ pr.title }}</td>
@@ -33,7 +34,7 @@
 {%- endfor %}
   </tbody>
 </table>
-{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+{%- if category.collapse_after and category.collapse_after > 0 and category.pullRequests | length > category.collapse_after %}
 
 </details>
 {%- endif %}

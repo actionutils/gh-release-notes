@@ -163,14 +163,20 @@ export type CategorizedPullRequests = {
 	}>;
 };
 
-// Type for new contributor - author data plus firstPullRequest
-export type NewContributor = Author & {
-	firstPullRequest: {
-		number: number;
+// Categorized pull requests represented by PR numbers only
+export type CategorizedPullRequestsByNumber = {
+	uncategorized: number[];
+	categories: Array<{
 		title: string;
-		url: string;
-		mergedAt: string;
-	};
+		labels?: string[];
+		collapse_after?: number;
+		pullRequests: number[];
+	}>;
+};
+
+// Type for new contributor - author data plus firstPullRequest number only
+export type NewContributor = Author & {
+	firstPullRequest: number;
 };
 
 // Type for last release information
@@ -200,8 +206,12 @@ export type RunResult = {
 	repo: string;
 	defaultBranch: string;
 	lastRelease: LastRelease;
-	mergedPullRequests: MergedPullRequest[];
-	categorizedPullRequests: CategorizedPullRequests;
+	// PR data map: PR number -> data
+	pullRequests: Record<number, MergedPullRequest>;
+	// Merged PR numbers in order
+	mergedPullRequests: number[];
+	// Categorized PR numbers
+	categorizedPullRequests: CategorizedPullRequestsByNumber;
 	contributors: Author[];
 	newContributors: NewContributor[] | null;
 	release: ReleaseInfo;
@@ -1110,7 +1120,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				const base = contributorsMap.get(c.login);
 				return {
 					...base,
-					firstPullRequest: c.firstPullRequest,
+					firstPullRequest: c.firstPullRequest.number,
 				} as NewContributor;
 			})
 		: null;
@@ -1122,20 +1132,27 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		rdConfig as CategorizeConfig,
 	);
 
-	// The categorized result already has the right structure
-	const flattenedCategorized: CategorizedPullRequests = {
-		uncategorized: categorizedPullRequests.uncategorized.map((pr) => ({
+	// Build pullRequests map with flattened labels
+	const pullRequestsMap: Record<number, MergedPullRequest> = {};
+	for (const pr of pullRequestsSorted || []) {
+		pullRequestsMap[pr.number] = {
 			...pr,
 			labels:
 				pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
-		})),
+		} as unknown as MergedPullRequest;
+	}
+
+	// Categorized PR numbers only
+	const flattenedCategorizedNumbers: CategorizedPullRequestsByNumber = {
+		uncategorized: categorizedPullRequests.uncategorized.map((pr) => pr.number),
 		categories: categorizedPullRequests.categories.map((cat) => ({
-			...cat,
-			pullRequests: cat.pullRequests.map((pr) => ({
-				...pr,
-				labels:
-					pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
-			})),
+			title: cat.title,
+			labels: cat.labels,
+			collapse_after:
+				typeof (cat as { collapse_after?: unknown }).collapse_after === "number"
+					? (cat as { collapse_after?: number }).collapse_after
+					: undefined,
+			pullRequests: cat.pullRequests.map((pr) => pr.number),
 		})),
 	};
 
@@ -1145,11 +1162,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		repo,
 		defaultBranch,
 		lastRelease,
-		mergedPullRequests: pullRequestsSorted.map((pr) => ({
-			...pr,
-			labels: pr.labels?.nodes?.map((node) => node.name) || [],
-		})),
-		categorizedPullRequests: flattenedCategorized,
+		pullRequests: pullRequestsMap,
+		mergedPullRequests: (pullRequestsSorted || []).map((pr) => pr.number),
+		categorizedPullRequests: flattenedCategorizedNumbers,
 		contributors,
 		newContributors: newContributorsOutput,
 		release: {

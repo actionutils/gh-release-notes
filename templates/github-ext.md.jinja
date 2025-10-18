@@ -2,18 +2,20 @@
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
 ### {{ category.title }}
-{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+{%- if category.collapse_after and category.collapse_after > 0 and category.pullRequests | length > category.collapse_after %}
 
 <details>
 <summary>Show all {{ category.pullRequests | length }} items</summary>
 
-{% for pr in category.pullRequests %}
+{% for n in category.pullRequests %}
+{%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
 
 </details>
 {%- else %}
-{%- for pr in category.pullRequests %}
+{%- for n in category.pullRequests %}
+{%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
 {%- endif %}
@@ -22,7 +24,8 @@
 
 {# Render uncategorized PRs only when no categories are defined (no header) #}
 {%- if (categorizedPullRequests.categories | length == 0) and (categorizedPullRequests.uncategorized | length > 0) %}
-{%- for pr in categorizedPullRequests.uncategorized %}
+{%- for n in categorizedPullRequests.uncategorized %}
+{%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
 {%- endif %}
@@ -30,7 +33,9 @@
 
 ## New Contributors
 {%- for contributor in newContributors %}
-- @{{ contributor.login }} made their first contribution in [#{{ contributor.firstPullRequest.number }}]({{ contributor.firstPullRequest.url }})
+{%- set n = contributor.firstPullRequest %}
+{%- set pr = pullRequests[n|string] %}
+- @{{ contributor.login }} made their first contribution in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
 {%- endif %}
 {%- if contributors | length > 0 %}
