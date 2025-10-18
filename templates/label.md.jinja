@@ -1,13 +1,72 @@
 ## What's Changed by Label
 
-{# Iterate labels available in the map #}
-{%- for label in pullRequestsByLabel %}
+{# If there are labeled PRs, render sections per label, then optionally Unlabeled. Otherwise, list unlabeled without a header. #}
+{%- if (pullRequestsByLabel.labels | length) > 0 %}
+{%- for label in pullRequestsByLabel.labels %}
+
 ### {{ label }}
-{%- for n in pullRequestsByLabel[label] %}
+{%- set numbers = pullRequestsByLabel.labels[label] %}
+{%- if (numbers | length) >= 5 %}
+
+<details>
+<summary>Show all {{ numbers | length }} items</summary>
+
+{% for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
+
+</details>
+{%- else %}
+{%- for n in numbers %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
+{%- endif %}
+{%- endfor %}
+
+{%- if pullRequestsByLabel.unlabeled and (pullRequestsByLabel.unlabeled | length) > 0 %}
+
+### Unlabeled
+{%- set numbers = pullRequestsByLabel.unlabeled %}
+{%- if (numbers | length) >= 5 %}
+
+<details>
+<summary>Show all {{ numbers | length }} items</summary>
+
+{%- for n in numbers %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for n in numbers %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- else %}
+{%- set numbers = pullRequestsByLabel.unlabeled %}
+{%- if (numbers | length) >= 5 %}
+
+<details>
+<summary>Show all {{ numbers | length }} items</summary>
+
+{%- for n in numbers %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for n in numbers %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+{%- endif %}
+{%- endif %}
 
 {%- if newContributors | length > 0 %}
 

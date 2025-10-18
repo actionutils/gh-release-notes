@@ -29,7 +29,7 @@ describe("pullRequestsByLabel grouping", () => {
 		return cfgPath;
 	}
 
-	test("groups PR numbers by each label and preserves order", async () => {
+	test("groups PR numbers by each label and preserves order, with unlabeled bucket", async () => {
 		const cfgPath = await writeTmpConfig("template: '$CHANGES'\n");
 
 		// Fetch mock returning three PRs, with labels:
@@ -116,10 +116,10 @@ describe("pullRequestsByLabel grouping", () => {
 
 			// Grouping by label should include both labels with PR numbers in merged order
 			expect(res.pullRequestsByLabel).toBeDefined();
-			expect(res.pullRequestsByLabel["cat"]).toEqual([3, 2]);
-			expect(res.pullRequestsByLabel["dog"]).toEqual([2]);
-			// Unlabeled PR (#1) should not appear under any label key
-			expect(Object.values(res.pullRequestsByLabel).flat()).not.toContain(1);
+			expect(res.pullRequestsByLabel.labels["cat"]).toEqual([3, 2]);
+			expect(res.pullRequestsByLabel.labels["dog"]).toEqual([2]);
+			// Unlabeled PR (#1) should appear in the unlabeled list
+			expect(res.pullRequestsByLabel.unlabeled).toEqual([1]);
 		} finally {
 			await fsPromises.rm(path.dirname(cfgPath), { recursive: true });
 		}

@@ -214,8 +214,13 @@ export type RunResult = {
 	mergedPullRequests: number[];
 	// Categorized PR numbers
 	categorizedPullRequests: CategorizedPullRequestsByNumber;
-	// Pull requests grouped by label: label -> PR numbers (in order)
-	pullRequestsByLabel: Record<string, number[]>;
+	// Pull requests grouped by label
+	// - labels: map of label name -> PR numbers (in order)
+	// - unlabeled: PR numbers without any labels (in order)
+	pullRequestsByLabel: {
+		labels: Record<string, number[]>;
+		unlabeled: number[];
+	};
 	contributors: Author[];
 	newContributors: NewContributor[] | null;
 	release: ReleaseInfo;
@@ -1142,16 +1147,24 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		})),
 	};
 
-	// Build label -> PR numbers map in the current sorted order
-	const pullRequestsByLabel: Record<string, number[]> = {};
+	// Build label grouping in the current sorted order
+	const pullRequestsByLabel: {
+		labels: Record<string, number[]>;
+		unlabeled: number[];
+	} = { labels: {}, unlabeled: [] };
 	for (const pr of pullRequestsSorted || []) {
 		const prNumber = pr.number as number;
-		const labels = pr.labels?.nodes || [];
-		for (const node of labels) {
+		const labelNodes = pr.labels?.nodes || [];
+		if (labelNodes.length === 0) {
+			pullRequestsByLabel.unlabeled.push(prNumber);
+			continue;
+		}
+		for (const node of labelNodes) {
 			const lname = String(node?.name || "");
 			if (!lname) continue;
-			if (!pullRequestsByLabel[lname]) pullRequestsByLabel[lname] = [];
-			pullRequestsByLabel[lname].push(prNumber);
+			if (!pullRequestsByLabel.labels[lname])
+				pullRequestsByLabel.labels[lname] = [];
+			pullRequestsByLabel.labels[lname].push(prNumber);
 		}
 	}
 

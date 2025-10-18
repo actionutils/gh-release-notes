@@ -31,7 +31,7 @@ describe("TemplateRenderer", () => {
 
 	test("handles pullRequestsByLabel", async () => {
 		const renderer = new TemplateRenderer();
-		const templateContent = `# By Label\n{% for label in pullRequestsByLabel %}\n## {{ label }}\n{% for n in pullRequestsByLabel[label] %}\n- #{{ n }}: {{ pullRequests[n|string].title }}\n{% endfor %}\n{% endfor %}`;
+		const templateContent = `# By Label\n{% for label in pullRequestsByLabel.labels %}\n## {{ label }}\n{% for n in pullRequestsByLabel.labels[label] %}\n- #{{ n }}: {{ pullRequests[n|string].title }}\n{% endfor %}\n{% endfor %}\n{% if pullRequestsByLabel.unlabeled and (pullRequestsByLabel.unlabeled | length) > 0 %}\n## Unlabeled\n{% for n in pullRequestsByLabel.unlabeled %}\n- #{{ n }}: {{ pullRequests[n|string].title }}\n{% endfor %}\n{% endif %}`;
 
 		fs.writeFileSync(path.join(testDir, "by-label.jinja"), templateContent);
 
@@ -42,8 +42,11 @@ describe("TemplateRenderer", () => {
 				3: { number: 3, title: "C" },
 			},
 			pullRequestsByLabel: {
-				feature: [2, 1],
-				bug: [3],
+				labels: {
+					feature: [2, 1],
+					bug: [3],
+				},
+				unlabeled: [],
 			},
 		};
 
