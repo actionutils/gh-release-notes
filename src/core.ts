@@ -418,9 +418,15 @@ async function detectExistingTag(params: {
 
 		if (Array.isArray(refs)) {
 			// Normalize to objects with ref field
-			const hasExact = refs.some((r: any) => {
-				const ref = typeof r === "string" ? String(r) : String(r?.ref || "");
-				return ref === `refs/tags/${name}`;
+			const hasExact = refs.some((r: unknown) => {
+				let refStr = "";
+				if (typeof r === "string") {
+					refStr = r;
+				} else if (r && typeof r === "object" && "ref" in r) {
+					const obj = r as { ref?: string };
+					refStr = String(obj.ref || "");
+				}
+				return refStr === `refs/tags/${name}`;
 			});
 			if (hasExact) {
 				logVerbose(`[Releases] Detected existing tag: ${name}`);
