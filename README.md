@@ -189,6 +189,7 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
 - `categorizedPullRequests`:
   - `uncategorized[]`: array of PR numbers
   - `categories[]`: `title`, `labels[]`, `collapse_after?`, `pullRequests[]` (array of PR numbers)
+- `pullRequestsByLabel{ <label>: number[] }`: map from label name to PR numbers (each PR appears under all its labels, order matches `mergedPullRequests`)
 - `contributors[]`: all PR authors
 - `newContributors[] | null`: first-time contributors (contains `login` and `firstPullRequest` as PR number)
 - `owner`, `repo`, `defaultBranch`, `lastRelease`, `fullChangelogLink`
