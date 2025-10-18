@@ -1,118 +1,67 @@
 # gh-release-notes
 
-PR-based release notes generator. Nearly 100% compatible with GitHub Generate Release Notes and release-drafter configs, so you can keep using existing `.github/release.yml` or `.github/release-drafter.yml` as-is. Adds practical features like remote configs/templates, MiniJinja, full JSON output, and optional new-contributors/sponsor enrichment.
+PR-based release notes generator with strong compatibility with GitHub’s Generate Release Notes and release-drafter. Zero-config works out of the box, and you can keep using your existing `.github/release.yml` or `.github/release-drafter.yml`.
 
-- Compatible: `.github/release.yml` (auto-converted) / `.github/release-drafter.yml` (used as-is)
-- Added: remote config/template (HTTPS/purl + checksum), MiniJinja, JSON output
-- Helpful: repo auto-detection, `include-paths`, `$FULL_CHANGELOG_LINK`/`$NEW_CONTRIBUTORS`
+Highlights
+- Flexible templating with MiniJinja for finer control than release-drafter templates
+- JSON output to drive any templating engine or downstream tooling
+- Remote config/template via GitHub purl for easy organization-wide sharing
+- Works with read-only permissions; no write permission needed (see Permissions)
 
-Requires Node.js 22+.
-
-## Overview
-
-gh-release-notes is a CLI/library that generates PR-based release notes. It reuses release-drafter internals and is nearly 100% compatible with GitHub’s Generate Release Notes and release-drafter configuration. It adds practical features such as remote config loading, MiniJinja templates, full JSON output, and optional sponsor information.
-
-Typical use cases
-- Generate PR-based release notes using existing `.github/release-drafter.yml` or `.github/release.yml` as-is
-- Automate in CI/CD, preview locally, or post-process via JSON
-- Distribute organization-wide shared config (e.g., in a `.github` repo) via purl/HTTPS
+Use cases
+- Generate release notes from PRs with existing configs
+- Automate in CI/CD or preview locally
+- Shape the output via JSON or your favorite templating engine
 
 ## Installation
 
-- npm (global): `npm i -g @actionutils/gh-release-notes`
-- In a project: `npm i -D @actionutils/gh-release-notes` (then `npx gh-release-notes ...`)
+- Static binary (recommended): download from Releases
+  - https://github.com/actionutils/gh-release-notes/releases
+  - Place the binary on your PATH (e.g., `/usr/local/bin/gh-release-notes`)
+- npx (no install):
+  - `npx @actionutils/gh-release-notes` (or add options as needed)
+- GitHub CLI extension:
+  - Install: `gh extension install actionutils/gh-release-notes`
+  - Upgrade: `gh extension upgrade actionutils/gh-release-notes`
 
 ## Usage
 
-- Generate from latest changes (auto-detect previous release):
+- Generate from latest changes (auto-detects previous release):
   - `gh-release-notes`
+  - As gh extension: `gh release-notes`
 - Specify previous and next tags:
   - `gh-release-notes --prev-tag v1.0.0 --tag v1.1.0`
 - Target a branch/revision:
   - `gh-release-notes --target main`
-- JSON output (for templating and post-processing):
-  - `gh-release-notes --json > release.json`
-- Generate body with a MiniJinja template:
+- Use a MiniJinja template:
   - `gh-release-notes --template ./templates/release.jinja`
-- Load config from remote:
-  - `gh-release-notes --config https://example.com/release.yaml`
-  - `gh-release-notes --config pkg:github/owner/repo@v1#.github/release-drafter.yml`
+- JSON output (for scripting or custom rendering):
+  - `gh-release-notes --json > release.json`
 
-Key options
-- `--repo, -R` Target repo (`owner/repo`). Auto-detected if omitted
-- `--config, -c` Config source (local/HTTPS/purl)
-- `--template, -t` MiniJinja template (local/HTTPS/purl)
-- `--prev-tag` Explicit previous tag
-- `--tag` New release tag
-- `--target, --ref` Target branch/commit
-- `--json` Output JSON
-- `--preview` Preview mode (Full Changelog compares against `target`)
-- `--skip-new-contributors` Skip fetching new contributors (fewer API calls)
-- `--sponsor-fetch-mode` `none|graphql|html|auto` (default `auto`)
-- `--verbose, -v` Verbose logs
-
-Repository detection order
-1. `--repo`
-2. `GITHUB_REPOSITORY` (GitHub Actions)
-3. `GH_REPO`
-4. Current directory’s `git remote` (respects `gh auth` hosts and `GH_HOST`)
-
-Token resolution order
-1. `--token` (when using as a library)
-2. `GITHUB_TOKEN`
-3. `GH_TOKEN`
-4. `gh auth token` (GitHub CLI)
+Tip: You can read the resolved version fields from the output (e.g., `release.resolvedVersion`) to decide tagging and releasing logic in your pipeline.
 
 ## Configuration and Compatibility
 
-Supported configuration formats
-1) release-drafter format (recommended)
-- File: `.github/release-drafter.yml`
-- Loaded and validated as-is using release-drafter’s schema
+Use existing configs
+- `.github/release.yml` (GitHub Generate Release Notes)
+- `.github/release-drafter.yml` (release-drafter)
 
-2) GitHub Generate Release Notes format
-- File: `.github/release.yml` or `.github/release.yaml`
-- Automatically converted to release-drafter format internally
-
-Conversion highlights
-- `changelog.exclude.labels` → `exclude-labels`
-- `changelog.exclude.authors` → `exclude-contributors`
-- `changelog.categories[*].labels` → `categories[*].labels`
-- `labels: ["*"]` wildcard maps to release-drafter’s “no-label category” for remaining items
-- Per-category excludes (labels/authors) are flattened into global excludes for compatibility
-
-Config lookup order
-- If `--config` is provided (local/HTTPS/purl), use it
-- Otherwise, search `.github/release-drafter.yml` → `.github/release.yml` → `.github/release.yaml`
-- If none exists, use built-in defaults (GitHub-like template/sort)
-
-Defaults (excerpt)
-- Change template: `- $TITLE by @$AUTHOR in $URL`
-- Category heading: `### $TITLE`
-- Body template: `## What's Changed\n\n$CHANGES\n\n$NEW_CONTRIBUTORS\n\n**Full Changelog**: $FULL_CHANGELOG_LINK`
-- Sort direction: `ascending` (aligns with GitHub)
-
-Remote config loading
-- HTTPS: `--config https://example.com/path/to/config.yaml`
-- purl (GitHub): `--config pkg:github/owner/repo@version#path/to/config.yaml`
-- Checksums: `?checksum=sha256:...` (multiple allowed, comma-separated)
-- purl uses the GitHub API and requires a token (`GITHUB_TOKEN`, etc.)
-
-Filtering with include-paths
-- When `include-paths` is set, changed files for each PR are fetched via GraphQL and only PRs touching those paths are kept
-- Useful to restrict output to specific areas in large repos
+Remote configs/templates
+- Prefer GitHub purl: `pkg:github/OWNER/REPO@REF#path/to/config.yaml`
+  - Recommended over raw.githubusercontent.com due to rate limits
+  - Great for shared organization-wide config and templates
+- HTTPS URLs and local files are also supported
 
 ## Templates and Output
 
-Two modes
-- Use release-drafter templates (compat mode)
-  - Set `template`, `change-template`, `category-template` in config
-  - Supports `$FULL_CHANGELOG_LINK` and `$NEW_CONTRIBUTORS`
-  - Only fetch fields required by `change-template` (e.g., `$BODY`, `$BASE_REF_NAME`, `$HEAD_REF_NAME`) to minimize API calls
-- Generate with MiniJinja freely
-  - Provide `--template <path|https|purl>`
-  - Renders with the same data as `--json`
-  - Distribute org-wide templates via purl/HTTPS
+Default behavior
+- Uses release-drafter–style templates from your config
+- Adds two extra placeholders: `$FULL_CHANGELOG_LINK`, `$NEW_CONTRIBUTORS`
+- Fetches only fields required by your template to keep API calls minimal
+
+MiniJinja for maximum flexibility
+- `--template <path|https|purl>` renders with the same data as `--json`
+- Bring your own structure and style (or use community-maintained templates)
 
 JSON structure (main fields)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
@@ -140,33 +89,26 @@ Example (MiniJinja)
 
 ## Sponsor Information
 
-- Controlled via `--sponsor-fetch-mode` (`auto`/`graphql`/`html`/`none`)
-  - `graphql`: requires a user token (PAT, etc.). App tokens (including `GITHUB_TOKEN`) are blocked by GitHub for this field
-  - `html`: checks the sponsor page with HEAD (experimental). Stops automatically if too many errors/rate limits
-  - `auto`: auto-selects based on token type and output mode
-  - Extra data is considered only with `--json` or `--template`; otherwise API calls are minimized
+- Contributors may include their GitHub Sponsors listing URL in the output
+- Fetching modes: `auto`, `graphql`, `html`, `none`
+  - `auto`: intelligently selects based on token type and usage
+  - `graphql`: requires a user token (PAT, etc.); App tokens (including `GITHUB_TOKEN`) are blocked by GitHub for this field
+  - `html`: HEAD-requests sponsor pages (experimental); backs off on errors/rate limits
 
-## Compatibility and Differences
+## Differences from release-drafter
 
-- `.github/release.yml` is auto-converted; `.github/release-drafter.yml` is used as-is
-- Default template/ordering aligned with GitHub (ascending)
-- Categorization compatible with release-drafter (`include-labels`, `exclude-labels`, `categories`)
-- Per-category excludes in `.github/release.yml` are flattened to global excludes (not perfectly 1:1)
-- `sponsorsListing` via GraphQL is unavailable with GitHub App tokens; `auto` may fall back to HTML HEAD checks
+- Extra placeholders available: `$FULL_CHANGELOG_LINK`, `$NEW_CONTRIBUTORS`
+- Zero-config works; also easy to standardize via purl remote config/templates
+- JSON output enables fully custom rendering pipelines
+- Optional sponsor enrichment (adds sponsors listing URL when available)
 
-## Migration Guide
+## Permissions
 
-From release-drafter
-1. Keep `.github/release-drafter.yml`
-2. Run `gh-release-notes` (optionally add `--json` or `--template`)
-
-From GitHub Generate Release Notes
-1. Keep `.github/release.yml` (auto-converted internally)
-2. Run `gh-release-notes`
-
-Tips
-- For finer control, migrate closer to release-drafter format
-- For maximum flexibility, combine `--json` with `--template`
+- Public repositories: works without any token for most operations
+- Private repositories: requires only read scopes
+  - `contents: read`
+  - `pull_requests: read`
+- Unlike GitHub’s Release Notes Generator API, this tool does not need `contents: write`
 
 ## License
 
