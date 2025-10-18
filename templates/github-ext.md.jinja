@@ -19,6 +19,13 @@
 {%- endif %}
 {%- endif %}
 {%- endfor %}
+
+{# Render uncategorized PRs only when no categories are defined (no header) #}
+{%- if (categorizedPullRequests.categories | length == 0) and (categorizedPullRequests.uncategorized | length > 0) %}
+{%- for pr in categorizedPullRequests.uncategorized %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+{%- endif %}
 {%- if newContributors | length > 0 %}
 
 ## New Contributors
