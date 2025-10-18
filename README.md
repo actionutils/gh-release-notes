@@ -143,7 +143,7 @@ bunx @actionutils/gh-release-notes
   gh-release-notes --template pkg:github/actionutils/gh-release-notes@main#templates/table.md.jinja
   ```
 - JSON output (for scripting or custom rendering):
-  ```console
+  ```shell
   gh-release-notes --json > release.json
   ```
 
