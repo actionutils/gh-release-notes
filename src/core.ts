@@ -214,6 +214,13 @@ export type RunResult = {
 	mergedPullRequests: number[];
 	// Categorized PR numbers
 	categorizedPullRequests: CategorizedPullRequestsByNumber;
+	// Pull requests grouped by label
+	// - labels: map of label name -> PR numbers (in order)
+	// - unlabeled: PR numbers without any labels (in order)
+	pullRequestsByLabel: {
+		labels: Record<string, number[]>;
+		unlabeled: number[];
+	};
 	contributors: Author[];
 	newContributors: NewContributor[] | null;
 	release: ReleaseInfo;
@@ -1140,6 +1147,27 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		})),
 	};
 
+	// Build label grouping in the current sorted order
+	const pullRequestsByLabel: {
+		labels: Record<string, number[]>;
+		unlabeled: number[];
+	} = { labels: {}, unlabeled: [] };
+	for (const pr of pullRequestsSorted || []) {
+		const prNumber = pr.number as number;
+		const labelNodes = pr.labels?.nodes || [];
+		if (labelNodes.length === 0) {
+			pullRequestsByLabel.unlabeled.push(prNumber);
+			continue;
+		}
+		for (const node of labelNodes) {
+			const lname = String(node?.name || "");
+			if (!lname) continue;
+			if (!pullRequestsByLabel.labels[lname])
+				pullRequestsByLabel.labels[lname] = [];
+			pullRequestsByLabel.labels[lname].push(prNumber);
+		}
+	}
+
 	// Create the output data structure once
 	const result: RunResult = {
 		owner,
@@ -1149,6 +1177,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		pullRequests: pullRequestsMap,
 		mergedPullRequests: (pullRequestsSorted || []).map((pr) => pr.number),
 		categorizedPullRequests: flattenedCategorizedNumbers,
+		pullRequestsByLabel,
 		contributors,
 		newContributors: newContributorsOutput,
 		release: {

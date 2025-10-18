@@ -29,6 +29,39 @@ describe("TemplateRenderer", () => {
 		);
 	});
 
+	test("handles pullRequestsByLabel", async () => {
+		const renderer = new TemplateRenderer();
+		const templateContent = `# By Label\n{% for label in pullRequestsByLabel.labels %}\n## {{ label }}\n{% for n in pullRequestsByLabel.labels[label] %}\n- #{{ n }}: {{ pullRequests[n|string].title }}\n{% endfor %}\n{% endfor %}\n{% if pullRequestsByLabel.unlabeled and (pullRequestsByLabel.unlabeled | length) > 0 %}\n## Unlabeled\n{% for n in pullRequestsByLabel.unlabeled %}\n- #{{ n }}: {{ pullRequests[n|string].title }}\n{% endfor %}\n{% endif %}`;
+
+		fs.writeFileSync(path.join(testDir, "by-label.jinja"), templateContent);
+
+		const data = {
+			pullRequests: {
+				1: { number: 1, title: "A" },
+				2: { number: 2, title: "B" },
+				3: { number: 3, title: "C" },
+			},
+			pullRequestsByLabel: {
+				labels: {
+					feature: [2, 1],
+					bug: [3],
+				},
+				unlabeled: [],
+			},
+		};
+
+		const result = await renderer.loadAndRender(
+			path.join(testDir, "by-label.jinja"),
+			data,
+		);
+
+		expect(result).toContain("## feature");
+		expect(result).toContain("#2: B");
+		expect(result).toContain("#1: A");
+		expect(result).toContain("## bug");
+		expect(result).toContain("#3: C");
+	});
+
 	afterAll(() => {
 		// Clean up test files
 		fs.rmSync(testDir, { recursive: true, force: true });

@@ -281,6 +281,7 @@ async function main() {
 				"    - pullRequests: map of PR number -> PR data\n" +
 				"    - mergedPullRequests: array of PR numbers (in order)\n" +
 				"    - categorizedPullRequests: PR numbers grouped by category\n" +
+				"    - pullRequestsByLabel: PR numbers grouped by label (labels{ <label>: number[] }, unlabeled[])\n" +
 				"    - contributors: array of all contributors\n" +
 				"    - newContributors: first-time contributors (firstPullRequest is PR number)\n" +
 				"    - owner, repo, defaultBranch, lastRelease, fullChangelogLink\n\n" +
