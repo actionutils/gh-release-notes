@@ -215,45 +215,12 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
 <table>
   <thead>
     <tr>
-      <th width="500px">Template</th>
       <th width="500px">Example</th>
+      <th width="500px">Template</th>
     </tr>
   </thead>
   <tbody>
   <tr width="600px">
-<td>
-
-```html
-## Contributors
-
-<table>
-  <tbody>
-    <tr>
-{%- for contributor in contributors %}
-      <td align="center" valign="top" width="100">
-        <a href="{{ contributor.url }}">
-          <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64px" alt="{{ contributor.login }}"/><br />
-        </a>
-        <sub>@{{ contributor.login }}{% if contributor.type == 'Bot' %}[bot]{% endif %}</sub>
-        {%- if contributor.sponsorsListing %}
-        <br><br>
-        <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
-          <img src="https://img.shields.io/badge/-Sponsor-ea4aaa?style=for-the-badge&logo=github&logoColor=white" height="24" />
-        </a>
-        {%- endif %}
-      </td>
-{%- if loop.index % 6 == 0 and not loop.last %}
-    </tr>
-    <tr>
-{%- endif %}
-{%- endfor %}
-    </tr>
-  </tbody>
-</table>
-{%- endif %}
-```
-
-</td>
 <td>
 
 ## Contributors
@@ -370,6 +337,39 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
     </tr>
   </tbody>
 </table>
+
+</td>
+<td>
+
+```html
+## Contributors
+
+<table>
+  <tbody>
+    <tr>
+{%- for contributor in contributors %}
+      <td align="center" valign="top" width="100">
+        <a href="{{ contributor.url }}">
+          <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64px" alt="{{ contributor.login }}"/><br />
+        </a>
+        <sub>@{{ contributor.login }}{% if contributor.type == 'Bot' %}[bot]{% endif %}</sub>
+        {%- if contributor.sponsorsListing %}
+        <br><br>
+        <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
+          <img src="https://img.shields.io/badge/-Sponsor-ea4aaa?style=for-the-badge&logo=github&logoColor=white" height="24" />
+        </a>
+        {%- endif %}
+      </td>
+{%- if loop.index % 6 == 0 and not loop.last %}
+    </tr>
+    <tr>
+{%- endif %}
+{%- endfor %}
+    </tr>
+  </tbody>
+</table>
+{%- endif %}
+```
 
 </td>
   </tr>
