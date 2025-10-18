@@ -449,8 +449,6 @@ async function detectExistingTag(params: {
 }
 
 // Find the previous GitHub release relative to a given existing tag.
-// If the tag has no corresponding release, optionally falls back to the latest
-// release older than the tag's commit timestamp.
 async function findPreviousReleaseForTag(params: {
 	owner: string;
 	repo: string;
@@ -498,39 +496,6 @@ async function findPreviousReleaseForTag(params: {
 		}
 		page++;
 	}
-
-	// Fallback: choose the latest release older than the tag's commit time
-	if (tagUpperBoundDate) {
-		const until = new Date(tagUpperBoundDate).getTime();
-		if (Number.isFinite(until)) {
-			let page2 = 1;
-			while (true) {
-				const list = (await ghRest(
-					`/repos/${owner}/${repo}/releases?per_page=100&page=${page2}`,
-					{ token },
-				)) as GitHubRelease[];
-				if (!Array.isArray(list) || list.length === 0) break;
-				for (const r of list as unknown as {
-					tag_name?: string;
-					prerelease?: boolean;
-					created_at?: string;
-					published_at?: string;
-				}[]) {
-					const tname = String(r.tag_name || "");
-					if (!includePreReleases && r.prerelease) continue;
-					if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
-					const created = new Date(
-						String(r.published_at || r.created_at || 0),
-					).getTime();
-					if (created && created <= until) {
-						return r as unknown as GitHubRelease;
-					}
-				}
-				page2++;
-			}
-		}
-	}
-
 	return null;
 }
 
