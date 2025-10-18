@@ -71,7 +71,8 @@ describe("init command", () => {
 		// Write different content
 		await fs.writeFile(outPath, "different: true\n", "utf8");
 
-		await expect(initCommand({ output: outPath })).rejects.toThrow(
+		// Return the Promise for reject assertion to satisfy linting rules
+		return expect(initCommand({ output: outPath })).rejects.toThrow(
 			"Refusing to overwrite existing file",
 		);
 

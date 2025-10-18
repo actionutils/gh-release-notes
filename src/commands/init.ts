@@ -42,9 +42,7 @@ export function generateInitConfigYaml(): string {
  * - If output is '-' prints YAML to stdout and returns status 'printed'.
  * - Otherwise writes to the given path with safe overwrite semantics.
  */
-export async function initCommand(
-	opts: InitOptions = {},
-): Promise<
+export async function initCommand(opts: InitOptions = {}): Promise<
 	| { status: "printed"; content: string }
 	| {
 			status: "created" | "overwrote" | "up-to-date";
@@ -86,12 +84,8 @@ export async function initCommand(
 		return { status: "overwrote", path: outPath, content };
 	} catch (e: unknown) {
 		// If error is because file doesn't exist, proceed to create
-		if (
-			e &&
-			typeof e === "object" &&
-			"code" in e &&
-			(e as any).code === "ENOENT"
-		) {
+		const err = e as NodeJS.ErrnoException;
+		if (err && err.code === "ENOENT") {
 			await fs.writeFile(outPath, content, "utf8");
 			return { status: "created", path: outPath, content };
 		}

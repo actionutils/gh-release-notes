@@ -6,22 +6,6 @@ import { setVerbose, logVerbose } from "./logger";
 import { resolveBaseRepo } from "./repo-detector";
 import { initCommand } from "./commands/init";
 
-interface Args {
-	repo?: string;
-	config?: string;
-	template?: string;
-	"prev-tag"?: string;
-	tag?: string;
-	target?: string;
-	json: boolean;
-	preview: boolean;
-	verbose: boolean;
-	"skip-new-contributors"?: boolean;
-	// Using enum instead of boolean to allow future extensibility
-	// (e.g., fetching via HTML HEAD requests)
-	"sponsor-fetch-mode"?: "none" | "graphql" | "html" | "auto";
-}
-
 async function main() {
 	const parser = yargs(hideBin(process.argv))
 		.scriptName("gh-release-notes")
@@ -165,7 +149,13 @@ async function main() {
 						target: args.target as string | undefined,
 						preview: !!args.preview,
 						skipNewContributors: !!args["skip-new-contributors"],
-						sponsorFetchMode: (args["sponsor-fetch-mode"] as any) ?? "auto",
+						sponsorFetchMode:
+							(args["sponsor-fetch-mode"] as
+								| "none"
+								| "graphql"
+								| "html"
+								| "auto"
+								| undefined) ?? "auto",
 						includeAllData: !!args.json || !!args.template,
 					});
 
