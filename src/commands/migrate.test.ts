@@ -52,9 +52,7 @@ describe("migrate command", () => {
 			expect(res.path!).toMatch(/\.github\/release-drafter\.yml$/);
 			const disk = await fs.readFile(res.path!, "utf8");
 			// Header should include links
-			expect(disk).toContain(
-				"https://github.com/actionutils/gh-release-notes",
-			);
+			expect(disk).toContain("https://github.com/actionutils/gh-release-notes");
 			expect(disk).toContain(
 				"https://github.com/release-drafter/release-drafter",
 			);
