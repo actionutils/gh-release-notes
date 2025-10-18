@@ -15,14 +15,89 @@ Use cases
 
 ## Installation
 
-- Static binary (recommended): download from Releases
-  - https://github.com/actionutils/gh-release-notes/releases
-  - Place the binary on your PATH (e.g., `/usr/local/bin/gh-release-notes`)
-- npx (no install):
-  - `npx @actionutils/gh-release-notes` (or add options as needed)
+Quick install (latest)
+- Install the binary
+  - `curl -sSfL https://github.com/actionutils/gh-release-notes/releases/latest/download/install.sh | sh`
+- Or run directly without installation
+  - `curl -sSfL https://github.com/actionutils/gh-release-notes/releases/latest/download/run.sh | sh`
+
+<details>
+<summary>Verify latest with cosign</summary>
+
+```sh
+# Choose the script to execute
+SCRIPT="install.sh"  # or "run.sh"
+DOWNLOAD_URL="https://github.com/actionutils/gh-release-notes/releases/latest/download"
+
+curl -sL "${DOWNLOAD_URL}/${SCRIPT}" | \
+  (tmpfile=$(mktemp); cat > "$tmpfile"; \
+   cosign verify-blob \
+     --certificate-identity-regexp '^https://github.com/actionutils/trusted-go-releaser/.github/workflows/trusted-release-workflow.yml@.*$' \
+     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+     --certificate "${DOWNLOAD_URL}/${SCRIPT}.pem" \
+     --signature "${DOWNLOAD_URL}/${SCRIPT}.sig" \
+     "$tmpfile" && \
+   sh "$tmpfile"; rm -f "$tmpfile")
+```
+
+</details>
+
+<details>
+<summary>Install a specific version (with optional signature verification)</summary>
+
+Specific version (simple)
+
+Install
+```sh
+VERSION="<version>"  # e.g., v0.6.0
+curl -sSfL "https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}/install.sh" | sh
+```
+
+Run without installation
+```sh
+VERSION="<version>"  # e.g., v0.6.0
+curl -sSfL "https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}/run.sh" | sh
+```
+
+Specific version (verified with cosign)
+
+Install (verified)
+```sh
+VERSION="<version>"  # e.g., v0.6.0
+BASE="https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}"
+curl -sL "${BASE}/install.sh" | \
+  (tmpfile=$(mktemp); cat > "$tmpfile"; \
+   cosign verify-blob \
+     --certificate-identity-regexp '^https://github.com/actionutils/trusted-go-releaser/.github/workflows/trusted-release-workflow.yml@.*$' \
+     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+     --certificate "${BASE}/install.sh.pem" \
+     --signature "${BASE}/install.sh.sig" \
+     "$tmpfile" && \
+   sh "$tmpfile"; rm -f "$tmpfile")
+```
+
+Run without installation (verified)
+```sh
+VERSION="<version>"  # e.g., v0.6.0
+BASE="https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}"
+curl -sL "${BASE}/run.sh" | \
+  (tmpfile=$(mktemp); cat > "$tmpfile"; \
+   cosign verify-blob \
+     --certificate-identity-regexp '^https://github.com/actionutils/trusted-go-releaser/.github/workflows/trusted-release-workflow.yml@.*$' \
+     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+     --certificate "${BASE}/run.sh.pem" \
+     --signature "${BASE}/run.sh.sig" \
+     "$tmpfile" && \
+   sh "$tmpfile"; rm -f "$tmpfile")
+```
+
+</details>
+
+Other options
 - GitHub CLI extension:
   - Install: `gh extension install actionutils/gh-release-notes`
   - Upgrade: `gh extension upgrade actionutils/gh-release-notes`
+- npx (no install): `npx @actionutils/gh-release-notes`
 
 ## Usage
 
