@@ -15,8 +15,8 @@ describe("TemplateRenderer", () => {
 			`# Release Notes for {{ release.name }}
 
 ## Changes
-{% for pr in mergedPullRequests %}
-- #{{ pr.number }}: {{ pr.title }} (@{{ pr.user.login }})
+{% for pr_number in mergedPullRequests %}
+- #{{ pr_number }}: {{ pullRequests[pr_number|string].title }} (@{{ pullRequests[pr_number|string].author.login }})
 {% endfor %}
 
 ## Contributors
@@ -27,6 +27,39 @@ describe("TemplateRenderer", () => {
 ## Full Changelog
 {{ fullChangelogLink }}`,
 		);
+	});
+
+	test("handles pullRequestsByLabel", async () => {
+		const renderer = new TemplateRenderer();
+		const templateContent = `# By Label\n{% for label in pullRequestsByLabel.labels %}\n## {{ label }}\n{% for n in pullRequestsByLabel.labels[label] %}\n- #{{ n }}: {{ pullRequests[n|string].title }}\n{% endfor %}\n{% endfor %}\n{% if pullRequestsByLabel.unlabeled and (pullRequestsByLabel.unlabeled | length) > 0 %}\n## Unlabeled\n{% for n in pullRequestsByLabel.unlabeled %}\n- #{{ n }}: {{ pullRequests[n|string].title }}\n{% endfor %}\n{% endif %}`;
+
+		fs.writeFileSync(path.join(testDir, "by-label.jinja"), templateContent);
+
+		const data = {
+			pullRequests: {
+				1: { number: 1, title: "A" },
+				2: { number: 2, title: "B" },
+				3: { number: 3, title: "C" },
+			},
+			pullRequestsByLabel: {
+				labels: {
+					feature: [2, 1],
+					bug: [3],
+				},
+				unlabeled: [],
+			},
+		};
+
+		const result = await renderer.loadAndRender(
+			path.join(testDir, "by-label.jinja"),
+			data,
+		);
+
+		expect(result).toContain("## feature");
+		expect(result).toContain("#2: B");
+		expect(result).toContain("#1: A");
+		expect(result).toContain("## bug");
+		expect(result).toContain("#3: C");
 	});
 
 	afterAll(() => {
@@ -40,18 +73,11 @@ describe("TemplateRenderer", () => {
 			release: {
 				name: "v1.0.0",
 			},
-			mergedPullRequests: [
-				{
-					number: 1,
-					title: "Add new feature",
-					user: { login: "user1" },
-				},
-				{
-					number: 2,
-					title: "Fix bug",
-					user: { login: "user2" },
-				},
-			],
+			pullRequests: {
+				1: { number: 1, title: "Add new feature", author: { login: "user1" } },
+				2: { number: 2, title: "Fix bug", author: { login: "user2" } },
+			},
+			mergedPullRequests: [1, 2],
 			contributors: [{ login: "user1" }, { login: "user2" }],
 			fullChangelogLink:
 				"https://github.com/owner/repo/compare/v0.9.0...v1.0.0",
@@ -71,29 +97,28 @@ describe("TemplateRenderer", () => {
 
 	test("handles categorized pull requests", async () => {
 		const renderer = new TemplateRenderer();
-		const templateContent = `{% for category in categorizedPullRequests %}
+		const templateContent = `{% for category in categorizedPullRequests.categories %}
 ## {{ category.title }}
-{% for pr in category.pullRequests %}
-- #{{ pr.number }}: {{ pr.title }}
+{% for n in category.pullRequests %}
+- #{{ n }}: {{ pullRequests[n|string].title }}
 {% endfor %}
 {% endfor %}`;
 
 		fs.writeFileSync(path.join(testDir, "categorized.jinja"), templateContent);
 
 		const data = {
-			categorizedPullRequests: [
-				{
-					title: "🚀 Features",
-					pullRequests: [
-						{ number: 1, title: "Add feature A" },
-						{ number: 2, title: "Add feature B" },
-					],
-				},
-				{
-					title: "🐛 Bug Fixes",
-					pullRequests: [{ number: 3, title: "Fix bug X" }],
-				},
-			],
+			pullRequests: {
+				1: { number: 1, title: "Add feature A" },
+				2: { number: 2, title: "Add feature B" },
+				3: { number: 3, title: "Fix bug X" },
+			},
+			categorizedPullRequests: {
+				uncategorized: [],
+				categories: [
+					{ title: "🚀 Features", pullRequests: [1, 2] },
+					{ title: "🐛 Bug Fixes", pullRequests: [3] },
+				],
+			},
 		};
 
 		const result = await renderer.loadAndRender(
@@ -113,7 +138,7 @@ describe("TemplateRenderer", () => {
 		const templateContent = `{% if newContributors %}
 ## New Contributors
 {% for contributor in newContributors %}
-- @{{ contributor.login }} made their first contribution in #{{ contributor.firstPullRequest.number }}
+- @{{ contributor.login }} made their first contribution in #{{ contributor.firstPullRequest }}
 {% endfor %}
 {% endif %}`;
 
@@ -124,14 +149,8 @@ describe("TemplateRenderer", () => {
 
 		const data = {
 			newContributors: [
-				{
-					login: "newuser1",
-					firstPullRequest: { number: 10 },
-				},
-				{
-					login: "newuser2",
-					firstPullRequest: { number: 11 },
-				},
+				{ login: "newuser1", firstPullRequest: 10 },
+				{ login: "newuser2", firstPullRequest: 11 },
 			],
 		};
 

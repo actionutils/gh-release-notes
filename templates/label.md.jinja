@@ -1,34 +1,73 @@
-## What's Changed
-{% for category in categorizedPullRequests.categories %}
-{%- if category.pullRequests | length > 0 %}
-### {{ category.title }}
-{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+## What's Changed by Label
+
+{# If there are labeled PRs, render sections per label, then optionally Unlabeled. Otherwise, list unlabeled without a header. #}
+{%- if (pullRequestsByLabel.labels | length) > 0 %}
+{%- for label in pullRequestsByLabel.labels %}
+
+### {{ label }}
+{%- set numbers = pullRequestsByLabel.labels[label] %}
+{%- if (numbers | length) >= 5 %}
 
 <details>
-<summary>Show all {{ category.pullRequests | length }} items</summary>
+<summary>Show all {{ numbers | length }} items</summary>
 
-{% for n in category.pullRequests %}
+{% for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
 
 </details>
 {%- else %}
-{%- for n in category.pullRequests %}
+{%- for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
-{%- endif %}
 {%- endif %}
 {%- endfor %}
 
-{# Render uncategorized PRs only when no categories are defined (no header) #}
-{%- if (categorizedPullRequests.categories | length == 0) and (categorizedPullRequests.uncategorized | length > 0) %}
-{%- for n in categorizedPullRequests.uncategorized %}
+{%- if pullRequestsByLabel.unlabeled and (pullRequestsByLabel.unlabeled | length) > 0 %}
+
+### Unlabeled
+{%- set numbers = pullRequestsByLabel.unlabeled %}
+{%- if (numbers | length) >= 5 %}
+
+<details>
+<summary>Show all {{ numbers | length }} items</summary>
+
+{%- for n in numbers %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
 - {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
 {%- endif %}
+{%- endif %}
+{%- else %}
+{%- set numbers = pullRequestsByLabel.unlabeled %}
+{%- if (numbers | length) >= 5 %}
+
+<details>
+<summary>Show all {{ numbers | length }} items</summary>
+
+{%- for n in numbers %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for n in numbers %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+
 {%- if newContributors | length > 0 %}
 
 ## New Contributors
@@ -38,6 +77,7 @@
 - @{{ contributor.login }} made their first contribution in [#{{ pr.number }}]({{ pr.url }})
 {%- endfor %}
 {%- endif %}
+
 {%- if contributors | length > 0 %}
 
 ## Contributors
@@ -65,7 +105,7 @@
 {%- endfor %}
     </tr>
   </tbody>
-</table>
+  </table>
 {%- endif %}
 
 **Full Changelog**: {{ fullChangelogLink }}

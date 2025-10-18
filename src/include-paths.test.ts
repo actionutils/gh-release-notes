@@ -131,9 +131,7 @@ describe("include-paths via GraphQL files filter", () => {
 		try {
 			const { run } = await import(sourcePath);
 			const res = await run({ repo: `${owner}/${repo}`, config: cfgPath });
-			const numbers = (res.mergedPullRequests || []).map(
-				(p: { number: number }) => p.number,
-			);
+			const numbers = res.mergedPullRequests || [];
 			expect(numbers).toEqual([1]);
 		} finally {
 			await fsPromises.rm(tmpDir, { recursive: true });

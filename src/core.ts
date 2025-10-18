@@ -5,12 +5,14 @@ import { Octokit } from "@octokit/rest";
 import type { RestEndpointMethodTypes } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
+import semver from "semver";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 import { ContentLoaderFactory } from "./content-loader";
 import {
 	findNewContributors,
 	formatNewContributorsSection,
 } from "./new-contributors";
+import type { NewContributorsResult } from "./new-contributors";
 import { logVerbose } from "./logger";
 import { categorizePullRequests, type CategorizeConfig } from "./categorize";
 import { enrichWithHtmlSponsorData } from "./sponsor-html-checker";
@@ -114,6 +116,10 @@ const {
 import type { SponsorFetchMode, PullRequest } from "./graphql/pr-queries";
 import { TemplateRenderer } from "./template";
 
+// Type alias for GitHub release response used across helpers
+type GitHubRelease =
+	RestEndpointMethodTypes["repos"]["getReleaseByTag"]["response"]["data"];
+
 export type RunOptions = {
 	repo: string;
 	config?: string;
@@ -158,14 +164,21 @@ export type CategorizedPullRequests = {
 	}>;
 };
 
-// Type for new contributor - author data plus firstPullRequest
-export type NewContributor = Author & {
-	firstPullRequest: {
-		number: number;
+// Categorized pull requests represented by PR numbers only
+export type CategorizedPullRequestsByNumber = {
+	uncategorized: number[];
+	categories: Array<{
 		title: string;
-		url: string;
-		mergedAt: string;
-	};
+		labels?: string[];
+		"collapse-after"?: number;
+		[k: string]: unknown;
+		pullRequests: number[];
+	}>;
+};
+
+// Type for new contributor - author data plus firstPullRequest number only
+export type NewContributor = Author & {
+	firstPullRequest: number;
 };
 
 // Type for last release information
@@ -195,8 +208,19 @@ export type RunResult = {
 	repo: string;
 	defaultBranch: string;
 	lastRelease: LastRelease;
-	mergedPullRequests: MergedPullRequest[];
-	categorizedPullRequests: CategorizedPullRequests;
+	// PR data map: PR number -> data
+	pullRequests: Record<number, MergedPullRequest>;
+	// Merged PR numbers in order
+	mergedPullRequests: number[];
+	// Categorized PR numbers
+	categorizedPullRequests: CategorizedPullRequestsByNumber;
+	// Pull requests grouped by label
+	// - labels: map of label name -> PR numbers (in order)
+	// - unlabeled: PR numbers without any labels (in order)
+	pullRequestsByLabel: {
+		labels: Record<string, number[]>;
+		unlabeled: number[];
+	};
 	contributors: Author[];
 	newContributors: NewContributor[] | null;
 	release: ReleaseInfo;
@@ -397,6 +421,206 @@ function buildContributors(
 	return contributorsMap;
 }
 
+// Detect if a given ref name is an existing tag in the repository.
+// Returns the exact tag name if found, otherwise null.
+async function detectExistingTag(params: {
+	owner: string;
+	repo: string;
+	token: string;
+	name?: string | null;
+}): Promise<string | null> {
+	const { owner, repo, token, name } = params;
+	if (!name) return null;
+	try {
+		// Use matching-refs to avoid path-segment issues and check exact match
+		const refs = (await ghRest(
+			`/repos/${owner}/${repo}/git/matching-refs/tags/${encodeURIComponent(
+				name,
+			)}`,
+			{ token },
+		)) as Array<{ ref?: string } | string> | { ref?: string }[] | null;
+
+		if (Array.isArray(refs)) {
+			// Normalize to objects with ref field
+			const hasExact = refs.some((r: unknown) => {
+				let refStr = "";
+				if (typeof r === "string") {
+					refStr = r;
+				} else if (r && typeof r === "object" && "ref" in r) {
+					const obj = r as { ref?: string };
+					refStr = String(obj.ref || "");
+				}
+				return refStr === `refs/tags/${name}`;
+			});
+			if (hasExact) {
+				logVerbose(`[Releases] Detected existing tag: ${name}`);
+				return name;
+			}
+		}
+	} catch (e) {
+		// Network errors or permission issues shouldn't break core behavior
+		logVerbose(
+			`[Releases] Tag detection skipped for ${name}: ${
+				e instanceof Error ? e.message : String(e)
+			}`,
+		);
+	}
+	return null;
+}
+
+// Find the previous GitHub release relative to a given existing tag.
+async function findPreviousReleaseForTag(params: {
+	owner: string;
+	repo: string;
+	token: string;
+	currentTag: string;
+	includePreReleases: boolean;
+	tagPrefix: string;
+}): Promise<GitHubRelease | null> {
+	const { owner, repo, token, currentTag, includePreReleases, tagPrefix } =
+		params;
+
+	// Prepare current tag version for semver comparison
+	const stripPrefix = (t: string): string =>
+		tagPrefix && t.startsWith(tagPrefix) ? t.slice(tagPrefix.length) : t;
+
+	const currentTagStripped = stripPrefix(currentTag);
+	const currentParsed =
+		semver.parse(currentTagStripped, { loose: true }) ||
+		semver.coerce(currentTagStripped);
+
+	// If we cannot parse current tag as semver, fall back to chronological scan
+	if (!currentParsed) {
+		let page = 1;
+		const perPage = 100;
+		let foundCurrent = false;
+		while (true) {
+			const list = (await ghRest(
+				`/repos/${owner}/${repo}/releases?per_page=${perPage}&page=${page}`,
+				{ token },
+			)) as GitHubRelease[];
+			if (!Array.isArray(list) || list.length === 0) break;
+			for (let i = 0; i < list.length; i++) {
+				const r = list[i] as unknown as {
+					tag_name?: string;
+					prerelease?: boolean;
+				};
+				const tname = String(r.tag_name || "");
+				if (!foundCurrent) {
+					if (tname === currentTag) {
+						foundCurrent = true;
+					}
+					continue;
+				}
+				if (!includePreReleases && r.prerelease) continue;
+				if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
+				return list[i] as GitHubRelease;
+			}
+			page++;
+		}
+		return null;
+	}
+
+	// Walk all releases and keep the best candidate (max < current)
+	let page = 1;
+	const perPage = 100;
+	let best: { release: GitHubRelease; version: string } | null = null;
+
+	while (true) {
+		const list = (await ghRest(
+			`/repos/${owner}/${repo}/releases?per_page=${perPage}&page=${page}`,
+			{ token },
+		)) as GitHubRelease[];
+		if (!Array.isArray(list) || list.length === 0) break;
+
+		for (const rel of list) {
+			const tname = String(rel?.tag_name || "");
+			if (!tname) continue;
+			if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
+
+			const stripped = stripPrefix(tname);
+			// Parse preserving pre-release info if present
+			const parsed =
+				semver.parse(stripped, { loose: true }) || semver.coerce(stripped);
+			if (!parsed) continue;
+
+			// Filter pre-releases based on config
+			const isPre = !!semver.prerelease(parsed.version);
+			if (!includePreReleases && (rel.prerelease || isPre)) continue;
+
+			// Only consider versions strictly less than current
+			if (!semver.lt(parsed.version, currentParsed.version)) continue;
+
+			// Keep the largest version below current
+			if (!best || semver.gt(parsed.version, best.version)) {
+				best = { release: rel, version: parsed.version };
+			}
+		}
+		page++;
+	}
+
+	return best ? best.release : null;
+}
+
+// Resolve a tag to the commit timestamp used as an upper bound for PR merging time.
+// Follows annotated tags to the underlying commit and returns the commit's committer date.
+async function resolveTagCommitDate(params: {
+	owner: string;
+	repo: string;
+	token: string;
+	tag: string;
+}): Promise<string | null> {
+	const { owner, repo, token, tag } = params;
+	try {
+		// Get the ref for the exact tag
+		const ref = (await ghRest(`/repos/${owner}/${repo}/git/ref/tags/${tag}`, {
+			token,
+		})) as { object?: { sha?: string; type?: string } };
+		let objSha = ref?.object?.sha || "";
+		let objType = ref?.object?.type || "";
+
+		// If annotated tag, dereference to underlying object
+		let safety = 0;
+		while (objType === "tag" && objSha && safety < 3) {
+			safety++;
+			const tagObj = (await ghRest(
+				`/repos/${owner}/${repo}/git/tags/${objSha}`,
+				{ token },
+			)) as {
+				object?: { sha?: string; type?: string };
+				tagger?: { date?: string };
+			};
+			objSha = tagObj?.object?.sha || objSha;
+			objType = tagObj?.object?.type || objType;
+			// If somehow no object, break
+			if (!objSha) break;
+		}
+
+		// Expect commit type at this point
+		if (objSha && objType === "commit") {
+			const commit = (await ghRest(
+				`/repos/${owner}/${repo}/commits/${objSha}`,
+				{ token },
+			)) as {
+				commit?: {
+					committer?: { date?: string };
+					author?: { date?: string };
+				};
+			};
+			const date =
+				commit?.commit?.committer?.date || commit?.commit?.author?.date;
+			if (date) return date;
+		}
+	} catch (e) {
+		logVerbose(
+			`[Releases] Failed to resolve commit date for tag ${tag}: ${
+				e instanceof Error ? e.message : String(e)
+			}`,
+		);
+	}
+	return null;
+}
+
 export async function run(options: RunOptions): Promise<RunResult> {
 	const {
 		repo: repoNameWithOwner,
@@ -516,12 +740,34 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const context = buildContext({ owner, repo, token, defaultBranch });
 	const rdConfig = validateSchema(context, cfg);
 
-	// Type alias for GitHub release response
-	type GitHubRelease =
-		RestEndpointMethodTypes["repos"]["getReleaseByTag"]["response"]["data"];
-
 	let lastRelease: LastRelease = null;
 	let rawReleaseData: GitHubRelease | null = null;
+
+	// Determine if provided --target or --tag points to an existing tag.
+	// If so, we should generate notes between that tag and the previous tag.
+	const existingTagFromTarget = await detectExistingTag({
+		owner,
+		repo,
+		token,
+		name: target,
+	});
+	const existingTagFromTagArg = await detectExistingTag({
+		owner,
+		repo,
+		token,
+		name: tag,
+	});
+	const effectiveExistingTag = existingTagFromTarget || existingTagFromTagArg;
+
+	// Resolve the commit date for the existing tag (upper bound for PRs and fallback)
+	const tagUpperBoundDate = effectiveExistingTag
+		? await resolveTagCommitDate({
+				owner,
+				repo,
+				token,
+				tag: effectiveExistingTag,
+			})
+		: null;
 
 	if (prevTag) {
 		logVerbose(`[Releases] Using explicit previous tag: ${prevTag}`);
@@ -531,9 +777,36 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			tag: prevTag,
 		});
 		rawReleaseData = rel.data as GitHubRelease;
+	} else if (effectiveExistingTag) {
+		logVerbose(
+			`[Releases] Resolving previous release relative to existing tag: ${effectiveExistingTag}`,
+		);
+		const includePreReleases = !!rdConfig["include-pre-releases"];
+		const tagPrefix = String(rdConfig["tag-prefix"] || "");
+		rawReleaseData = await findPreviousReleaseForTag({
+			owner,
+			repo,
+			token,
+			currentTag: effectiveExistingTag,
+			includePreReleases,
+			tagPrefix,
+		});
+		if (rawReleaseData) {
+			logVerbose(
+				`[Releases] Previous release detected for ${effectiveExistingTag}: ${String(
+					rawReleaseData.tag_name,
+				)}`,
+			);
+		} else {
+			logVerbose(
+				`[Releases] No previous release found for ${effectiveExistingTag}; using beginning of history`,
+			);
+		}
 	} else {
 		logVerbose(
-			`[Releases] Auto-detecting previous release (target=${target || defaultBranch})`,
+			`[Releases] Auto-detecting previous release (target=${
+				target || defaultBranch
+			})`,
 		);
 		// TODO: Support --no-auto-prev flag to disable automatic previous release detection
 		// When autoPrev is false, should generate changelog from the beginning of commit history
@@ -571,13 +844,17 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Generate full changelog link
 	const previousTag = prevTag || lastRelease?.tag_name;
+	const nextTagForLink = effectiveExistingTag
+		? effectiveExistingTag
+		: preview
+			? target || tag || defaultBranch
+			: tag || target || defaultBranch;
+
 	const fullChangelogLink = generateFullChangelogLink({
 		owner,
 		repo,
 		previousTag,
-		nextTag: preview
-			? target || tag || defaultBranch
-			: tag || target || defaultBranch,
+		nextTag: nextTagForLink,
 	});
 
 	// Replace $FULL_CHANGELOG_LINK placeholder in template if it exists
@@ -593,7 +870,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		).template.replaceAll("$FULL_CHANGELOG_LINK", fullChangelogLink);
 	}
 
-	const targetCommitish: string = target || defaultBranch;
+	const targetCommitish: string =
+		effectiveExistingTag || target || defaultBranch;
 	logVerbose("[GitHub] Resolving merged pull requests via GraphQL search...");
 	const { fetchMergedPRs } = await import("./graphql/pr-queries");
 	const { filterByChangedFilesGraphQL } = await import(
@@ -619,10 +897,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		? rdConfig["exclude-labels"]
 		: [];
 
+	// If an existing tag is specified for target/tag, resolve its commit date
+	// to use as an upper bound for PR merge time.
+	const untilDate = tagUpperBoundDate || undefined;
+
 	let pullRequests = await fetchMergedPRs({
 		owner,
 		repo,
 		sinceDate,
+		untilDate: untilDate || undefined,
 		baseBranch: baseBranchName,
 		graphqlFn: context.octokit.graphql as (
 			query: string,
@@ -722,7 +1005,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Check for $NEW_CONTRIBUTORS placeholder in template
 	let newContributorsSection = "";
-	let newContributorsData = null;
+	let newContributorsData: NewContributorsResult | null = null;
 	let newContributorsPromise: Promise<unknown> | null = null;
 
 	const shouldFetchNewContributors =
@@ -764,9 +1047,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 		// Wait for new contributors detection if it was started
 		if (newContributorsPromise) {
-			const newContributorsResult = (await newContributorsPromise) as {
-				newContributors: NewContributor[];
-			};
+			const newContributorsResult =
+				(await newContributorsPromise) as NewContributorsResult;
 			newContributorsSection = formatNewContributorsSection(
 				newContributorsResult.newContributors,
 			);
@@ -830,23 +1112,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Map new contributors back to include full author data
 	const newContributorsOutput = newContributorsData
-		? (
-				newContributorsData as {
-					newContributors: Array<{
-						login: string;
-						firstPullRequest: {
-							number: number;
-							title: string;
-							url: string;
-							mergedAt: string;
-						};
-					}>;
-				}
-			).newContributors.map((c) => {
+		? newContributorsData.newContributors.map((c) => {
 				const base = contributorsMap.get(c.login);
 				return {
 					...base,
-					firstPullRequest: c.firstPullRequest,
+					firstPullRequest: c.firstPullRequest.number,
 				} as NewContributor;
 			})
 		: null;
@@ -858,22 +1128,45 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		rdConfig as CategorizeConfig,
 	);
 
-	// The categorized result already has the right structure
-	const flattenedCategorized: CategorizedPullRequests = {
-		uncategorized: categorizedPullRequests.uncategorized.map((pr) => ({
+	// Build pullRequests map with flattened labels
+	const pullRequestsMap: Record<number, MergedPullRequest> = {};
+	for (const pr of pullRequestsSorted || []) {
+		pullRequestsMap[pr.number] = {
 			...pr,
 			labels:
 				pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
-		})),
+		} as unknown as MergedPullRequest;
+	}
+
+	// Categorized PR numbers only
+	const flattenedCategorizedNumbers: CategorizedPullRequestsByNumber = {
+		uncategorized: categorizedPullRequests.uncategorized.map((pr) => pr.number),
 		categories: categorizedPullRequests.categories.map((cat) => ({
 			...cat,
-			pullRequests: cat.pullRequests.map((pr) => ({
-				...pr,
-				labels:
-					pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
-			})),
+			pullRequests: cat.pullRequests.map((pr) => pr.number),
 		})),
 	};
+
+	// Build label grouping in the current sorted order
+	const pullRequestsByLabel: {
+		labels: Record<string, number[]>;
+		unlabeled: number[];
+	} = { labels: {}, unlabeled: [] };
+	for (const pr of pullRequestsSorted || []) {
+		const prNumber = pr.number as number;
+		const labelNodes = pr.labels?.nodes || [];
+		if (labelNodes.length === 0) {
+			pullRequestsByLabel.unlabeled.push(prNumber);
+			continue;
+		}
+		for (const node of labelNodes) {
+			const lname = String(node?.name || "");
+			if (!lname) continue;
+			if (!pullRequestsByLabel.labels[lname])
+				pullRequestsByLabel.labels[lname] = [];
+			pullRequestsByLabel.labels[lname].push(prNumber);
+		}
+	}
 
 	// Create the output data structure once
 	const result: RunResult = {
@@ -881,11 +1174,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		repo,
 		defaultBranch,
 		lastRelease,
-		mergedPullRequests: pullRequestsSorted.map((pr) => ({
-			...pr,
-			labels: pr.labels?.nodes?.map((node) => node.name) || [],
-		})),
-		categorizedPullRequests: flattenedCategorized,
+		pullRequests: pullRequestsMap,
+		mergedPullRequests: (pullRequestsSorted || []).map((pr) => pr.number),
+		categorizedPullRequests: flattenedCategorizedNumbers,
+		pullRequestsByLabel,
 		contributors,
 		newContributors: newContributorsOutput,
 		release: {

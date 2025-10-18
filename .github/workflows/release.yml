@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actionutils/trusted-tag-verifier@68bef2f18f8ceb5c4dccc5542cadcfbc82ed4656 # v0.5.0
+      - uses: actionutils/trusted-tag-verifier@95f88dda1c54c11d1ad9428998be8b068443fa07 # v0.5.1
         with:
           verify: 'actionutils/create-release-pr'
       - uses: actionutils/create-release-pr@v0
@@ -80,7 +80,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Verify actionutils/sticky-comment
-        uses: actionutils/trusted-tag-verifier@68bef2f18f8ceb5c4dccc5542cadcfbc82ed4656 # v0.5.0
+        uses: actionutils/trusted-tag-verifier@95f88dda1c54c11d1ad9428998be8b068443fa07 # v0.5.1
         with:
           verify: 'actionutils/sticky-comment'
 
@@ -146,7 +146,7 @@ jobs:
               <pre>${{ toJSON(fromJSON(steps.dependency-review.outputs.dependency-changes)) }}</pre>
             </details>
 
-      - uses: actionutils/trusted-tag-verifier@68bef2f18f8ceb5c4dccc5542cadcfbc82ed4656 # v0.5.0
+      - uses: actionutils/trusted-tag-verifier@95f88dda1c54c11d1ad9428998be8b068443fa07 # v0.5.1
         with:
           verify: 'actionutils/commit-or-rewrite'
 
@@ -169,7 +169,7 @@ jobs:
       # Test goreleaser
       - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
       - uses: sigstore/cosign-installer@v3.9.2 # installs cosign
-      - uses: anchore/sbom-action/download-syft@v0.20.5 # installs syft
+      - uses: anchore/sbom-action/download-syft@v0.20.7 # installs syft
       - uses: goreleaser/goreleaser-action@v6
         id: goreleaser
         with:
@@ -230,7 +230,7 @@ jobs:
         with:
           egress-policy: audit
       - name: Verify Trusted Tag Releaser
-        uses: actionutils/trusted-tag-verifier@68bef2f18f8ceb5c4dccc5542cadcfbc82ed4656 # v0.5.0
+        uses: actionutils/trusted-tag-verifier@95f88dda1c54c11d1ad9428998be8b068443fa07 # v0.5.1
         with:
           verify: 'actionutils/trusted-go-releaser@v1'
 
@@ -269,7 +269,7 @@ jobs:
     # Use npm publish for trusted publishing until bun publish suppports it.
     # ref: https://github.com/oven-sh/bun/issues/15601
     # Require npm version >= 11.5.1 for trusted publishing
-    - uses: actions/setup-node@v5
+    - uses: actions/setup-node@v6
       with:
         node-version: 24
     - run: npm --version

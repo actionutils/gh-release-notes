@@ -19,7 +19,8 @@
     </tr>
   </thead>
   <tbody>
-{%- for pr in category.pullRequests %}
+{%- for n in category.pullRequests %}
+{%- set pr = pullRequests[n|string] %}
     <tr>
       <td align="center"><a href="{{ pr.url }}">#{{ pr.number }}</a></td>
       <td>{{ pr.title }}</td>
