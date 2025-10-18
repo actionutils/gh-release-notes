@@ -1,0 +1,52 @@
+## What's Changed by Label
+
+{# Iterate labels available in the map #}
+{%- for label in pullRequestsByLabel %}
+### {{ label }}
+{%- for n in pullRequestsByLabel[label] %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+{%- endfor %}
+
+{%- if newContributors | length > 0 %}
+
+## New Contributors
+{%- for contributor in newContributors %}
+{%- set n = contributor.firstPullRequest %}
+{%- set pr = pullRequests[n|string] %}
+- @{{ contributor.login }} made their first contribution in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+{%- endif %}
+
+{%- if contributors | length > 0 %}
+
+## Contributors
+
+<table>
+  <tbody>
+    <tr>
+{%- for contributor in contributors %}
+      <td align="center" valign="top" width="100">
+        <a href="{{ contributor.url }}">
+          <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64px" alt="{{ contributor.login }}"/><br />
+        </a>
+        <sub>@{{ contributor.login }}{% if contributor.type == 'Bot' %}[bot]{% endif %}</sub>
+        {%- if contributor.sponsorsListing %}
+        <br><br>
+        <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
+          <img src="https://img.shields.io/badge/-Sponsor-ea4aaa?style=for-the-badge&logo=github&logoColor=white" height="24" />
+        </a>
+        {%- endif %}
+      </td>
+{%- if loop.index % 6 == 0 and not loop.last %}
+    </tr>
+    <tr>
+{%- endif %}
+{%- endfor %}
+    </tr>
+  </tbody>
+  </table>
+{%- endif %}
+
+**Full Changelog**: {{ fullChangelogLink }}
