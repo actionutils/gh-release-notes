@@ -51,7 +51,7 @@ describe("migrate command", () => {
 		) {
 			expect(res.path!).toMatch(/\.github\/release-drafter\.yml$/);
 			const disk = await fs.readFile(res.path!, "utf8");
-			const expectedObj = convertGitHubToReleaseDrafter(githubConfig as any);
+			const expectedObj = convertGitHubToReleaseDrafter(githubConfig);
 			const expectedYaml =
 				yaml.dump(expectedObj, { indent: 2, lineWidth: -1, noRefs: true }) +
 				"\n";
@@ -79,7 +79,7 @@ describe("migrate command", () => {
 		const res = await migrateCommand({ output: "-" });
 		expect(res.status).toBe("printed");
 		if (res.status === "printed") {
-			const expectedObj = convertGitHubToReleaseDrafter(githubConfig as any);
+			const expectedObj = convertGitHubToReleaseDrafter(githubConfig);
 			const expectedYaml =
 				yaml.dump(expectedObj, { indent: 2, lineWidth: -1, noRefs: true }) +
 				"\n";
@@ -99,7 +99,7 @@ describe("migrate command", () => {
 			categories: [{ title: "Docs", labels: ["docs"] }],
 		};
 		// Sanity: ensure it's not detected as GitHub release config
-		expect(isGitHubReleaseConfig(rdConfig as any)).toBe(false);
+		expect(isGitHubReleaseConfig(rdConfig as unknown)).toBe(false);
 		await fs.writeFile(sourcePath, yaml.dump(rdConfig) + "\n", "utf8");
 		process.chdir(tmpDir);
 
@@ -121,10 +121,15 @@ describe("migrate command", () => {
 		const outPath = path.join(tmpDir, ".github", "release-drafter.yml");
 		await fs.writeFile(outPath, "different: true\n", "utf8");
 
-		// Expect rejection without force
-		await expect(migrateCommand({})).rejects.toThrow(
-			"Refusing to overwrite existing file",
-		);
+		// Expect rejection without force using try/catch to satisfy linter
+		let threw = false;
+		try {
+			await migrateCommand({});
+		} catch (e) {
+			threw = true;
+			expect(String(e)).toContain("Refusing to overwrite existing file");
+		}
+		expect(threw).toBe(true);
 
 		const forced = await migrateCommand({ force: true });
 		expect(forced.status).toBe("overwrote");
@@ -132,7 +137,7 @@ describe("migrate command", () => {
 
 	it("errors when no source is found", async () => {
 		process.chdir(tmpDir);
-		await expect(migrateCommand({})).rejects.toThrow(
+		return expect(migrateCommand({})).rejects.toThrow(
 			"No source release config found",
 		);
 	});

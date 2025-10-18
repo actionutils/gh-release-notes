@@ -73,14 +73,14 @@ export async function migrateCommand(
 	let raw: string;
 	try {
 		raw = await fs.readFile(source, "utf8");
-	} catch (e) {
+	} catch {
 		throw new Error(`Failed to read source file: ${source}`);
 	}
 
 	let parsed: unknown;
 	try {
 		parsed = yaml.load(raw);
-	} catch (e) {
+	} catch {
 		throw new Error(`Failed to parse YAML from source: ${source}`);
 	}
 
