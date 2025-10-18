@@ -5,6 +5,7 @@ import { Octokit } from "@octokit/rest";
 import type { RestEndpointMethodTypes } from "@octokit/rest";
 import yaml from "js-yaml";
 import { normalizeConfig } from "./github-config-converter";
+import semver from "semver";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 import { ContentLoaderFactory } from "./content-loader";
 import {
@@ -456,47 +457,90 @@ async function findPreviousReleaseForTag(params: {
 	currentTag: string;
 	includePreReleases: boolean;
 	tagPrefix: string;
-	tagUpperBoundDate?: string | null;
 }): Promise<GitHubRelease | null> {
-	const {
-		owner,
-		repo,
-		token,
-		currentTag,
-		includePreReleases,
-		tagPrefix,
-		tagUpperBoundDate,
-	} = params;
+	const { owner, repo, token, currentTag, includePreReleases, tagPrefix } =
+		params;
 
-	// Try to locate the previous release in descending order, right after currentTag
+	// Prepare current tag version for semver comparison
+	const stripPrefix = (t: string): string =>
+		tagPrefix && t.startsWith(tagPrefix) ? t.slice(tagPrefix.length) : t;
+
+	const currentTagStripped = stripPrefix(currentTag);
+	const currentParsed =
+		semver.parse(currentTagStripped, { loose: true }) ||
+		semver.coerce(currentTagStripped);
+
+	// If we cannot parse current tag as semver, fall back to chronological scan
+	if (!currentParsed) {
+		let page = 1;
+		const perPage = 100;
+		let foundCurrent = false;
+		while (true) {
+			const list = (await ghRest(
+				`/repos/${owner}/${repo}/releases?per_page=${perPage}&page=${page}`,
+				{ token },
+			)) as GitHubRelease[];
+			if (!Array.isArray(list) || list.length === 0) break;
+			for (let i = 0; i < list.length; i++) {
+				const r = list[i] as unknown as {
+					tag_name?: string;
+					prerelease?: boolean;
+				};
+				const tname = String(r.tag_name || "");
+				if (!foundCurrent) {
+					if (tname === currentTag) {
+						foundCurrent = true;
+					}
+					continue;
+				}
+				if (!includePreReleases && r.prerelease) continue;
+				if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
+				return list[i] as GitHubRelease;
+			}
+			page++;
+		}
+		return null;
+	}
+
+	// Walk all releases and keep the best candidate (max < current)
 	let page = 1;
 	const perPage = 100;
-	let foundCurrent = false;
+	let best: { release: GitHubRelease; version: string } | null = null;
+
 	while (true) {
 		const list = (await ghRest(
 			`/repos/${owner}/${repo}/releases?per_page=${perPage}&page=${page}`,
 			{ token },
 		)) as GitHubRelease[];
 		if (!Array.isArray(list) || list.length === 0) break;
-		for (let i = 0; i < list.length; i++) {
-			const r = list[i] as unknown as {
-				tag_name?: string;
-				prerelease?: boolean;
-			};
-			const tname = String(r.tag_name || "");
-			if (!foundCurrent) {
-				if (tname === currentTag) {
-					foundCurrent = true;
-				}
-				continue;
-			}
-			if (!includePreReleases && r.prerelease) continue;
+
+		for (const rel of list) {
+			const tname = String(rel?.tag_name || "");
+			if (!tname) continue;
 			if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
-			return list[i] as GitHubRelease;
+
+			const stripped = stripPrefix(tname);
+			// Parse preserving pre-release info if present
+			const parsed =
+				semver.parse(stripped, { loose: true }) || semver.coerce(stripped);
+			if (!parsed) continue;
+
+			// Filter pre-releases based on config
+			const isPre = !!semver.prerelease(parsed.version);
+			if (!includePreReleases && (rel.prerelease || isPre)) continue;
+
+			// Only consider versions strictly less than current
+			if (!semver.lt(parsed.version, currentParsed.version)) continue;
+
+			// Keep the largest version below current
+			if (!best || semver.gt(parsed.version, best.version)) {
+				best = { release: rel, version: parsed.version };
+			}
 		}
 		page++;
 	}
-	return null;
+
+	return best ? best.release : null;
 }
 
 // Resolve a tag to the commit timestamp used as an upper bound for PR merging time.
@@ -727,7 +771,6 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			currentTag: effectiveExistingTag,
 			includePreReleases,
 			tagPrefix,
-			tagUpperBoundDate,
 		});
 		if (rawReleaseData) {
 			logVerbose(
