@@ -193,7 +193,7 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
 - `owner`, `repo`, `defaultBranch`, `lastRelease`, `fullChangelogLink`
 
 ### Example (MiniJinja)
-```
+```jinja
 ## Release {{ release.tag }}
 
 ### ✨ Highlights
