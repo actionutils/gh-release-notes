@@ -1,0 +1,38 @@
+template: |-
+  ## What's Changed
+
+  $CHANGES
+
+  $NEW_CONTRIBUTORS
+
+  **Full Changelog**: $FULL_CHANGELOG_LINK
+change-template: '- $TITLE by @$AUTHOR in $URL'
+category-template: '### $TITLE'
+sort-direction: ascending
+exclude-labels:
+  - ignore-for-release
+  - release-pr
+categories:
+  - title: Breaking Changes 🛠
+    labels:
+      - breaking-change
+  - title: Deprecations ⚠️
+    labels:
+      - deprecation
+  - title: Enhancements 🎉
+    labels:
+      - enhancement
+  - title: Templates ⛩️
+    labels:
+      - template
+  - title: Bug Fixes 🐛
+    labels:
+      - bug
+  - title: Documents 🗒️
+    labels:
+      - documentation
+  - title: Other Changes
+  - title: Dependencies
+    labels:
+      - dependencies
+
