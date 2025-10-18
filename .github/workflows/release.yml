@@ -96,6 +96,35 @@ jobs:
 
             ${{ steps.release-notes.outputs.notes }}
 
+      - id: release-notes-github-ext
+        env:
+          PREV_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
+          TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --prev-tag "$PREV_TAG" \
+            --tag "$TAG" \
+            --template ./templates/github-ext.md.jinja \
+            --verbose \
+            --preview)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post release notes (github-ext)
+        if: steps.release-notes-github-ext.outputs.notes != ''
+        uses: actionutils/sticky-comment@v1
+        with:
+          key: 'release-notes-github-ext'
+          number: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_number }}
+          body: |
+            ## Release Notes (GitHub-ext ver.)
+            <hr>
+
+            ${{ steps.release-notes-github-ext.outputs.notes }}
+
       - id: release-notes-table
         env:
           PREV_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
@@ -124,6 +153,35 @@ jobs:
             <hr>
 
             ${{ steps.release-notes-table.outputs.notes }}
+
+      - id: release-notes-label
+        env:
+          PREV_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
+          TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --prev-tag "$PREV_TAG" \
+            --tag "$TAG" \
+            --template ./templates/label.md.jinja \
+            --verbose \
+            --preview)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post release notes (label)
+        if: steps.release-notes-label.outputs.notes != ''
+        uses: actionutils/sticky-comment@v1
+        with:
+          key: 'release-notes-label'
+          number: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_number }}
+          body: |
+            ## Release Notes (Label ver.)
+            <hr>
+
+            ${{ steps.release-notes-label.outputs.notes }}
 
       # Post Dependency Review
       - uses: actions/dependency-review-action@v4
