@@ -17,18 +17,18 @@ Use cases
 
 Quick install (latest)
 - Install the binary
-```console
+```shell
 curl -sSfL https://github.com/actionutils/gh-release-notes/releases/latest/download/install.sh | sh
 ```
 - Or run directly without installation
-```console
+```shell
 curl -sSfL https://github.com/actionutils/gh-release-notes/releases/latest/download/run.sh | sh
 ```
 
 <details>
 <summary>Verify latest with cosign</summary>
 
-```console
+```shell
 # Choose the script to execute
 SCRIPT="install.sh"  # or "run.sh"
 DOWNLOAD_URL="https://github.com/actionutils/gh-release-notes/releases/latest/download"
@@ -52,13 +52,13 @@ curl -sL "${DOWNLOAD_URL}/${SCRIPT}" | \
 Specific version (simple)
 
 Install
-```console
+```shell
 VERSION="<version>"  # e.g., v0.6.0
 curl -sSfL "https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}/install.sh" | sh
 ```
 
 Run without installation
-```console
+```shell
 VERSION="<version>"  # e.g., v0.6.0
 curl -sSfL "https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}/run.sh" | sh
 ```
@@ -66,7 +66,7 @@ curl -sSfL "https://github.com/actionutils/gh-release-notes/releases/download/${
 Specific version (verified with cosign)
 
 Install (verified)
-```console
+```shell
 VERSION="<version>"  # e.g., v0.6.0
 BASE="https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}"
 curl -sL "${BASE}/install.sh" | \
@@ -81,7 +81,7 @@ curl -sL "${BASE}/install.sh" | \
 ```
 
 Run without installation (verified)
-```console
+```shell
 VERSION="<version>"  # e.g., v0.6.0
 BASE="https://github.com/actionutils/gh-release-notes/releases/download/${VERSION}"
 curl -sL "${BASE}/run.sh" | \
@@ -97,41 +97,44 @@ curl -sL "${BASE}/run.sh" | \
 
 </details>
 
-Other options
-- GitHub CLI extension:
-  - Install:
-    ```console
-    gh extension install actionutils/gh-release-notes
-    ```
-  - Upgrade:
-    ```console
-    gh extension upgrade actionutils/gh-release-notes
-    ```
-- npx (no install):
-  ```console
-  npx @actionutils/gh-release-notes
-  ```
+### GitHub CLI extension
+
+Install
+```shell
+gh extension install actionutils/gh-release-notes
+```
+
+Upgrade
+```shell
+gh extension upgrade actionutils/gh-release-notes
+```
+
+### npx (no install)
+
+```shell
+npx @actionutils/gh-release-notes
+```
 
 ## Usage
 
 - Generate from latest changes (auto-detects previous release):
-  ```console
+  ```shell
   gh-release-notes
   ```
   As gh extension:
-  ```console
+  ```shell
   gh release-notes
   ```
 - Specify previous and next tags:
-  ```console
+  ```shell
   gh-release-notes --prev-tag v1.0.0 --tag v1.1.0
   ```
 - Target a branch/revision:
-  ```console
+  ```shell
   gh-release-notes --target main
   ```
 - Use a MiniJinja template:
-  ```console
+  ```shell
   gh-release-notes --template ./templates/release.jinja
   ```
 - JSON output (for scripting or custom rendering):
