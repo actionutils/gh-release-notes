@@ -269,19 +269,20 @@ async function main() {
 				"  Example template:\n" +
 				"    ## Release {{ release.tag }}\n" +
 				"    ### ✨ Highlights\n" +
-				"    {% for pr in mergedPullRequests %}\n" +
+				"    {% for pr_number in mergedPullRequests %}\n" +
 				"    {% if loop.index <= 5 %}\n" +
-				"    - {{ pr.title }} (#{{ pr.number }})\n" +
+				"    - {{ pullRequests[pr_number].title }} (#{{ pr_number }})\n" +
 				"    {% endif %}\n" +
 				"    {% endfor %}\n" +
 				"    \n" +
 				"    **Full Changelog**: {{ fullChangelogLink }}\n\n" +
 				"  Available data:\n" +
 				"    - release: name, tag, targetCommitish, resolvedVersion, etc.\n" +
-				"    - mergedPullRequests: array of all PRs with title, number, author, labels, etc.\n" +
-				"    - categorizedPullRequests: PRs grouped by category\n" +
+				"    - pullRequests: map of PR number -> PR data\n" +
+				"    - mergedPullRequests: array of PR numbers (in order)\n" +
+				"    - categorizedPullRequests: PR numbers grouped by category\n" +
 				"    - contributors: array of all contributors\n" +
-				"    - newContributors: first-time contributors\n" +
+				"    - newContributors: first-time contributors (firstPullRequest is PR number)\n" +
 				"    - owner, repo, defaultBranch, lastRelease, fullChangelogLink\n\n" +
 				"More Information:\n" +
 				"  GitHub: https://github.com/actionutils/gh-release-notes",

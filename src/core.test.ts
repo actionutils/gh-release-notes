@@ -16,7 +16,6 @@ type BufferEncoding =
 	| "hex";
 import * as os from "node:os";
 import * as fsPromises from "node:fs/promises";
-import type { MergedPullRequest } from "./core";
 
 describe("actionutils/gh-release-notes core", () => {
 	const sourcePath = path.resolve(import.meta.dir, "./core.ts");
@@ -1042,9 +1041,7 @@ exclude-contributors:
 
 			// Should include all PRs (exclude-contributors doesn't filter PRs)
 			expect(res.mergedPullRequests.length).toBe(3);
-			const prNumbers = res.mergedPullRequests.map(
-				(pr: MergedPullRequest) => pr.number,
-			);
+			const prNumbers = res.mergedPullRequests;
 			expect(prNumbers).toContain(1);
 			expect(prNumbers).toContain(2);
 			expect(prNumbers).toContain(3);
@@ -1148,7 +1145,8 @@ exclude-contributors:
 
 			// Sponsor data should be added to PR author
 			expect(res.mergedPullRequests).toHaveLength(1);
-			expect(res.mergedPullRequests[0].author?.sponsorsListing?.url).toBe(
+			const onlyPrNumber = res.mergedPullRequests[0];
+			expect(res.pullRequests[onlyPrNumber].author?.sponsorsListing?.url).toBe(
 				"https://github.com/sponsors/sponsoruser",
 			);
 			// And contributors should reflect the enriched data

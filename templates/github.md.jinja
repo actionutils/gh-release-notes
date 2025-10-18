@@ -2,21 +2,23 @@
 {%- for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
 ### {{ category.title }}
-{%- for pr in category.pullRequests %}
+{%- for n in category.pullRequests %}
+{%- set pr = pullRequests[n|string] %}
 * {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
 {%- endfor %}
 {%- endif %}
 {%- endfor %}
 {# Render uncategorized PRs only when no categories are defined #}
 {%- if (categorizedPullRequests.categories | length == 0) and (categorizedPullRequests.uncategorized | length > 0) %}
-{%- for pr in categorizedPullRequests.uncategorized %}
+{%- for n in categorizedPullRequests.uncategorized %}
+{%- set pr = pullRequests[n|string] %}
 * {{ pr.title }} by @{{ pr.author.login }} in {{ pr.url }}
 {%- endfor %}
 {%- endif %}
 {%- if newContributors | length > 0 %}
 ## New Contributors
 {%- for contributor in newContributors %}
-* @{{ contributor.login }} made their first contribution in {{ contributor.firstPullRequest.url }}
+* @{{ contributor.login }} made their first contribution in #{{ contributor.firstPullRequest }}
 {%- endfor %}
 {%- endif %}
 

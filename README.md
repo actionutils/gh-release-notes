@@ -184,12 +184,13 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
 
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
-- `mergedPullRequests[]`: `number`, `title`, `url`, `mergedAt`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`
+- `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`
+- `mergedPullRequests[]`: array of PR numbers in display order
 - `categorizedPullRequests`:
-  - `uncategorized[]`
-  - `categories[]`: `title`, `labels[]`, `collapse_after?`, `pullRequests[]`
+  - `uncategorized[]`: array of PR numbers
+  - `categories[]`: `title`, `labels[]`, `collapse_after?`, `pullRequests[]` (array of PR numbers)
 - `contributors[]`: all PR authors
-- `newContributors[] | null`: first-time contributors + first PR details
+- `newContributors[] | null`: first-time contributors (contains `login` and `firstPullRequest` as PR number)
 - `owner`, `repo`, `defaultBranch`, `lastRelease`, `fullChangelogLink`
 
 ### Example (MiniJinja)
@@ -197,9 +198,9 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
 ## Release {{ release.tag }}
 
 ### ✨ Highlights
-{% for pr in mergedPullRequests %}
+{% for pr_number in mergedPullRequests %}
 {% if loop.index <= 5 %}
-- {{ pr.title }} (#{{ pr.number }}) by @{{ pr.author.login }}
+- {{ pullRequests[pr_number|string].title }} (#{{ pr_number }}) by @{{ pullRequests[pr_number|string].author.login }}
 {% endif %}
 {% endfor %}
 
