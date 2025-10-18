@@ -22,7 +22,7 @@ changelog:
         - bug
     - title: Documents 🗒️
       labels:
-        - document
+        - documentation
     - title: Other Changes
       labels:
         - '*'
