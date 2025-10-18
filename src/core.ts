@@ -116,7 +116,7 @@ import { TemplateRenderer } from "./template";
 
 // Type alias for GitHub release response used across helpers
 type GitHubRelease =
-    RestEndpointMethodTypes["repos"]["getReleaseByTag"]["response"]["data"];
+	RestEndpointMethodTypes["repos"]["getReleaseByTag"]["response"]["data"];
 
 export type RunOptions = {
 	repo: string;
@@ -451,141 +451,140 @@ async function detectExistingTag(params: {
 // Resolve a tag to the commit timestamp used as an upper bound for PR merging time.
 // Follows annotated tags to the underlying commit and returns the commit's committer date.
 async function resolveTagCommitDate(params: {
-    owner: string;
-    repo: string;
-    token: string;
-    tag: string;
+	owner: string;
+	repo: string;
+	token: string;
+	tag: string;
 }): Promise<string | null> {
-    const { owner, repo, token, tag } = params;
-    try {
-        const ref = (await ghRest(
-            `/repos/${owner}/${repo}/git/ref/tags/${tag}`,
-            { token },
-        )) as { object?: { sha?: string; type?: string } };
-        let objSha = ref?.object?.sha || "";
-        let objType = ref?.object?.type || "";
+	const { owner, repo, token, tag } = params;
+	try {
+		const ref = (await ghRest(`/repos/${owner}/${repo}/git/ref/tags/${tag}`, {
+			token,
+		})) as { object?: { sha?: string; type?: string } };
+		let objSha = ref?.object?.sha || "";
+		let objType = ref?.object?.type || "";
 
-        // If annotated tag, dereference to underlying object
-        let safety = 0;
-        while (objType === "tag" && objSha && safety < 3) {
-            safety++;
-            const tagObj = (await ghRest(
-                `/repos/${owner}/${repo}/git/tags/${objSha}`,
-                { token },
-            )) as { object?: { sha?: string; type?: string } };
-            objSha = tagObj?.object?.sha || objSha;
-            objType = tagObj?.object?.type || objType;
-            if (!objSha) break;
-        }
+		// If annotated tag, dereference to underlying object
+		let safety = 0;
+		while (objType === "tag" && objSha && safety < 3) {
+			safety++;
+			const tagObj = (await ghRest(
+				`/repos/${owner}/${repo}/git/tags/${objSha}`,
+				{ token },
+			)) as { object?: { sha?: string; type?: string } };
+			objSha = tagObj?.object?.sha || objSha;
+			objType = tagObj?.object?.type || objType;
+			if (!objSha) break;
+		}
 
-        if (objSha && objType === "commit") {
-            const commit = (await ghRest(
-                `/repos/${owner}/${repo}/commits/${objSha}`,
-                { token },
-            )) as {
-                commit?: {
-                    committer?: { date?: string };
-                    author?: { date?: string };
-                };
-            };
-            const date =
-                commit?.commit?.committer?.date || commit?.commit?.author?.date;
-            if (date) return date;
-        }
-    } catch (e) {
-        logVerbose(
-            `[Releases] Failed to resolve commit date for tag ${tag}: ${
-                e instanceof Error ? e.message : String(e)
-            }`,
-        );
-    }
-    return null;
+		if (objSha && objType === "commit") {
+			const commit = (await ghRest(
+				`/repos/${owner}/${repo}/commits/${objSha}`,
+				{ token },
+			)) as {
+				commit?: {
+					committer?: { date?: string };
+					author?: { date?: string };
+				};
+			};
+			const date =
+				commit?.commit?.committer?.date || commit?.commit?.author?.date;
+			if (date) return date;
+		}
+	} catch (e) {
+		logVerbose(
+			`[Releases] Failed to resolve commit date for tag ${tag}: ${
+				e instanceof Error ? e.message : String(e)
+			}`,
+		);
+	}
+	return null;
 }
 
 // Find the previous GitHub release relative to a given existing tag.
 // If the tag has no corresponding release, optionally falls back to the latest
 // release older than the tag's commit timestamp.
 async function findPreviousReleaseForTag(params: {
-    owner: string;
-    repo: string;
-    token: string;
-    currentTag: string;
-    includePreReleases: boolean;
-    tagPrefix: string;
-    tagUpperBoundDate?: string | null;
+	owner: string;
+	repo: string;
+	token: string;
+	currentTag: string;
+	includePreReleases: boolean;
+	tagPrefix: string;
+	tagUpperBoundDate?: string | null;
 }): Promise<GitHubRelease | null> {
-    const {
-        owner,
-        repo,
-        token,
-        currentTag,
-        includePreReleases,
-        tagPrefix,
-        tagUpperBoundDate,
-    } = params;
+	const {
+		owner,
+		repo,
+		token,
+		currentTag,
+		includePreReleases,
+		tagPrefix,
+		tagUpperBoundDate,
+	} = params;
 
-    // Try to locate the previous release in descending order, right after currentTag
-    let page = 1;
-    const perPage = 100;
-    let foundCurrent = false;
-    while (true) {
-        const list = (await ghRest(
-            `/repos/${owner}/${repo}/releases?per_page=${perPage}&page=${page}`,
-            { token },
-        )) as GitHubRelease[];
-        if (!Array.isArray(list) || list.length === 0) break;
-        for (let i = 0; i < list.length; i++) {
-            const r = list[i] as unknown as {
-                tag_name?: string;
-                prerelease?: boolean;
-            };
-            const tname = String(r.tag_name || "");
-            if (!foundCurrent) {
-                if (tname === currentTag) {
-                    foundCurrent = true;
-                }
-                continue;
-            }
-            if (!includePreReleases && r.prerelease) continue;
-            if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
-            return list[i] as GitHubRelease;
-        }
-        page++;
-    }
+	// Try to locate the previous release in descending order, right after currentTag
+	let page = 1;
+	const perPage = 100;
+	let foundCurrent = false;
+	while (true) {
+		const list = (await ghRest(
+			`/repos/${owner}/${repo}/releases?per_page=${perPage}&page=${page}`,
+			{ token },
+		)) as GitHubRelease[];
+		if (!Array.isArray(list) || list.length === 0) break;
+		for (let i = 0; i < list.length; i++) {
+			const r = list[i] as unknown as {
+				tag_name?: string;
+				prerelease?: boolean;
+			};
+			const tname = String(r.tag_name || "");
+			if (!foundCurrent) {
+				if (tname === currentTag) {
+					foundCurrent = true;
+				}
+				continue;
+			}
+			if (!includePreReleases && r.prerelease) continue;
+			if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
+			return list[i] as GitHubRelease;
+		}
+		page++;
+	}
 
-    // Fallback: choose the latest release older than the tag's commit time
-    if (tagUpperBoundDate) {
-        const until = new Date(tagUpperBoundDate).getTime();
-        if (Number.isFinite(until)) {
-            let page2 = 1;
-            while (true) {
-                const list = (await ghRest(
-                    `/repos/${owner}/${repo}/releases?per_page=100&page=${page2}`,
-                    { token },
-                )) as GitHubRelease[];
-                if (!Array.isArray(list) || list.length === 0) break;
-                for (const r of list as unknown as {
-                    tag_name?: string;
-                    prerelease?: boolean;
-                    created_at?: string;
-                    published_at?: string;
-                }[]) {
-                    const tname = String(r.tag_name || "");
-                    if (!includePreReleases && r.prerelease) continue;
-                    if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
-                    const created = new Date(
-                        String(r.published_at || r.created_at || 0),
-                    ).getTime();
-                    if (created && created <= until) {
-                        return r as unknown as GitHubRelease;
-                    }
-                }
-                page2++;
-            }
-        }
-    }
+	// Fallback: choose the latest release older than the tag's commit time
+	if (tagUpperBoundDate) {
+		const until = new Date(tagUpperBoundDate).getTime();
+		if (Number.isFinite(until)) {
+			let page2 = 1;
+			while (true) {
+				const list = (await ghRest(
+					`/repos/${owner}/${repo}/releases?per_page=100&page=${page2}`,
+					{ token },
+				)) as GitHubRelease[];
+				if (!Array.isArray(list) || list.length === 0) break;
+				for (const r of list as unknown as {
+					tag_name?: string;
+					prerelease?: boolean;
+					created_at?: string;
+					published_at?: string;
+				}[]) {
+					const tname = String(r.tag_name || "");
+					if (!includePreReleases && r.prerelease) continue;
+					if (tagPrefix && !tname.startsWith(tagPrefix)) continue;
+					const created = new Date(
+						String(r.published_at || r.created_at || 0),
+					).getTime();
+					if (created && created <= until) {
+						return r as unknown as GitHubRelease;
+					}
+				}
+				page2++;
+			}
+		}
+	}
 
-    return null;
+	return null;
 }
 
 // Resolve a tag to the commit timestamp used as an upper bound for PR merging time.
@@ -763,11 +762,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const defaultBranch: string = repoInfo.default_branch as string;
 	logVerbose(`[GitHub] Default branch: ${defaultBranch}`);
 
-    const context = buildContext({ owner, repo, token, defaultBranch });
-    const rdConfig = validateSchema(context, cfg);
+	const context = buildContext({ owner, repo, token, defaultBranch });
+	const rdConfig = validateSchema(context, cfg);
 
-    let lastRelease: LastRelease = null;
-    let rawReleaseData: GitHubRelease | null = null;
+	let lastRelease: LastRelease = null;
+	let rawReleaseData: GitHubRelease | null = null;
 
 	// Determine if provided --target or --tag points to an existing tag.
 	// If so, we should generate notes between that tag and the previous tag.
@@ -803,21 +802,21 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			tag: prevTag,
 		});
 		rawReleaseData = rel.data as GitHubRelease;
-    } else if (effectiveExistingTag) {
-        logVerbose(
-            `[Releases] Resolving previous release relative to existing tag: ${effectiveExistingTag}`,
-        );
-        const includePreReleases = !!rdConfig["include-pre-releases"];
-        const tagPrefix = String(rdConfig["tag-prefix"] || "");
-        rawReleaseData = await findPreviousReleaseForTag({
-            owner,
-            repo,
-            token,
-            currentTag: effectiveExistingTag,
-            includePreReleases,
-            tagPrefix,
-            tagUpperBoundDate,
-        });
+	} else if (effectiveExistingTag) {
+		logVerbose(
+			`[Releases] Resolving previous release relative to existing tag: ${effectiveExistingTag}`,
+		);
+		const includePreReleases = !!rdConfig["include-pre-releases"];
+		const tagPrefix = String(rdConfig["tag-prefix"] || "");
+		rawReleaseData = await findPreviousReleaseForTag({
+			owner,
+			repo,
+			token,
+			currentTag: effectiveExistingTag,
+			includePreReleases,
+			tagPrefix,
+			tagUpperBoundDate,
+		});
 		if (rawReleaseData) {
 			logVerbose(
 				`[Releases] Previous release detected for ${effectiveExistingTag}: ${String(
