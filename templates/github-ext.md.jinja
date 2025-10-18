@@ -2,7 +2,7 @@
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
 ### {{ category.title }}
-{%- if category.collapse_after and category.collapse_after > 0 and category.pullRequests | length > category.collapse_after %}
+{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
 
 <details>
 <summary>Show all {{ category.pullRequests | length }} items</summary>

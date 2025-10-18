@@ -169,7 +169,8 @@ export type CategorizedPullRequestsByNumber = {
 	categories: Array<{
 		title: string;
 		labels?: string[];
-		collapse_after?: number;
+		"collapse-after"?: number;
+		[k: string]: unknown;
 		pullRequests: number[];
 	}>;
 };
@@ -1146,12 +1147,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const flattenedCategorizedNumbers: CategorizedPullRequestsByNumber = {
 		uncategorized: categorizedPullRequests.uncategorized.map((pr) => pr.number),
 		categories: categorizedPullRequests.categories.map((cat) => ({
-			title: cat.title,
-			labels: cat.labels,
-			collapse_after:
-				typeof (cat as { collapse_after?: unknown }).collapse_after === "number"
-					? (cat as { collapse_after?: number }).collapse_after
-					: undefined,
+			...cat,
 			pullRequests: cat.pullRequests.map((pr) => pr.number),
 		})),
 	};
