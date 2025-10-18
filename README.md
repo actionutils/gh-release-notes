@@ -42,9 +42,15 @@ Tip: You can read the resolved version fields from the output (e.g., `release.re
 
 ## Configuration and Compatibility
 
+Zero-config works
+- You can run `gh-release-notes` without any config and get a sensible, GitHub-like changelog.
 Use existing configs
 - `.github/release.yml` (GitHub Generate Release Notes)
 - `.github/release-drafter.yml` (release-drafter)
+
+Getting a config
+- Start from a minimal, compatible config via `gh-release-notes init` (writes `.github/release-drafter.yml`, use `-o -` to print, `--force` to overwrite)
+- Already on GitHub’s `.github/release.yml`? Convert it with `gh-release-notes migrate` (supports `--source`/`--output` and `-o -`)
 
 Remote configs/templates
 - Prefer GitHub purl: `pkg:github/OWNER/REPO@REF#path/to/config.yaml`
