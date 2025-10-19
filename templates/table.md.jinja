@@ -16,6 +16,7 @@
       <th width="600">Title</th>
       <th>:octocat:</th>
       <th width="180">Author</th>
+      <th>Changes</th>
     </tr>
   </thead>
   <tbody>
@@ -29,6 +30,9 @@
       </td>
       <td align="center">
         @{{ pr.author.login }}{% if pr.author.type == 'Bot' %}[bot]{% endif %}
+      </td>
+      <td align="center">
+        $\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$
       </td>
     </tr>
 {%- endfor %}

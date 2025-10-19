@@ -37,6 +37,8 @@ export interface GraphQLPullRequest {
 	body?: string;
 	baseRefName?: string;
 	headRefName?: string;
+	additions?: number;
+	deletions?: number;
 	labels: { nodes: GraphQLLabel[] };
 	author: GraphQLAuthor;
 }
@@ -50,6 +52,8 @@ export interface PullRequest {
 	body?: string;
 	baseRefName?: string;
 	headRefName?: string;
+	additions?: number;
+	deletions?: number;
 	labels: { nodes: GraphQLLabel[] };
 	author: {
 		login: string;
@@ -97,6 +101,8 @@ function buildSearchQuery(): string {
             title
             mergedAt
             url
+            additions
+            deletions
             body @include(if: $withBody)
             baseRefName @include(if: $withBase)
             headRefName @include(if: $withHead)
@@ -207,6 +213,8 @@ export async function fetchMergedPRs(
 			body: node.body,
 			baseRefName: node.baseRefName,
 			headRefName: node.headRefName,
+			additions: node.additions,
+			deletions: node.deletions,
 			labels: node.labels || { nodes: [] },
 			author: {
 				login: node.author.login,
