@@ -208,6 +208,8 @@ export type RunResult = {
 	repo: string;
 	defaultBranch: string;
 	lastRelease: LastRelease;
+	// Latest mergedAt timestamp among fetched PRs (ISO8601) or null when none
+	latestMergedAt: string | null;
 	// PR data map: PR number -> data
 	pullRequests: Record<number, MergedPullRequest>;
 	// Merged PR numbers in order
@@ -1168,12 +1170,25 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}
 	}
 
+	// Determine the latest mergedAt timestamp among the PRs
+	const latestMergedAt: string | null = (pullRequestsSorted || []).reduce(
+		(acc: string | null, pr) => {
+			const ts = String((pr as { mergedAt?: string }).mergedAt || "");
+			if (!ts) return acc;
+			if (!acc) return ts;
+			// Compare as Date to be robust
+			return new Date(ts).getTime() > new Date(acc).getTime() ? ts : acc;
+		},
+		null,
+	);
+
 	// Create the output data structure once
 	const result: RunResult = {
 		owner,
 		repo,
 		defaultBranch,
 		lastRelease,
+		latestMergedAt,
 		pullRequests: pullRequestsMap,
 		mergedPullRequests: (pullRequestsSorted || []).map((pr) => pr.number),
 		categorizedPullRequests: flattenedCategorizedNumbers,
