@@ -68,4 +68,14 @@
 </table>
 {%- endif %}
 
-**Full Changelog**: {{ fullChangelogLink }}
+{%- set allPRs %}
+{%- if latestMergedAt %}
+{%- if lastRelease and lastRelease.created_at %}
+{%- set q = 'merged%3A' ~ lastRelease.created_at ~ '..' ~ latestMergedAt %}
+{%- else %}
+{%- set q = 'merged%3A*..' ~ latestMergedAt %}
+{%- endif -%}
+| [**Pull Requests**](https://github.com/{{ owner }}/{{ repo }}/pulls?q={{ q }})
+{%- endif %}
+{%- endset %}
+**Full Changelog**: {{ fullChangelogLink }} {{ allPRs }}
