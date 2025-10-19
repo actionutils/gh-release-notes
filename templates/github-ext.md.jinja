@@ -9,14 +9,14 @@
 
 {% for n in category.pullRequests %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 
 </details>
 {%- else %}
 {%- for n in category.pullRequests %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 {%- endif %}
 {%- endif %}
@@ -26,7 +26,7 @@
 {%- if (categorizedPullRequests.categories | length == 0) and (categorizedPullRequests.uncategorized | length > 0) %}
 {%- for n in categorizedPullRequests.uncategorized %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 {%- endif %}
 {%- if newContributors | length > 0 %}

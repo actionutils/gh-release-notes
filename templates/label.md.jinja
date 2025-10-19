@@ -13,14 +13,14 @@
 
 {% for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 
 </details>
 {%- else %}
 {%- for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 {%- endif %}
 {%- endfor %}
@@ -36,14 +36,14 @@
 
 {% for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 
 </details>
 {%- else %}
 {%- for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 {%- endif %}
 {%- endif %}
@@ -56,14 +56,15 @@
 
 {% for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 
 </details>
 {%- else %}
 {%- for n in numbers %}
 {%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }})
+
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endfor %}
 {%- endif %}
 {%- endif %}
