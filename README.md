@@ -184,7 +184,7 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
 
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
-- `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`
+- `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `additions`, `deletions`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`
 - `mergedPullRequests[]`: array of PR numbers in display order
 - `categorizedPullRequests`:
   - `uncategorized[]`: array of PR numbers
