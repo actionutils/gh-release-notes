@@ -6,7 +6,7 @@ PR-based release notes generator with strong compatibility with GitHub’s Gener
 
 ### Highlights
 - Flexible templating with MiniJinja for finer control than release-drafter templates
-- Manual release notes: embed custom content for specific releases or ranges
+- Manual release notes: embed custom content for specific releases
 - JSON output to drive any templating engine or downstream tooling
 - Remote config/template via GitHub purl for easy organization-wide sharing
 - Works with read-only permissions; no write permission needed (see Permissions)
@@ -189,17 +189,20 @@ Embed custom content into generated release notes by creating files in `.changel
 
 ```
 .changelog/
-├── templates/      # Global - available for ALL releases
-├── from-v1.0.0/   # For releases after v1.0.0 (v1.1.0, v2.0.0, etc.)
-└── v2.0.0/        # Only for v2.0.0 (highest priority)
+├── templates/     # Global - available for ALL releases
+├── from-v1.0.0/   # For next release after v1.0.0 (v1.1.0 for minor, v2.0.0 for major version up, etc.)
+└── v2.0.0/        # Only for v2.0.0
 ```
 
-Any file extension is supported. All files are processed as MiniJinja templates with access to the same variables as the main templates. When files with the same name exist in multiple directories, tag-specific takes priority over from-tag, which takes priority over global templates.
+All files are processed as MiniJinja templates with access to the same variables as the main templates. When files with the same name exist in multiple directories, tag-specific takes priority over from-tag, which takes priority over global templates.
 
 Include them in templates using:
 ```jinja
 {% include ['header.md', 'migration-guide.html'] ignore missing %}
 ```
+
+> [!CAUTION]
+> Manual release notes only work with **local** `.changelog/` files. Even when using remote templates via `--template pkg:...`, the `include` statements can only reference files in your local `.changelog/` directory, not remote files.
 
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
