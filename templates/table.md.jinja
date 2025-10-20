@@ -1,3 +1,14 @@
+{%- set tag = release.tag or tag -%}
+{%- set prevTag = lastRelease.tag_name if lastRelease else null -%}
+
+{#- Include optional header content -#}
+{%- if tag -%}
+{% include ['.changelog.' ~ tag ~ '.header.md.jinja', '.changelog.' ~ tag ~ '.header.md'] ignore missing %}
+{%- endif -%}
+{%- if prevTag -%}
+{% include ['.changelog.from-' ~ prevTag ~ '.header.md.jinja', '.changelog.from-' ~ prevTag ~ '.header.md'] ignore missing %}
+{%- endif -%}
+
 ## What's Changed
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
@@ -45,6 +56,14 @@
 {%- endif %}
 {%- endfor %}
 
+{#- Include optional body content -#}
+{%- if tag -%}
+{% include ['.changelog.' ~ tag ~ '.body.md.jinja', '.changelog.' ~ tag ~ '.body.md'] ignore missing %}
+{%- endif -%}
+{%- if prevTag -%}
+{% include ['.changelog.from-' ~ prevTag ~ '.body.md.jinja', '.changelog.from-' ~ prevTag ~ '.body.md'] ignore missing %}
+{%- endif -%}
+
 {%- if contributors | length > 0 %}
 
 ## Contributors
@@ -76,3 +95,11 @@
 {%- endif %}
 
 **Full Changelog**: {{ fullChangelogLink }}{%- if pullRequestsSearchLink %} | [Pull Requests]({{ pullRequestsSearchLink }}){%- endif %}
+
+{#- Include optional footer content -#}
+{%- if tag -%}
+{% include ['.changelog.' ~ tag ~ '.footer.md.jinja', '.changelog.' ~ tag ~ '.footer.md'] ignore missing %}
+{%- endif -%}
+{%- if prevTag -%}
+{% include ['.changelog.from-' ~ prevTag ~ '.footer.md.jinja', '.changelog.from-' ~ prevTag ~ '.footer.md'] ignore missing %}
+{%- endif -%}
