@@ -6,6 +6,7 @@ PR-based release notes generator with strong compatibility with GitHub’s Gener
 
 ### Highlights
 - Flexible templating with MiniJinja for finer control than release-drafter templates
+- Manual release notes: embed custom content for specific releases or ranges
 - JSON output to drive any templating engine or downstream tooling
 - Remote config/template via GitHub purl for easy organization-wide sharing
 - Works with read-only permissions; no write permission needed (see Permissions)
@@ -147,24 +148,6 @@ bunx @actionutils/gh-release-notes
   gh-release-notes --json > release.json
   ```
 
-### Manual Release Notes
-
-You can embed custom content into generated release notes by creating files in `.changelog/` directories:
-
-```
-.changelog/
-├── templates/      # Global - available for ALL releases
-├── from-v1.0.0/   # For releases after v1.0.0 (v1.1.0, v2.0.0, etc.)
-└── v2.0.0/        # Only for v2.0.0 (highest priority)
-```
-
-Any file extension is supported. All files are processed as MiniJinja templates with access to the same variables as the main templates. When files with the same name exist in multiple directories, tag-specific takes priority over from-tag, which takes priority over global templates.
-
-Include them in templates using:
-```jinja
-{% include ['header.md', 'migration-guide.html'] ignore missing %}
-```
-
 Tip: You can read the resolved version fields from the output (e.g., `release.resolvedVersion`) to decide tagging and releasing logic in your pipeline.
 
 ## Configuration and Compatibility
@@ -199,6 +182,24 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
 ### MiniJinja for maximum flexibility
 - `--template <path|https|purl>` renders with the same data as `--json`
 - Bring your own structure and style (or use community-maintained templates)
+
+### Manual Release Notes (MiniJinja templates)
+
+Embed custom content into generated release notes by creating files in `.changelog/` directories:
+
+```
+.changelog/
+├── templates/      # Global - available for ALL releases
+├── from-v1.0.0/   # For releases after v1.0.0 (v1.1.0, v2.0.0, etc.)
+└── v2.0.0/        # Only for v2.0.0 (highest priority)
+```
+
+Any file extension is supported. All files are processed as MiniJinja templates with access to the same variables as the main templates. When files with the same name exist in multiple directories, tag-specific takes priority over from-tag, which takes priority over global templates.
+
+Include them in templates using:
+```jinja
+{% include ['header.md', 'migration-guide.html'] ignore missing %}
+```
 
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
