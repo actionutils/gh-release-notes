@@ -28,7 +28,7 @@ export class TemplateRenderer {
 		logVerbose(`[TemplateRenderer] Template loaded, rendering with data`);
 
 		// Register the main template with the environment
-		const templateName = "main_template";
+		const templateName = "__MAIN_TEMPLATE__";
 		this.env.addTemplate(templateName, templateContent);
 
 		// Render the template with the provided data
