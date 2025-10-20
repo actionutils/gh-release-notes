@@ -126,6 +126,16 @@ export class TemplateRenderer {
 
 				try {
 					const filePath = path.join(resolvedDir, file);
+
+					// Check if it's actually a file (not a directory)
+					const stat = await fs.stat(filePath);
+					if (!stat.isFile()) {
+						logVerbose(
+							`[TemplateRenderer] Skipping ${directoryPath}/${file}: not a file`,
+						);
+						continue;
+					}
+
 					const content = await fs.readFile(filePath, "utf-8");
 
 					// Use filename as template name (higher priority overwrites)
