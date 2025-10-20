@@ -47,7 +47,7 @@ export class TemplateRenderer {
 		const tag = this.extractTag(data);
 
 		logVerbose(
-			`[TemplateRenderer] Preloading changelog templates${tag ? ` for tag: ${tag}` : ''}`,
+			`[TemplateRenderer] Preloading changelog templates${tag ? ` for tag: ${tag}` : ""}`,
 		);
 
 		// Directories to scan for templates (in priority order: lowest to highest)
