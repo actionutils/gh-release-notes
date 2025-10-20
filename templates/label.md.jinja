@@ -1,9 +1,7 @@
-{#- Include optional header content -#}
 {% include ['header.md.jinja', 'header.md'] ignore missing %}
 
 ## What's Changed by Label
 
-{#- Include optional body content -#}
 {% include ['body.md.jinja', 'body.md'] ignore missing %}
 
 {# If there are labeled PRs, render sections per label, then optionally Unlabeled. Otherwise, list unlabeled without a header. #}
@@ -116,5 +114,4 @@
 
 **Full Changelog**: {{ fullChangelogLink }}{%- if pullRequestsSearchLink %} | [Pull Requests]({{ pullRequestsSearchLink }}){%- endif %}
 
-{#- Include optional footer content -#}
 {% include ['footer.md.jinja', 'footer.md'] ignore missing %}
