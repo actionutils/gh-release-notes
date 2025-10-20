@@ -1,4 +1,9 @@
+{% include ['header.md.jinja', 'header.md'] ignore missing %}
+
 ## What's Changed
+
+{% include ['body.md.jinja', 'body.md'] ignore missing %}
+
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
 
@@ -44,7 +49,6 @@
 {%- endif %}
 {%- endif %}
 {%- endfor %}
-
 {%- if contributors | length > 0 %}
 
 ## Contributors
@@ -76,3 +80,5 @@
 {%- endif %}
 
 **Full Changelog**: {{ fullChangelogLink }}{%- if pullRequestsSearchLink %} | [Pull Requests]({{ pullRequestsSearchLink }}){%- endif %}
+
+{% include ['footer.md.jinja', 'footer.md'] ignore missing %}

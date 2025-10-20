@@ -1,4 +1,9 @@
+{% include ['header.md.jinja', 'header.md'] ignore missing %}
+
 ## What's Changed
+
+{% include ['body.md.jinja', 'body.md'] ignore missing %}
+
 {%- for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
 ### {{ category.title }}
@@ -23,3 +28,5 @@
 {%- endif %}
 
 **Full Changelog**: {{ fullChangelogLink }}
+
+{% include ['footer.md.jinja', 'footer.md'] ignore missing %}
