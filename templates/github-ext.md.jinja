@@ -1,4 +1,11 @@
+{#- Include optional header content -#}
+{% include ['header.md.jinja', 'header.md'] ignore missing %}
+
 ## What's Changed
+
+{#- Include optional body content -#}
+{% include ['body.md.jinja', 'body.md'] ignore missing %}
+
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
 ### {{ category.title }}
@@ -69,3 +76,6 @@
 {%- endif %}
 
 **Full Changelog**: {{ fullChangelogLink }}{%- if pullRequestsSearchLink %} | [Pull Requests]({{ pullRequestsSearchLink }}){%- endif %}
+
+{#- Include optional footer content -#}
+{% include ['footer.md.jinja', 'footer.md'] ignore missing %}
