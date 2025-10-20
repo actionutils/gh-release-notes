@@ -147,6 +147,24 @@ bunx @actionutils/gh-release-notes
   gh-release-notes --json > release.json
   ```
 
+### Manual Release Notes
+
+You can embed custom content into generated release notes by creating files in `.changelog/` directories:
+
+```
+.changelog/
+├── templates/      # Global - available for ALL releases
+├── from-v1.0.0/   # For releases after v1.0.0 (v1.1.0, v2.0.0, etc.)
+└── v2.0.0/        # Only for v2.0.0 (highest priority)
+```
+
+Any file extension is supported. All files are processed as MiniJinja templates with access to the same variables as the main templates. When files with the same name exist in multiple directories, tag-specific takes priority over from-tag, which takes priority over global templates.
+
+Include them in templates using:
+```jinja
+{% include ['header.md', 'migration-guide.html'] ignore missing %}
+```
+
 Tip: You can read the resolved version fields from the output (e.g., `release.resolvedVersion`) to decide tagging and releasing logic in your pipeline.
 
 ## Configuration and Compatibility
