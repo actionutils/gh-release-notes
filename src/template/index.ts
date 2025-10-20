@@ -119,8 +119,8 @@ export class TemplateRenderer {
 			const files = await fs.readdir(resolvedDir);
 
 			for (const file of files) {
-				// Skip non-template files
-				if (!file.endsWith(".md") && !file.endsWith(".md.jinja")) {
+				// Skip hidden files and directories
+				if (file.startsWith(".")) {
 					continue;
 				}
 
