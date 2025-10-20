@@ -6,6 +6,7 @@ import { setVerbose, logVerbose } from "./logger";
 import { resolveBaseRepo } from "./repo-detector";
 import { initCommand } from "./commands/init";
 import { migrateCommand } from "./commands/migrate";
+import { version } from "../package.json";
 
 async function main() {
 	const parser = yargs(hideBin(process.argv))
@@ -221,7 +222,7 @@ async function main() {
 		)
 		.help("help")
 		.alias("help", "h")
-		.version(false)
+		.version(version)
 		.example("$0", "Generate release notes for the latest changes")
 		.example(
 			"$0 --prev-tag v1.0.0 --tag v1.1.0",
