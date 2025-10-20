@@ -284,7 +284,7 @@ async function main() {
 				"    - pullRequestsByLabel: PR numbers grouped by label (labels{ <label>: number[] }, unlabeled[])\n" +
 				"    - contributors: array of all contributors\n" +
 				"    - newContributors: first-time contributors (firstPullRequest is PR number)\n" +
-				"    - owner, repo, defaultBranch, lastRelease, fullChangelogLink\n\n" +
+				"    - owner, repo, defaultBranch, lastRelease, latestMergedAt, pullRequestsSearchLink, fullChangelogLink\n\n" +
 				"More Information:\n" +
 				"  GitHub: https://github.com/actionutils/gh-release-notes",
 		)

@@ -208,6 +208,10 @@ export type RunResult = {
 	repo: string;
 	defaultBranch: string;
 	lastRelease: LastRelease;
+	// Latest mergedAt timestamp among fetched PRs (ISO8601) or null when none
+	latestMergedAt: string | null;
+	// Link to PR search for this release window (or null when not applicable)
+	pullRequestsSearchLink: string | null;
 	// PR data map: PR number -> data
 	pullRequests: Record<number, MergedPullRequest>;
 	// Merged PR numbers in order
@@ -398,6 +402,24 @@ function generateFullChangelogLink(params: {
 		return `https://github.com/${owner}/${repo}/compare/${previousTag}...${nextTag}`;
 	}
 	return `https://github.com/${owner}/${repo}/commits/${nextTag}`;
+}
+
+function generatePullRequestsSearchLink(params: {
+	owner: string;
+	repo: string;
+	baseBranchName: string;
+	lastReleaseCreatedAt?: string | null;
+	latestMergedAt?: string | null;
+}): string | null {
+	const { owner, repo, baseBranchName, lastReleaseCreatedAt, latestMergedAt } =
+		params;
+	if (!latestMergedAt) return null;
+	const base = `https://github.com/${owner}/${repo}/pulls?q=base%3A${encodeURIComponent(baseBranchName)}`;
+	const from = lastReleaseCreatedAt
+		? encodeURIComponent(lastReleaseCreatedAt)
+		: "*";
+	const to = encodeURIComponent(latestMergedAt);
+	return `${base}+merged%3A${from}..${to}`;
 }
 
 function buildContributors(
@@ -1168,12 +1190,32 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}
 	}
 
+	// Determine the latest mergedAt timestamp among the PRs
+	const latestMergedAt: string | null = (pullRequestsSorted || []).reduce(
+		(acc: string | null, pr) => {
+			const ts = String((pr as { mergedAt?: string }).mergedAt || "");
+			if (!ts) return acc;
+			if (!acc) return ts;
+			// Compare as Date to be robust
+			return new Date(ts).getTime() > new Date(acc).getTime() ? ts : acc;
+		},
+		null,
+	);
+
 	// Create the output data structure once
 	const result: RunResult = {
 		owner,
 		repo,
 		defaultBranch,
 		lastRelease,
+		latestMergedAt,
+		pullRequestsSearchLink: generatePullRequestsSearchLink({
+			owner,
+			repo,
+			baseBranchName,
+			lastReleaseCreatedAt: lastRelease?.created_at,
+			latestMergedAt,
+		}),
 		pullRequests: pullRequestsMap,
 		mergedPullRequests: (pullRequestsSorted || []).map((pr) => pr.number),
 		categorizedPullRequests: flattenedCategorizedNumbers,

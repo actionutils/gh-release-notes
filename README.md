@@ -194,7 +194,7 @@ gh-release-notes --config pkg:github/actionutils/gh-release-notes@main#.github/r
   - `unlabeled[]`: PR numbers without any labels
 - `contributors[]`: all PR authors
 - `newContributors[] | null`: first-time contributors (contains `login` and `firstPullRequest` as PR number)
-- `owner`, `repo`, `defaultBranch`, `lastRelease`, `fullChangelogLink`
+- `owner`, `repo`, `defaultBranch`, `lastRelease`, `latestMergedAt`, `pullRequestsSearchLink`, `fullChangelogLink`
 
 ### Example (MiniJinja)
 ```jinja
