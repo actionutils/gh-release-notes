@@ -57,7 +57,7 @@ export class TemplateRenderer {
 		);
 
 		// Directories to scan for templates (in priority order: lowest to highest)
-		const directories = ['.changelog/templates'];
+		const directories = [".changelog/templates"];
 
 		const prevTag = this.extractPrevTag(data);
 		if (prevTag) {
