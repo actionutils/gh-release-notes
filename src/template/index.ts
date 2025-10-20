@@ -41,43 +41,41 @@ export class TemplateRenderer {
 	/**
 	 * Preload potential changelog include templates into the environment
 	 */
-	private async preloadChangelogTemplates(data: Record<string, unknown>): Promise<void> {
+	private async preloadChangelogTemplates(
+		data: Record<string, unknown>,
+	): Promise<void> {
 		const tag = this.extractTag(data);
 		if (!tag) {
-			logVerbose(`[TemplateRenderer] No tag found in data, skipping changelog preload`);
+			logVerbose(
+				`[TemplateRenderer] No tag found in data, skipping changelog preload`,
+			);
 			return;
 		}
 
-		logVerbose(`[TemplateRenderer] Preloading changelog templates for tag: ${tag}`);
+		logVerbose(
+			`[TemplateRenderer] Preloading changelog templates for tag: ${tag}`,
+		);
 
-		// List of potential include patterns to check
-		const includePatterns = [
-			// Tag-specific templates
-			`.changelog/${tag}/header.md`,
-			`.changelog/${tag}/header.md.jinja`,
-			`.changelog/${tag}/body.md`,
-			`.changelog/${tag}/body.md.jinja`,
-			`.changelog/${tag}/footer.md`,
-			`.changelog/${tag}/footer.md.jinja`,
-			// From-tag templates (if there's a previous tag)
-		];
+		// Directories to scan for templates
+		const directories = [`.changelog/${tag}`];
 
-		// Add from-tag patterns if there's a previous tag
 		const prevTag = this.extractPrevTag(data);
 		if (prevTag) {
-			includePatterns.push(
-				`.changelog/from-${prevTag}/header.md`,
-				`.changelog/from-${prevTag}/header.md.jinja`,
-				`.changelog/from-${prevTag}/body.md`,
-				`.changelog/from-${prevTag}/body.md.jinja`,
-				`.changelog/from-${prevTag}/footer.md`,
-				`.changelog/from-${prevTag}/footer.md.jinja`,
-			);
+			directories.push(`.changelog/from-${prevTag}`);
 		}
 
-		// Try to load each template and register it if it exists
-		for (const pattern of includePatterns) {
-			await this.tryLoadTemplate(pattern);
+		// Load templates with priority (tag-specific > from-tag)
+		const templateMap = new Map<string, string>();
+
+		// Load from-tag templates first (lower priority)
+		for (let i = directories.length - 1; i >= 0; i--) {
+			await this.loadTemplatesFromDirectory(directories[i], templateMap);
+		}
+
+		// Register all templates with the environment
+		for (const [templateName, content] of templateMap) {
+			this.env.addTemplate(templateName, content);
+			logVerbose(`[TemplateRenderer] Registered template: ${templateName}`);
 		}
 	}
 
@@ -108,22 +106,43 @@ export class TemplateRenderer {
 	}
 
 	/**
-	 * Try to load a template file and register it with the environment if it exists
+	 * Load all templates from a directory
 	 */
-	private async tryLoadTemplate(templatePath: string): Promise<void> {
+	private async loadTemplatesFromDirectory(
+		directoryPath: string,
+		templateMap: Map<string, string>,
+	): Promise<void> {
 		try {
-			const resolvedPath = path.resolve(process.cwd(), templatePath);
-			const content = await fs.readFile(resolvedPath, "utf-8");
+			const resolvedDir = path.resolve(process.cwd(), directoryPath);
+			const files = await fs.readdir(resolvedDir);
 
-			// Register the template with a normalized name (replace path separators with dots)
-			const templateName = templatePath.replace(/[\/\\]/g, ".");
-			this.env.addTemplate(templateName, content);
+			for (const file of files) {
+				// Skip non-template files
+				if (!file.endsWith(".md") && !file.endsWith(".md.jinja")) {
+					continue;
+				}
 
-			logVerbose(`[TemplateRenderer] Loaded include template: ${templatePath} as ${templateName}`);
+				try {
+					const filePath = path.join(resolvedDir, file);
+					const content = await fs.readFile(filePath, "utf-8");
+
+					// Use filename as template name (higher priority overwrites)
+					templateMap.set(file, content);
+					logVerbose(
+						`[TemplateRenderer] Loaded template: ${directoryPath}/${file}`,
+					);
+				} catch (error) {
+					logVerbose(
+						`[TemplateRenderer] Failed to read ${directoryPath}/${file}: ${(error as Error).message}`,
+					);
+				}
+			}
 		} catch (error) {
-			// Silently ignore missing files - this is expected behavior
+			// Directory doesn't exist - this is expected
 			if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-				logVerbose(`[TemplateRenderer] Failed to load template ${templatePath}: ${(error as Error).message}`);
+				logVerbose(
+					`[TemplateRenderer] Failed to read directory ${directoryPath}: ${(error as Error).message}`,
+				);
 			}
 		}
 	}
