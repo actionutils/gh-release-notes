@@ -37,7 +37,7 @@ This feature allows you to embed custom, manually-written content into automatic
 
 ## File Types
 
-Any file extension is supported (`.md`, `.html`, `.txt`, `.jinja`, etc.). Files with `.jinja` extension have access to template variables, while others are included as-is.
+Any file extension is supported (`.md`, `.html`, `.txt`, `.jinja`, etc.). All files are processed as MiniJinja templates and have access to template variables.
 
 ## Priority System
 
@@ -77,15 +77,14 @@ You can include ANY filename, not just `header`, `body`, and `footer`. For examp
 
 ## Template Variables
 
-Files with `.jinja` extension have access to the same template variables as the main release templates.
+All template files have access to the same template variables as the main release templates.
 
 ## Best Practices
 
 1. **Use sparingly**: This feature is for content that can't be captured from PRs alone
-2. **Template variables**: Use `.jinja` extension when you need to access template variables
-3. **Consistent naming**: Use descriptive filenames like `migration-guide.md`, `breaking-changes.md`
-4. **Test locally**: Always test your templates before releasing
-5. **Version control**: Commit these files so they're available during release generation
+2. **Descriptive naming**: Use filenames like `migration-guide.md`, `breaking-changes.md` that reflect the content purpose
+3. **Test locally**: Always test your templates before releasing
+4. **Version control**: Commit these files so they're available during release generation
 
 ## File Discovery
 
