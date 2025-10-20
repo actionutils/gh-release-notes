@@ -56,20 +56,22 @@ export class TemplateRenderer {
 			`[TemplateRenderer] Preloading changelog templates for tag: ${tag}`,
 		);
 
-		// Directories to scan for templates
-		const directories = [`.changelog/${tag}`];
+		// Directories to scan for templates (in priority order: lowest to highest)
+		const directories = ['.changelog/templates'];
 
 		const prevTag = this.extractPrevTag(data);
 		if (prevTag) {
 			directories.push(`.changelog/from-${prevTag}`);
 		}
 
-		// Load templates with priority (tag-specific > from-tag)
+		directories.push(`.changelog/${tag}`);
+
+		// Load templates with priority (templates < from-tag < tag-specific)
 		const templateMap = new Map<string, string>();
 
-		// Load from-tag templates first (lower priority)
-		for (let i = directories.length - 1; i >= 0; i--) {
-			await this.loadTemplatesFromDirectory(directories[i], templateMap);
+		// Load templates in order (lower priority first, higher priority overwrites)
+		for (const directory of directories) {
+			await this.loadTemplatesFromDirectory(directory, templateMap);
 		}
 
 		// Register all templates with the environment
