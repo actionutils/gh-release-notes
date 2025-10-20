@@ -2,6 +2,10 @@
 {% include ['header.md.jinja', 'header.md'] ignore missing %}
 
 ## What's Changed
+
+{#- Include optional body content -#}
+{% include ['body.md.jinja', 'body.md'] ignore missing %}
+
 {% for category in categorizedPullRequests.categories %}
 {%- if category.pullRequests | length > 0 %}
 
@@ -47,10 +51,6 @@
 {%- endif %}
 {%- endif %}
 {%- endfor %}
-
-{#- Include optional body content -#}
-{% include ['body.md.jinja', 'body.md'] ignore missing %}
-
 {%- if contributors | length > 0 %}
 
 ## Contributors
