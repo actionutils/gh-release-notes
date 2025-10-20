@@ -45,15 +45,9 @@ export class TemplateRenderer {
 		data: Record<string, unknown>,
 	): Promise<void> {
 		const tag = this.extractTag(data);
-		if (!tag) {
-			logVerbose(
-				`[TemplateRenderer] No tag found in data, skipping changelog preload`,
-			);
-			return;
-		}
 
 		logVerbose(
-			`[TemplateRenderer] Preloading changelog templates for tag: ${tag}`,
+			`[TemplateRenderer] Preloading changelog templates${tag ? ` for tag: ${tag}` : ''}`,
 		);
 
 		// Directories to scan for templates (in priority order: lowest to highest)
@@ -64,7 +58,9 @@ export class TemplateRenderer {
 			directories.push(`.changelog/from-${prevTag}`);
 		}
 
-		directories.push(`.changelog/${tag}`);
+		if (tag) {
+			directories.push(`.changelog/${tag}`);
+		}
 
 		// Load templates with priority (templates < from-tag < tag-specific)
 		const templateMap = new Map<string, string>();
