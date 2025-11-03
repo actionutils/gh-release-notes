@@ -11,6 +11,25 @@ export class TemplateRenderer {
 	constructor(githubToken?: string) {
 		this.env = new Environment();
 		this.contentLoader = new ContentLoaderFactory(githubToken);
+
+		// Add custom filters
+		this.addCustomFilters();
+	}
+
+	/**
+	 * Add custom filters to the environment
+	 */
+	private addCustomFilters(): void {
+		// Add extract filter to extract values from an object using keys from an array
+		// Usage: keys | map('string') | map('extract', object)
+		// Equivalent to: keys.map(key => object[key])
+		this.env.addFilter('extract', (key: any, object: Record<string, any>) => {
+			// When used with map, this filter receives individual keys, not an array
+			if (!object || typeof object !== 'object') {
+				return undefined;
+			}
+			return object[String(key)];
+		});
 	}
 
 	async loadAndRender(
