@@ -48,7 +48,11 @@ export class TemplateRenderer {
 			if (object instanceof Map) {
 				return mapToObject(object.get(String(key)));
 			} else if (object instanceof Array) {
-				return mapToObject(object[key]);
+				const index = Number(key);
+				if (isNaN(index)) {
+					throw new Error(`Invalid array index: ${key}`);
+				}
+				return mapToObject(object[index]);
 			} else {
 				const errMsg = "unsupported type";
 				console.error(errMsg);
