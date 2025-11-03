@@ -43,7 +43,7 @@ export class TemplateRenderer {
 		// Add extract filter to extract values from an object using keys from an array
 		// Usage: keys | map('extract', object)
 		// Equivalent to: keys.map(key => object[key])
-		this.env.addFilter("extract", (key: any, object: unknown) => {
+		this.env.addFilter("extract", (key: unknown, object: unknown) => {
 			if (object instanceof Map) {
 				return mapToObject(object.get(String(key)));
 			} else if (object instanceof Array) {
