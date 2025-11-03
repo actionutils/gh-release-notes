@@ -36,6 +36,7 @@ export interface GraphQLClosingIssue {
 	url: string;
 	closedAt?: string;
 	author: GraphQLAuthor;
+	labels: { nodes: GraphQLLabel[] };
 	repository: {
 		name: string;
 		owner: {
@@ -140,6 +141,7 @@ function buildSearchQuery(): string {
                   avatarUrl
                   ... on User { sponsorsListing @include(if: $withSponsor) { url } }
                 }
+                labels(first: 100) { nodes { name } }
                 repository {
                   name
                   owner {

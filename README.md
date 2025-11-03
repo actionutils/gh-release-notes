@@ -459,6 +459,7 @@ Each pull request may include a `closingIssuesReferences` field containing linke
         "url": "https://github.com/issue-author",
         "avatarUrl": "https://avatars.githubusercontent.com/u/999?v=4"
       },
+      "labels": ["bug", "high-priority"],
       "repository": {
         "name": "repo",
         "owner": {
@@ -478,6 +479,7 @@ Each pull request may include a `closingIssuesReferences` field containing linke
         "url": "https://github.com/performance-author",
         "avatarUrl": "https://avatars.githubusercontent.com/u/888?v=4"
       },
+      "labels": ["enhancement", "performance"],
       "repository": {
         "name": "repo",
         "owner": {

@@ -218,6 +218,7 @@ export type Issue = {
 		avatarUrl: string;
 		sponsorsListing?: { url: string };
 	};
+	labels?: Label[]; // Flattened labels for final output
 	repository: {
 		name: string;
 		owner: {
@@ -1197,6 +1198,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 						avatarUrl: issue.author.avatarUrl,
 						sponsorsListing: issue.author.sponsorsListing,
 					},
+					labels:
+						issue.labels?.nodes?.map((node: { name: string }) => node.name) || [],
 					repository: issue.repository,
 				};
 			}
