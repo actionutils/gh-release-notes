@@ -1,0 +1,153 @@
+{% include ['header.md.jinja', 'header.md'] ignore missing %}
+
+## What's Changed
+
+{% include ['body.md.jinja', 'body.md'] ignore missing %}
+
+{% for category in categorizedPullRequests.categories %}
+{%- if category.pullRequests | length > 0 %}
+### {{ category.title }}
+{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+
+<details>
+<summary>Show all {{ category.pullRequests | length }} items</summary>
+
+{% for n in category.pullRequests %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for n in category.pullRequests %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+
+{# Render uncategorized PRs only when no categories are defined (no header) #}
+{%- if (categorizedPullRequests.categories | length == 0) and (categorizedPullRequests.uncategorized | length > 0) %}
+{%- for n in categorizedPullRequests.uncategorized %}
+{%- set pr = pullRequests[n|string] %}
+- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
+{%- endfor %}
+{%- endif %}
+
+{# Add issues support similar to label-with-issues.md.jinja #}
+{%- if itemsByLabel and (itemsByLabel.labels | length) > 0 %}
+{%- for label in itemsByLabel.labels %}
+{%- set items = itemsByLabel.labels[label] %}
+{%- set issueItems = items | selectattr("type", "equalto", "issue") | list %}
+{%- if issueItems | length > 0 %}
+
+### Issues: {{ label }}
+{%- if (issueItems | length) >= 5 %}
+
+<details>
+<summary>Show all {{ issueItems | length }} issues</summary>
+
+{% for item in issueItems %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for item in issueItems %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+
+{%- if itemsByLabel and itemsByLabel.unlabeled and (itemsByLabel.unlabeled | length) > 0 %}
+{%- set items = itemsByLabel.unlabeled %}
+{%- set issueItems = items | selectattr("type", "equalto", "issue") | list %}
+{%- if issueItems | length > 0 %}
+
+### Unlabeled Issues
+{%- if (issueItems | length) >= 5 %}
+
+<details>
+<summary>Show all {{ issueItems | length }} issues</summary>
+
+{% for item in issueItems %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for item in issueItems %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- endif %}
+{%- endif %}
+{%- if newContributors | length > 0 %}
+
+## New Contributors
+{%- for contributor in newContributors %}
+{%- set n = contributor.firstPullRequest %}
+{%- set pr = pullRequests[n|string] %}
+- @{{ contributor.login }} made their first contribution in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+{%- endif %}
+{%- if contributors | length > 0 %}
+
+## Contributors
+
+<table>
+  <tbody>
+    <tr>
+{%- for contributor in contributors %}
+      <td align="center" valign="top" width="100">
+        <a href="{{ contributor.url }}">
+          <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64px" alt="{{ contributor.login }}"/><br />
+        </a>
+        <sub>@{{ contributor.login }}{% if contributor.type == 'Bot' %}[bot]{% endif %}</sub>
+        {%- if contributor.sponsorsListing %}
+        <br><br>
+        <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
+          <img src="https://img.shields.io/badge/-Sponsor-ea4aaa?style=for-the-badge&logo=github&logoColor=white" height="24" />
+        </a>
+        {%- endif %}
+      </td>
+{%- if loop.index % 6 == 0 and not loop.last %}
+    </tr>
+    <tr>
+{%- endif %}
+{%- endfor %}
+    </tr>
+  </tbody>
+</table>
+{%- endif %}
+
+**Full Changelog**: {{ fullChangelogLink }}{%- if pullRequestsSearchLink %} | [Pull Requests]({{ pullRequestsSearchLink }}){%- endif %}
+
+{% include ['footer.md.jinja', 'footer.md'] ignore missing %}
