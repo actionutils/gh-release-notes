@@ -219,6 +219,7 @@ export type Issue = {
 		sponsorsListing?: { url: string };
 	};
 	labels?: Label[]; // Flattened labels for final output
+	linkedPRs: number[]; // PR numbers that reference this issue
 	repository: {
 		name: string;
 		owner: {
@@ -1182,27 +1183,48 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 	// Build issues map from all PRs' closing issues references
 	const issuesMap: Record<number, Issue> = {};
+	const issueToPRsMap: Record<number, Set<number>> = {};
+
+	// First pass: collect all issues and track which PRs reference them
 	for (const pr of pullRequestsSorted || []) {
 		if (pr.closingIssuesReferences?.nodes) {
 			for (const issue of pr.closingIssuesReferences.nodes) {
-				issuesMap[issue.number] = {
-					number: issue.number,
-					title: issue.title,
-					state: issue.state,
-					url: issue.url,
-					closedAt: issue.closedAt,
-					author: {
-						login: issue.author.login,
-						type: issue.author.__typename, // Normalize __typename to type
-						url: issue.author.url,
-						avatarUrl: issue.author.avatarUrl,
-						sponsorsListing: issue.author.sponsorsListing,
-					},
-					labels:
-						issue.labels?.nodes?.map((node: { name: string }) => node.name) || [],
-					repository: issue.repository,
-				};
+				// Initialize issue if not seen before
+				if (!issuesMap[issue.number]) {
+					issuesMap[issue.number] = {
+						number: issue.number,
+						title: issue.title,
+						state: issue.state,
+						url: issue.url,
+						closedAt: issue.closedAt,
+						author: {
+							login: issue.author.login,
+							type: issue.author.__typename, // Normalize __typename to type
+							url: issue.author.url,
+							avatarUrl: issue.author.avatarUrl,
+							sponsorsListing: issue.author.sponsorsListing,
+						},
+						labels:
+							issue.labels?.nodes?.map((node: { name: string }) => node.name) || [],
+						linkedPRs: [], // Will be populated in second pass
+						repository: issue.repository,
+					};
+				}
+
+				// Track which PRs reference this issue
+				if (!issueToPRsMap[issue.number]) {
+					issueToPRsMap[issue.number] = new Set();
+				}
+				issueToPRsMap[issue.number].add(pr.number);
 			}
+		}
+	}
+
+	// Second pass: populate linkedPRs for each issue
+	for (const [issueNumber, prNumbers] of Object.entries(issueToPRsMap)) {
+		const issueNum = Number(issueNumber);
+		if (issuesMap[issueNum]) {
+			issuesMap[issueNum].linkedPRs = Array.from(prNumbers).sort((a, b) => a - b);
 		}
 	}
 

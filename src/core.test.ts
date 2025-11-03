@@ -1304,6 +1304,7 @@ exclude-contributors:
 			expect(issue110.author.type).toBe("User");
 			expect(issue110.author.url).toBe("https://github.com/issue-author");
 			expect(issue110.labels).toEqual(["bug", "high-priority"]);
+			expect(issue110.linkedPRs).toEqual([123]);
 
 			const issue105 = res.issues[105];
 			expect(issue105.number).toBe(105);
@@ -1315,6 +1316,7 @@ exclude-contributors:
 			expect(issue105.author.type).toBe("User");
 			expect(issue105.author.url).toBe("https://github.com/performance-author");
 			expect(issue105.labels).toEqual(["enhancement", "performance"]);
+			expect(issue105.linkedPRs).toEqual([123]);
 		} finally {
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}
