@@ -61,7 +61,9 @@ export class TemplateRenderer {
 				return mapToObject(object[index]);
 			} else {
 				const objectType = object === null ? "null" : typeof object;
-				logAndThrow(`extract filter: unsupported type '${objectType}' for object parameter`);
+				logAndThrow(
+					`extract filter: unsupported type '${objectType}' for object parameter`,
+				);
 			}
 		});
 	}
