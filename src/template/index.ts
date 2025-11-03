@@ -4,6 +4,26 @@ import { logVerbose } from "../logger";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
+// Recursively convert Maps into plain objects so they can be JSON-serialized.
+// Note: JSON keys must be strings, so number/boolean keys are stringified.
+function mapToObject(value: unknown): unknown {
+	if (value instanceof Map) {
+		return Object.fromEntries(
+			Array.from(value, ([k, v]) => [String(k), mapToObject(v)]),
+		);
+	}
+	if (Array.isArray(value)) {
+		return value.map(mapToObject);
+	}
+	// If it's already a plain object, still traverse in case it contains Maps.
+	if (value !== null && typeof value === "object") {
+		return Object.fromEntries(
+			Object.entries(value).map(([k, v]) => [k, mapToObject(v)]),
+		);
+	}
+	return value;
+}
+
 export class TemplateRenderer {
 	private env: Environment;
 	private contentLoader: ContentLoaderFactory;
@@ -21,14 +41,18 @@ export class TemplateRenderer {
 	 */
 	private addCustomFilters(): void {
 		// Add extract filter to extract values from an object using keys from an array
-		// Usage: keys | map('string') | map('extract', object)
+		// Usage: keys | map('extract', object)
 		// Equivalent to: keys.map(key => object[key])
-		this.env.addFilter('extract', (key: any, object: Record<string, any>) => {
-			// When used with map, this filter receives individual keys, not an array
-			if (!object || typeof object !== 'object') {
-				return undefined;
+		this.env.addFilter("extract", (key: any, object: unknown) => {
+			if (object instanceof Map) {
+				return mapToObject(object.get(String(key)));
+			} else if (object instanceof Array) {
+				return mapToObject(object[key]);
+			} else {
+				const errMsg = "unsupported type";
+				console.error(errMsg);
+				throw new Error(errMsg);
 			}
-			return object[String(key)];
 		});
 	}
 
