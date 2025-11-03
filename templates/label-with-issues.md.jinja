@@ -20,7 +20,8 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}{% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
@@ -37,7 +38,8 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}{% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
@@ -63,7 +65,8 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}{% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
@@ -80,7 +83,8 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}{% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
@@ -103,7 +107,8 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}{% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
@@ -120,7 +125,8 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}{% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set authors = [] %}{% for prNum in linkedPRs %}{% set authors = authors | chain([pullRequests[prNum|string].author.login]) %}{% endfor %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in authors | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
