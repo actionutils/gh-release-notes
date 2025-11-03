@@ -224,7 +224,7 @@ keys | map('extract', object)
 {% endfor %}
 ```
 
-This is equivalent to manually iterating through each PR number in `issue.linkedPRs`, looking up the corresponding PR object in the `pullRequests` map, extracting the author login, and deduplicating the results.
+This extracts PR objects from the `pullRequests` map using PR numbers in `issue.linkedPRs`, gets each author's login, and deduplicates them. Without the `extract` filter, achieving the same result would require complex template logic with namespace objects.
 
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
