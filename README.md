@@ -244,59 +244,6 @@ Include them in templates using:
 **Full Changelog**: {{ fullChangelogLink }}
 ```
 
-### Examples with Issues and Mixed Categorization
-
-**Using `issuesByLabel` to group issues by labels:**
-```jinja
-## Bugs Fixed
-{% for issue_number in issuesByLabel.labels.bug %}
-- {{ issues[issue_number|string].title }} (#{{ issue_number }}) by @{{ issues[issue_number|string].author.login }}
-{% endfor %}
-```
-
-**Using `categorizedItems` for issue-prioritized categorization:**
-```jinja
-{% for category in categorizedItems.categories %}
-## {{ category.title }}
-{% for item in category.items %}
-{% if item.type == 'issue' %}
-- 🐛 {{ issues[item.number|string].title }} (#{{ item.number }}) by @{{ issues[item.number|string].author.login }}
-{% else %}
-- {{ pullRequests[item.number|string].title }} (#{{ item.number }}) by @{{ pullRequests[item.number|string].author.login }}
-{% endif %}
-{% endfor %}
-{% endfor %}
-
-## Other Changes
-{% for item in categorizedItems.uncategorized %}
-{% if item.type == 'issue' %}
-- 🐛 {{ issues[item.number|string].title }} (#{{ item.number }})
-{% else %}
-- {{ pullRequests[item.number|string].title }} (#{{ item.number }})
-{% endif %}
-{% endfor %}
-```
-
-**Using `itemsByLabel` for mixed label-based grouping:**
-```jinja
-## Bug Fixes
-{% for item in itemsByLabel.labels.bug %}
-{% if item.type == 'issue' %}
-- 🐛 {{ issues[item.number|string].title }} (#{{ item.number }}) by @{{ issues[item.number|string].author.login }}
-{% else %}
-- {{ pullRequests[item.number|string].title }} (#{{ item.number }}) by @{{ pullRequests[item.number|string].author.login }}
-{% endif %}
-{% endfor %}
-
-## Enhancements
-{% for item in itemsByLabel.labels.enhancement %}
-{% if item.type == 'issue' %}
-- ✨ {{ issues[item.number|string].title }} (#{{ item.number }}) by @{{ issues[item.number|string].author.login }}
-{% else %}
-- {{ pullRequests[item.number|string].title }} (#{{ item.number }}) by @{{ pullRequests[item.number|string].author.login }}
-{% endif %}
-{% endfor %}
-```
 
 ## Contributors' Sponsor Information
 
@@ -479,7 +426,7 @@ Include them in templates using:
 
 ## Linked Issues
 
-The tool can fetch issues that are automatically closed by pull requests (via GitHub's `closingIssuesReferences` API). This data is available in templates and JSON output when `includeAllData` is enabled (default for CLI).
+The tool can fetch issues that are automatically closed by pull requests (via GitHub's `closingIssuesReferences` API). See [GitHub's documentation on linking pull requests to issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue) for details on how to manually link PRs to issues using keywords like `Closes #123`, `Fixes #456`, etc.
 
 ### Access linked issues in templates
 
@@ -558,7 +505,6 @@ Each pull request may include a `closingIssuesReferences` field containing linke
 }
 ```
 
-- **Automatic detection**: Works with GitHub's native issue linking (`Closes #123`, `Fixes #456`, etc.)
 - **Cross-repository support**: Includes issues from other repositories when linked
 - **Performance**: Only fetched when needed (when `includeAllData: true`)
 
