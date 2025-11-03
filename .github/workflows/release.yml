@@ -183,6 +183,64 @@ jobs:
 
             ${{ steps.release-notes-label.outputs.notes }}
 
+      - id: release-notes-github-ext-with-issues
+        env:
+          PREV_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
+          TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --prev-tag "$PREV_TAG" \
+            --tag "$TAG" \
+            --template ./templates/github-ext-with-issues.md.jinja \
+            --verbose \
+            --preview)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post release notes (github-ext-with-issues)
+        if: steps.release-notes-github-ext-with-issues.outputs.notes != ''
+        uses: actionutils/sticky-comment@v1
+        with:
+          key: 'release-notes-github-ext-with-issues'
+          number: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_number }}
+          body: |
+            ## Release Notes (GitHub-ext with Issues ver.)
+            <hr>
+
+            ${{ steps.release-notes-github-ext-with-issues.outputs.notes }}
+
+      - id: release-notes-label-with-issues
+        env:
+          PREV_TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).current_tag }}
+          TAG: ${{ fromJSON(needs.release-pr.outputs.release_pr).next_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_NOTES=$(bun run dev --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --prev-tag "$PREV_TAG" \
+            --tag "$TAG" \
+            --template ./templates/label-with-issues.md.jinja \
+            --verbose \
+            --preview)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post release notes (label-with-issues)
+        if: steps.release-notes-label-with-issues.outputs.notes != ''
+        uses: actionutils/sticky-comment@v1
+        with:
+          key: 'release-notes-label-with-issues'
+          number: ${{ fromJSON(needs.release-pr.outputs.release_pr).pr_number }}
+          body: |
+            ## Release Notes (Label with Issues ver.)
+            <hr>
+
+            ${{ steps.release-notes-label-with-issues.outputs.notes }}
+
       # Post Dependency Review
       - uses: actions/dependency-review-action@v4
         if: fromJSON(needs.release-pr.outputs.release_pr).current_tag != ''
