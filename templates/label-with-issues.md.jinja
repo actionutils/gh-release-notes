@@ -20,13 +20,15 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set totalAdditions = linkedPRs | map('extract', pullRequests) | map(attribute='additions') | sum %}
+{%- set totalDeletions = linkedPRs | map('extract', pullRequests) | map(attribute='deletions') | sum %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %} ($\textsf{\color{ #3fb950}{\textsf{+{{ totalAdditions }}}}\color{ #f85149}{\textsf{ -{{ totalDeletions }}}}}$)
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
 {%- else %}
 {%- set pr = pullRequests[item.number|string] %}
-- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endif %}
 {%- endfor %}
 
@@ -37,13 +39,15 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set totalAdditions = linkedPRs | map('extract', pullRequests) | map(attribute='additions') | sum %}
+{%- set totalDeletions = linkedPRs | map('extract', pullRequests) | map(attribute='deletions') | sum %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %} ($\textsf{\color{ #3fb950}{\textsf{+{{ totalAdditions }}}}\color{ #f85149}{\textsf{ -{{ totalDeletions }}}}}$)
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
 {%- else %}
 {%- set pr = pullRequests[item.number|string] %}
-- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endif %}
 {%- endfor %}
 {%- endif %}
@@ -63,13 +67,15 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set totalAdditions = linkedPRs | map('extract', pullRequests) | map(attribute='additions') | sum %}
+{%- set totalDeletions = linkedPRs | map('extract', pullRequests) | map(attribute='deletions') | sum %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %} ($\textsf{\color{ #3fb950}{\textsf{+{{ totalAdditions }}}}\color{ #f85149}{\textsf{ -{{ totalDeletions }}}}}$)
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
 {%- else %}
 {%- set pr = pullRequests[item.number|string] %}
-- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endif %}
 {%- endfor %}
 
@@ -80,13 +86,15 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set totalAdditions = linkedPRs | map('extract', pullRequests) | map(attribute='additions') | sum %}
+{%- set totalDeletions = linkedPRs | map('extract', pullRequests) | map(attribute='deletions') | sum %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %} ($\textsf{\color{ #3fb950}{\textsf{+{{ totalAdditions }}}}\color{ #f85149}{\textsf{ -{{ totalDeletions }}}}}$)
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
 {%- else %}
 {%- set pr = pullRequests[item.number|string] %}
-- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endif %}
 {%- endfor %}
 {%- endif %}
@@ -103,13 +111,15 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set totalAdditions = linkedPRs | map('extract', pullRequests) | map(attribute='additions') | sum %}
+{%- set totalDeletions = linkedPRs | map('extract', pullRequests) | map(attribute='deletions') | sum %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %} ($\textsf{\color{ #3fb950}{\textsf{+{{ totalAdditions }}}}\color{ #f85149}{\textsf{ -{{ totalDeletions }}}}}$)
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
 {%- else %}
 {%- set pr = pullRequests[item.number|string] %}
-- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endif %}
 {%- endfor %}
 
@@ -120,13 +130,15 @@
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
+{%- set totalAdditions = linkedPRs | map('extract', pullRequests) | map(attribute='additions') | sum %}
+{%- set totalDeletions = linkedPRs | map('extract', pullRequests) | map(attribute='deletions') | sum %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %} ($\textsf{\color{ #3fb950}{\textsf{+{{ totalAdditions }}}}\color{ #f85149}{\textsf{ -{{ totalDeletions }}}}}$)
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
 {%- else %}
 {%- set pr = pullRequests[item.number|string] %}
-- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endif %}
 {%- endfor %}
 {%- endif %}
