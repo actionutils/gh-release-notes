@@ -24,6 +24,12 @@ function mapToObject(value: unknown): unknown {
 	return value;
 }
 
+// Helper function to log error and throw for better debugging with WASM bindings
+function logAndThrow(message: string): never {
+	console.error(message);
+	throw new Error(message);
+}
+
 export class TemplateRenderer {
 	private env: Environment;
 	private contentLoader: ContentLoaderFactory;
@@ -50,13 +56,12 @@ export class TemplateRenderer {
 			} else if (object instanceof Array) {
 				const index = Number(key);
 				if (isNaN(index)) {
-					throw new Error(`Invalid array index: ${key}`);
+					logAndThrow(`extract filter: invalid array index '${key}'`);
 				}
 				return mapToObject(object[index]);
 			} else {
-				const errMsg = "unsupported type";
-				console.error(errMsg);
-				throw new Error(errMsg);
+				const objectType = object === null ? "null" : typeof object;
+				logAndThrow(`extract filter: unsupported type '${objectType}' for object parameter`);
 			}
 		});
 	}
