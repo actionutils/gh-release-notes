@@ -1159,4 +1159,228 @@ exclude-contributors:
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}
 	});
+
+	test("fetches closing issues when includeAllData is true", async () => {
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "gh-release-notes-test-"),
+		);
+
+		try {
+			const cfgPath = path.join(tmpDir, "config.yml");
+			await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+			// Mock GraphQL response with closing issues
+			global.fetch = mock(async (url: string | URL | Request) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
+
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
+				}
+
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
+
+				if (u.includes("/graphql")) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 123,
+											title: "Fix important bug",
+											url: "https://github.com/owner/repo/pull/123",
+											mergedAt: "2024-01-01T00:00:00Z",
+											labels: { nodes: [] },
+											author: {
+												login: "contributor",
+												__typename: "User",
+												url: "https://github.com/contributor",
+												avatarUrl: "https://avatars.githubusercontent.com/u/123?v=4",
+											},
+											closingIssuesReferences: {
+												nodes: [
+													{
+														id: "I_kwDOP7h4Y87SWYAW",
+														number: 110,
+														title: "Bug in authentication",
+														state: "CLOSED",
+														url: "https://github.com/owner/repo/issues/110",
+														repository: {
+															name: "repo",
+															owner: {
+																login: "owner",
+															},
+														},
+													},
+													{
+														id: "I_kwDOP7h4Y87SWYAB",
+														number: 105,
+														title: "Performance issue",
+														state: "CLOSED",
+														url: "https://github.com/owner/repo/issues/105",
+														repository: {
+															name: "repo",
+															owner: {
+																login: "owner",
+															},
+														},
+													},
+												],
+											},
+										},
+									],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			}) as unknown as typeof fetch;
+
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				includeAllData: true,
+			});
+
+			// Verify closing issues are included in the issues map and PR references
+			expect(res.mergedPullRequests).toHaveLength(1);
+			const prNumber = res.mergedPullRequests[0];
+			const pr = res.pullRequests[prNumber];
+
+			// Check that PR has closing issue references (as issue numbers)
+			expect(pr.closingIssuesReferences).toBeDefined();
+			expect(pr.closingIssuesReferences).toHaveLength(2);
+			expect(pr.closingIssuesReferences).toContain(110);
+			expect(pr.closingIssuesReferences).toContain(105);
+
+			// Check that issues are stored in the issues map
+			expect(res.issues).toBeDefined();
+			expect(Object.keys(res.issues)).toHaveLength(2);
+
+			const issue110 = res.issues[110];
+			expect(issue110.number).toBe(110);
+			expect(issue110.title).toBe("Bug in authentication");
+			expect(issue110.state).toBe("CLOSED");
+			expect(issue110.url).toBe("https://github.com/owner/repo/issues/110");
+
+			const issue105 = res.issues[105];
+			expect(issue105.number).toBe(105);
+			expect(issue105.title).toBe("Performance issue");
+			expect(issue105.state).toBe("CLOSED");
+			expect(issue105.url).toBe("https://github.com/owner/repo/issues/105");
+		} finally {
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("does not fetch closing issues when includeAllData is false", async () => {
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "gh-release-notes-test-"),
+		);
+
+		try {
+			const cfgPath = path.join(tmpDir, "config.yml");
+			await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+			// Mock GraphQL response without closing issues
+			global.fetch = mock(async (url: string | URL | Request) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
+
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
+				}
+
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
+
+				if (u.includes("/graphql")) {
+
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 123,
+											title: "Fix important bug",
+											url: "https://github.com/owner/repo/pull/123",
+											mergedAt: "2024-01-01T00:00:00Z",
+											labels: { nodes: [] },
+											author: {
+												login: "contributor",
+												__typename: "User",
+												url: "https://github.com/contributor",
+												avatarUrl: "https://avatars.githubusercontent.com/u/123?v=4",
+											},
+										},
+									],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			}) as unknown as typeof fetch;
+
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				includeAllData: false,
+			});
+
+			// Verify closing issues are not included when includeAllData is false
+			expect(res.mergedPullRequests).toHaveLength(1);
+			const prNumber = res.mergedPullRequests[0];
+			const pr = res.pullRequests[prNumber];
+
+			expect(pr.closingIssuesReferences).toBeUndefined();
+			expect(res.issues).toEqual({});
+		} finally {
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
 });

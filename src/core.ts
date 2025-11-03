@@ -137,9 +137,10 @@ export type RunOptions = {
 // Type for label in final output (flattened)
 export type Label = string;
 
-// Type for MergedPullRequest - flattens labels for final output
-export type MergedPullRequest = Omit<PullRequest, "labels"> & {
+// Type for MergedPullRequest - flattens labels and closing issues for final output
+export type MergedPullRequest = Omit<PullRequest, "labels" | "closingIssuesReferences"> & {
 	labels?: Label[];
+	closingIssuesReferences?: number[]; // Array of issue numbers
 };
 
 // Export types for external consumers
@@ -203,6 +204,21 @@ export type ReleaseInfo = {
 	patchVersion: number;
 };
 
+// Type for Issue from GraphQL response (normalized)
+export type Issue = {
+	id: string;
+	number: number;
+	title: string;
+	state: string;
+	url: string;
+	repository: {
+		name: string;
+		owner: {
+			login: string;
+		};
+	};
+};
+
 export type RunResult = {
 	owner: string;
 	repo: string;
@@ -216,6 +232,8 @@ export type RunResult = {
 	pullRequests: Record<number, MergedPullRequest>;
 	// Merged PR numbers in order
 	mergedPullRequests: number[];
+	// Issue data map: Issue number -> data
+	issues: Record<number, Issue>;
 	// Categorized PR numbers
 	categorizedPullRequests: CategorizedPullRequestsByNumber;
 	// Pull requests grouped by label
@@ -907,6 +925,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const needHead = String(rdConfig["change-template"] || "").includes(
 		"$HEAD_REF_NAME",
 	);
+	const needClosingIssues = includeAllData || String(rdConfig["change-template"] || "").includes(
+		"$CLOSING_ISSUES",
+	) || (template && template.includes("closingIssuesReferences"));
 
 	const sinceDate: string | undefined = lastRelease?.created_at || undefined;
 	// Use the repository default branch for base filtering to avoid issues when
@@ -936,6 +957,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
+		withClosingIssues: needClosingIssues,
 		sponsorFetchMode,
 		includeLabels,
 		excludeLabels,
@@ -1150,13 +1172,32 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		rdConfig as CategorizeConfig,
 	);
 
-	// Build pullRequests map with flattened labels
+	// Build issues map from all PRs' closing issues references
+	const issuesMap: Record<number, Issue> = {};
+	for (const pr of pullRequestsSorted || []) {
+		if (pr.closingIssuesReferences?.nodes) {
+			for (const issue of pr.closingIssuesReferences.nodes) {
+				issuesMap[issue.number] = {
+					id: issue.id,
+					number: issue.number,
+					title: issue.title,
+					state: issue.state,
+					url: issue.url,
+					repository: issue.repository,
+				};
+			}
+		}
+	}
+
+	// Build pullRequests map with flattened labels and closing issues
 	const pullRequestsMap: Record<number, MergedPullRequest> = {};
 	for (const pr of pullRequestsSorted || []) {
 		pullRequestsMap[pr.number] = {
 			...pr,
 			labels:
 				pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
+			closingIssuesReferences:
+				pr.closingIssuesReferences?.nodes?.map((issue) => issue.number) || undefined,
 		} as unknown as MergedPullRequest;
 	}
 
@@ -1218,6 +1259,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}),
 		pullRequests: pullRequestsMap,
 		mergedPullRequests: (pullRequestsSorted || []).map((pr) => pr.number),
+		issues: issuesMap,
 		categorizedPullRequests: flattenedCategorizedNumbers,
 		pullRequestsByLabel,
 		contributors,

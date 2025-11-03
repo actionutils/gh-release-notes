@@ -206,7 +206,8 @@ Include them in templates using:
 
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
-- `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `additions`, `deletions`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`
+- `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `additions`, `deletions`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`, `closingIssuesReferences[]` (optional, array of issue numbers)
+- `issues{ <issue-number>: <Issue data> }`: map of issue number to issue object containing `id`, `number`, `title`, `state`, `url`, `repository{ name, owner{ login } }`
 - `mergedPullRequests[]`: array of PR numbers in display order
 - `categorizedPullRequests`:
   - `uncategorized[]`: array of PR numbers
@@ -410,6 +411,75 @@ Include them in templates using:
 - Zero-config works; also easy to standardize via purl remote config/templates
 - JSON output enables fully custom rendering pipelines
 - Optional sponsor enrichment (adds sponsors listing URL when available)
+
+## Linked Issues
+
+The tool can fetch issues that are automatically closed by pull requests (via GitHub's `closingIssuesReferences` API). This data is available in templates and JSON output when `includeAllData` is enabled (default for CLI) or when templates reference the closing issues data.
+
+### Access linked issues in templates
+
+Each pull request may include a `closingIssuesReferences` field containing linked issues:
+
+```jinja
+{% for pr_number in mergedPullRequests %}
+{% set pr = pullRequests[pr_number|string] %}
+## {{ pr.title }} (#{{ pr.number }})
+
+{% if pr.closingIssuesReferences %}
+**Closes:**
+{% for issue_number in pr.closingIssuesReferences %}
+{% set issue = issues[issue_number|string] %}
+- {{ issue.title }} (#{{ issue.number }}) - {{ issue.url }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+```
+
+### Example linked issues data structure
+
+```json
+{
+  "pullRequests": {
+    "123": {
+      "number": 123,
+      "title": "Fix authentication bug",
+      "closingIssuesReferences": [110, 105]
+    }
+  },
+  "issues": {
+    "110": {
+      "id": "I_kwDOP7h4Y87SWYAW",
+      "number": 110,
+      "title": "Bug in authentication system",
+      "state": "CLOSED",
+      "url": "https://github.com/owner/repo/issues/110",
+      "repository": {
+        "name": "repo",
+        "owner": {
+          "login": "owner"
+        }
+      }
+    },
+    "105": {
+      "id": "I_kwDOP7h4Y87SWYAB",
+      "number": 105,
+      "title": "Performance issue",
+      "state": "CLOSED",
+      "url": "https://github.com/owner/repo/issues/105",
+      "repository": {
+        "name": "repo",
+        "owner": {
+          "login": "owner"
+        }
+      }
+    }
+  }
+}
+```
+
+- **Automatic detection**: Works with GitHub's native issue linking (`Closes #123`, `Fixes #456`, etc.)
+- **Cross-repository support**: Includes issues from other repositories when linked
+- **Performance**: Only fetched when needed (when `includeAllData: true` or templates reference the data)
 
 ## Permissions
 

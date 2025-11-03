@@ -28,6 +28,21 @@ export interface GraphQLLabel {
 	name: string;
 }
 
+// Type for Closing Issue from GraphQL response
+export interface GraphQLClosingIssue {
+	id: string;
+	number: number;
+	title: string;
+	state: string;
+	url: string;
+	repository: {
+		name: string;
+		owner: {
+			login: string;
+		};
+	};
+}
+
 // Type for Pull Request from GraphQL response (raw from API)
 export interface GraphQLPullRequest {
 	number: number;
@@ -41,6 +56,7 @@ export interface GraphQLPullRequest {
 	deletions?: number;
 	labels: { nodes: GraphQLLabel[] };
 	author: GraphQLAuthor;
+	closingIssuesReferences?: { nodes: GraphQLClosingIssue[] };
 }
 
 // Normalized PullRequest type (for consumption by core.ts)
@@ -62,6 +78,7 @@ export interface PullRequest {
 		avatarUrl: string;
 		sponsorsListing?: { url: string };
 	};
+	closingIssuesReferences?: { nodes: GraphQLClosingIssue[] };
 	[key: string]: unknown; // Index signature for MinimalPullRequest compatibility
 }
 
@@ -78,6 +95,7 @@ export type SearchPRParams = {
 	withBody: boolean;
 	withBaseRefName: boolean;
 	withHeadRefName: boolean;
+	withClosingIssues: boolean;
 	sponsorFetchMode?: SponsorFetchMode;
 	includeLabels?: string[];
 	excludeLabels?: string[];
@@ -90,6 +108,7 @@ function buildSearchQuery(): string {
       $withBody: Boolean!
       $withBase: Boolean!
       $withHead: Boolean!
+      $withClosingIssues: Boolean!
       $withSponsor: Boolean!
       $after: String
     ) {
@@ -106,6 +125,21 @@ function buildSearchQuery(): string {
             body @include(if: $withBody)
             baseRefName @include(if: $withBase)
             headRefName @include(if: $withHead)
+            closingIssuesReferences(first: 10) @include(if: $withClosingIssues) {
+              nodes {
+                id
+                number
+                title
+                state
+                url
+                repository {
+                  name
+                  owner {
+                    login
+                  }
+                }
+              }
+            }
             labels(first: 100) { nodes { name } }
             author {
               login
@@ -152,6 +186,7 @@ export async function fetchMergedPRs(
 		withBody,
 		withBaseRefName,
 		withHeadRefName,
+		withClosingIssues,
 		sponsorFetchMode = "none",
 		includeLabels = [],
 		excludeLabels = [],
@@ -196,6 +231,7 @@ export async function fetchMergedPRs(
 			withBody,
 			withBase: withBaseRefName,
 			withHead: withHeadRefName,
+			withClosingIssues,
 			withSponsor: sponsorFetchMode === "graphql",
 			after: null,
 		},
@@ -223,6 +259,7 @@ export async function fetchMergedPRs(
 				avatarUrl: node.author.avatarUrl,
 				sponsorsListing: node.author.sponsorsListing,
 			},
+			closingIssuesReferences: node.closingIssuesReferences,
 		}),
 	);
 }
