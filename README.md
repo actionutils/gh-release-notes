@@ -479,7 +479,7 @@ Include them in templates using:
 
 ## Linked Issues
 
-The tool can fetch issues that are automatically closed by pull requests (via GitHub's `closingIssuesReferences` API). This data is available in templates and JSON output when `includeAllData` is enabled (default for CLI) or when templates reference the closing issues data.
+The tool can fetch issues that are automatically closed by pull requests (via GitHub's `closingIssuesReferences` API). This data is available in templates and JSON output when `includeAllData` is enabled (default for CLI).
 
 ### Access linked issues in templates
 
@@ -560,7 +560,7 @@ Each pull request may include a `closingIssuesReferences` field containing linke
 
 - **Automatic detection**: Works with GitHub's native issue linking (`Closes #123`, `Fixes #456`, etc.)
 - **Cross-repository support**: Includes issues from other repositories when linked
-- **Performance**: Only fetched when needed (when `includeAllData: true` or templates reference the data)
+- **Performance**: Only fetched when needed (when `includeAllData: true`)
 
 ## Permissions
 
