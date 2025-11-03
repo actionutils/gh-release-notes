@@ -41,6 +41,7 @@ export class TemplateRenderer {
 	 */
 	private addCustomFilters(): void {
 		// Add extract filter to extract values from an object using keys from an array
+		// Inspired by Ansible's extract filter: https://docs.ansible.com/ansible/2.9/user_guide/playbooks_filters.html#extracting-values-from-containers
 		// Usage: keys | map('extract', object)
 		// Equivalent to: keys.map(key => object[key])
 		this.env.addFilter("extract", (key: unknown, object: unknown) => {

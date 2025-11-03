@@ -204,6 +204,28 @@ Include them in templates using:
 > [!CAUTION]
 > Manual release notes only work with **local** `.changelog/` files. Even when using remote templates via `--template pkg:...`, the `include` statements can only reference files in your local `.changelog/` directory, not remote files.
 
+### Custom Filters
+
+gh-release-notes provides additional custom filters beyond the standard MiniJinja filters to make template authoring easier:
+
+#### `extract` filter
+
+Extracts values from a Map or Array using keys. Inspired by [Ansible's extract filter](https://docs.ansible.com/ansible/2.9/user_guide/playbooks_filters.html#extracting-values-from-containers).
+
+**Usage:**
+```jinja
+keys | map('extract', object)
+```
+
+**Example - Get unique authors from linked pull requests:**
+```jinja
+{% for author in issue.linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}
+  @{{ author }}
+{% endfor %}
+```
+
+This is equivalent to manually iterating through each PR number in `issue.linkedPRs`, looking up the corresponding PR object in the `pullRequests` map, extracting the author login, and deduplicating the results.
+
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
 - `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `additions`, `deletions`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`, `closingIssuesReferences[]` (optional, array of issue numbers)
