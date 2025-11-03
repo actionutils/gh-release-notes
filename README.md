@@ -224,7 +224,7 @@ keys | map('extract', object)
 {% endfor %}
 ```
 
-This extracts PR objects from the `pullRequests` map using PR numbers in `issue.linkedPRs`, gets each author's login, and deduplicates them. Without the `extract` filter, achieving the same result would require complex template logic with namespace objects.
+This extracts PR objects from the `pullRequests` map using PR numbers in `issue.linkedPRs`, gets each author's login, and deduplicates them. Without the `extract` filter, achieving the same result would require complex template logic with [namespace objects](https://docs.rs/minijinja/latest/minijinja/functions/fn.namespace.html).
 
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
