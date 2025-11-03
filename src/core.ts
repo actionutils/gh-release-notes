@@ -280,6 +280,14 @@ export type RunResult = {
 	// Categorized items (issues and PRs) with issue prioritization
 	// Issues take priority over PRs when both have the same labels
 	categorizedItems: CategorizedItems;
+	// Items (issues and PRs) grouped by label with issue prioritization
+	// Similar to pullRequestsByLabel but includes issues with priority
+	// - labels: map of label name -> items (issues prioritized over PRs)
+	// - unlabeled: items without any labels (issues first, then PRs)
+	itemsByLabel: {
+		labels: Record<string, Item[]>;
+		unlabeled: Item[];
+	};
 	contributors: Author[];
 	newContributors: NewContributor[] | null;
 	release: ReleaseInfo;
@@ -1392,6 +1400,85 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}
 	}
 
+	// Build itemsByLabel with issue prioritization
+	// Similar to pullRequestsByLabel but includes issues with priority
+	const itemsByLabel: {
+		labels: Record<string, Item[]>;
+		unlabeled: Item[];
+	} = { labels: {}, unlabeled: [] };
+
+	// Track which items have been added to avoid duplicates across labels
+	const addedToItemsByLabel = new Set<string>(); // "issue:123" or "pr:456"
+
+	// First pass: Add all issues by their labels
+	for (const [issueNumber, issue] of Object.entries(issuesMap)) {
+		const issueNum = Number(issueNumber);
+		const labels = issue.labels || [];
+		const itemKey = `issue:${issueNum}`;
+
+		if (labels.length === 0) {
+			itemsByLabel.unlabeled.push({ type: 'issue', number: issueNum });
+			addedToItemsByLabel.add(itemKey);
+			continue;
+		}
+
+		for (const labelName of labels) {
+			if (!labelName) continue;
+			if (!itemsByLabel.labels[labelName]) {
+				itemsByLabel.labels[labelName] = [];
+			}
+			// Add issue only if not already added for this label
+			if (!addedToItemsByLabel.has(`${itemKey}:${labelName}`)) {
+				itemsByLabel.labels[labelName].push({ type: 'issue', number: issueNum });
+				addedToItemsByLabel.add(`${itemKey}:${labelName}`);
+			}
+		}
+	}
+
+	// Second pass: Add PRs that don't have linked issues already in the same labels
+	for (const pr of pullRequestsSorted || []) {
+		const prNumber = pr.number as number;
+		const labelNodes = pr.labels?.nodes || [];
+		const itemKey = `pr:${prNumber}`;
+
+		// Get the processed PR to access flattened closingIssuesReferences
+		const processedPR = pullRequestsMap[prNumber];
+		const linkedIssues = processedPR?.closingIssuesReferences || [];
+
+		if (labelNodes.length === 0) {
+			// Check if any linked issues exist in our issues map (regardless of where they appear)
+			const hasLinkedIssueTracked = linkedIssues.some(issueNum =>
+				issuesMap[issueNum] !== undefined
+			);
+
+			if (!hasLinkedIssueTracked && !addedToItemsByLabel.has(itemKey)) {
+				itemsByLabel.unlabeled.push({ type: 'pr', number: prNumber });
+				addedToItemsByLabel.add(itemKey);
+			}
+			continue;
+		}
+
+		for (const node of labelNodes) {
+			const lname = String(node?.name || "");
+			if (!lname) continue;
+
+			if (!itemsByLabel.labels[lname]) {
+				itemsByLabel.labels[lname] = [];
+			}
+
+			// Check if any linked issues exist in our issues map (regardless of labels)
+			const hasLinkedIssueTracked = linkedIssues.some(issueNum =>
+				issuesMap[issueNum] !== undefined
+			);
+
+			// Add PR only if no linked issues are tracked and not already added
+			if (!hasLinkedIssueTracked && !addedToItemsByLabel.has(`${itemKey}:${lname}`)) {
+				itemsByLabel.labels[lname].push({ type: 'pr', number: prNumber });
+				addedToItemsByLabel.add(`${itemKey}:${lname}`);
+			}
+		}
+	}
+
 	// Determine the latest mergedAt timestamp among the PRs
 	const latestMergedAt: string | null = (pullRequestsSorted || []).reduce(
 		(acc: string | null, pr) => {
@@ -1425,6 +1512,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		pullRequestsByLabel,
 		issuesByLabel,
 		categorizedItems,
+		itemsByLabel,
 		contributors,
 		newContributors: newContributorsOutput,
 		release: {

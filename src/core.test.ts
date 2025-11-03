@@ -1342,6 +1342,25 @@ exclude-contributors:
 			// PR should not appear in uncategorized because it has linked issues that took priority
 			const uncategorizedPRs = res.categorizedItems.uncategorized.filter(item => item.type === 'pr');
 			expect(uncategorizedPRs.length).toBe(0);
+
+			// Check itemsByLabel field
+			expect(res.itemsByLabel).toBeDefined();
+			expect(res.itemsByLabel.labels).toBeDefined();
+			expect(res.itemsByLabel.unlabeled).toBeDefined();
+
+			// Issues should appear in their respective labels
+			expect(res.itemsByLabel.labels["bug"]).toContainEqual({ type: 'issue', number: 110 });
+			expect(res.itemsByLabel.labels["high-priority"]).toContainEqual({ type: 'issue', number: 110 });
+			expect(res.itemsByLabel.labels["enhancement"]).toContainEqual({ type: 'issue', number: 105 });
+			expect(res.itemsByLabel.labels["performance"]).toContainEqual({ type: 'issue', number: 105 });
+
+			// PR should not appear in any labels because linked issues take priority
+			const allLabelItems = Object.values(res.itemsByLabel.labels).flat();
+			const prItemsInLabels = allLabelItems.filter(item => item.type === 'pr');
+			expect(prItemsInLabels.length).toBe(0);
+
+			// Unlabeled should be empty since both issues have labels
+			expect(res.itemsByLabel.unlabeled).toEqual([]);
 		} finally {
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}

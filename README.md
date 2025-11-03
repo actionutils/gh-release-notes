@@ -222,6 +222,10 @@ Include them in templates using:
   - `uncategorized[]`: array of items `{ type: 'issue'|'pr', number: number }`
   - `categories[]`: `title`, `labels[]`, `collapse_after?`, `items[]` (array of items with type and number)
   - **Issue Priority**: When both issues and PRs have matching labels, issues take priority and PRs with linked issues are excluded
+- `itemsByLabel`: Mixed items (issues and PRs) grouped by label with issue prioritization
+  - `labels{ <label>: Item[] }`: map from label name to items (issues prioritized over PRs with linked issues)
+  - `unlabeled[]`: items without any labels (issues first, then PRs without linked issues)
+  - **Issue Priority**: Similar to `pullRequestsByLabel` but includes issues with priority; PRs excluded if they have linked tracked issues
 - `contributors[]`: all PR authors
 - `newContributors[] | null`: first-time contributors (contains `login` and `firstPullRequest` as PR number)
 - `owner`, `repo`, `defaultBranch`, `lastRelease`, `latestMergedAt`, `pullRequestsSearchLink`, `fullChangelogLink`
@@ -269,6 +273,27 @@ Include them in templates using:
 - 🐛 {{ issues[item.number|string].title }} (#{{ item.number }})
 {% else %}
 - {{ pullRequests[item.number|string].title }} (#{{ item.number }})
+{% endif %}
+{% endfor %}
+```
+
+**Using `itemsByLabel` for mixed label-based grouping:**
+```jinja
+## Bug Fixes
+{% for item in itemsByLabel.labels.bug %}
+{% if item.type == 'issue' %}
+- 🐛 {{ issues[item.number|string].title }} (#{{ item.number }}) by @{{ issues[item.number|string].author.login }}
+{% else %}
+- {{ pullRequests[item.number|string].title }} (#{{ item.number }}) by @{{ pullRequests[item.number|string].author.login }}
+{% endif %}
+{% endfor %}
+
+## Enhancements
+{% for item in itemsByLabel.labels.enhancement %}
+{% if item.type == 'issue' %}
+- ✨ {{ issues[item.number|string].title }} (#{{ item.number }}) by @{{ issues[item.number|string].author.login }}
+{% else %}
+- {{ pullRequests[item.number|string].title }} (#{{ item.number }}) by @{{ pullRequests[item.number|string].author.login }}
 {% endif %}
 {% endfor %}
 ```
