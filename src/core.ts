@@ -138,7 +138,10 @@ export type RunOptions = {
 export type Label = string;
 
 // Type for MergedPullRequest - flattens labels and closing issues for final output
-export type MergedPullRequest = Omit<PullRequest, "labels" | "closingIssuesReferences"> & {
+export type MergedPullRequest = Omit<
+	PullRequest,
+	"labels" | "closingIssuesReferences"
+> & {
 	labels?: Label[];
 	closingIssuesReferences?: number[]; // Array of issue numbers
 };
@@ -179,7 +182,7 @@ export type CategorizedPullRequestsByNumber = {
 
 // Item type for mixed issue/PR categorization
 export type Item = {
-	type: 'issue' | 'pr';
+	type: "issue" | "pr";
 	number: number;
 };
 
@@ -970,9 +973,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const needHead = String(rdConfig["change-template"] || "").includes(
 		"$HEAD_REF_NAME",
 	);
-	const needClosingIssues = includeAllData || String(rdConfig["change-template"] || "").includes(
-		"$CLOSING_ISSUES",
-	) || (template && template.includes("closingIssuesReferences"));
+	const needClosingIssues =
+		includeAllData ||
+		String(rdConfig["change-template"] || "").includes("$CLOSING_ISSUES") ||
+		(template && template.includes("closingIssuesReferences"));
 
 	const sinceDate: string | undefined = lastRelease?.created_at || undefined;
 	// Use the repository default branch for base filtering to avoid issues when
@@ -1241,7 +1245,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 							sponsorsListing: issue.author.sponsorsListing,
 						},
 						labels:
-							issue.labels?.nodes?.map((node: { name: string }) => node.name) || [],
+							issue.labels?.nodes?.map((node: { name: string }) => node.name) ||
+							[],
 						linkedPRs: [], // Will be populated in second pass
 						repository: issue.repository,
 					};
@@ -1260,7 +1265,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	for (const [issueNumber, prNumbers] of Object.entries(issueToPRsMap)) {
 		const issueNum = Number(issueNumber);
 		if (issuesMap[issueNum]) {
-			issuesMap[issueNum].linkedPRs = Array.from(prNumbers).sort((a, b) => a - b);
+			issuesMap[issueNum].linkedPRs = Array.from(prNumbers).sort(
+				(a, b) => a - b,
+			);
 		}
 	}
 
@@ -1272,7 +1279,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			labels:
 				pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
 			closingIssuesReferences:
-				pr.closingIssuesReferences?.nodes?.map((issue) => issue.number) || undefined,
+				pr.closingIssuesReferences?.nodes?.map((issue) => issue.number) ||
+				undefined,
 		} as unknown as MergedPullRequest;
 	}
 
@@ -1351,7 +1359,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 				const issuesForLabel = issuesByLabel.labels[label] || [];
 				for (const issueNum of issuesForLabel) {
 					if (!categorizedIssues.has(issueNum)) {
-						categoryItems.push({ type: 'issue', number: issueNum });
+						categoryItems.push({ type: "issue", number: issueNum });
 						categorizedIssues.add(issueNum);
 					}
 				}
@@ -1362,12 +1370,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		for (const prNum of category.pullRequests) {
 			// Check if this PR has linked issues that are already categorized
 			const pr = pullRequestsMap[prNum];
-			const hasLinkedCategorizedIssue = pr?.closingIssuesReferences?.some(
-				issueNum => categorizedIssues.has(issueNum)
-			) || false;
+			const hasLinkedCategorizedIssue =
+				pr?.closingIssuesReferences?.some((issueNum) =>
+					categorizedIssues.has(issueNum),
+				) || false;
 
 			if (!hasLinkedCategorizedIssue && !categorizedPRs.has(prNum)) {
-				categoryItems.push({ type: 'pr', number: prNum });
+				categoryItems.push({ type: "pr", number: prNum });
 				categorizedPRs.add(prNum);
 			}
 		}
@@ -1382,7 +1391,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Add uncategorized issues (both unlabeled and those with labels that don't match any category)
 	for (const issueNum of Object.keys(issuesMap).map(Number)) {
 		if (!categorizedIssues.has(issueNum)) {
-			categorizedItems.uncategorized.push({ type: 'issue', number: issueNum });
+			categorizedItems.uncategorized.push({ type: "issue", number: issueNum });
 			categorizedIssues.add(issueNum);
 		}
 	}
@@ -1390,12 +1399,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	// Add uncategorized PRs (only if they don't have linked categorized issues)
 	for (const prNum of flattenedCategorizedNumbers.uncategorized) {
 		const pr = pullRequestsMap[prNum];
-		const hasLinkedCategorizedIssue = pr?.closingIssuesReferences?.some(
-			issueNum => categorizedIssues.has(issueNum)
-		) || false;
+		const hasLinkedCategorizedIssue =
+			pr?.closingIssuesReferences?.some((issueNum) =>
+				categorizedIssues.has(issueNum),
+			) || false;
 
 		if (!hasLinkedCategorizedIssue && !categorizedPRs.has(prNum)) {
-			categorizedItems.uncategorized.push({ type: 'pr', number: prNum });
+			categorizedItems.uncategorized.push({ type: "pr", number: prNum });
 			categorizedPRs.add(prNum);
 		}
 	}
@@ -1417,7 +1427,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		const itemKey = `issue:${issueNum}`;
 
 		if (labels.length === 0) {
-			itemsByLabel.unlabeled.push({ type: 'issue', number: issueNum });
+			itemsByLabel.unlabeled.push({ type: "issue", number: issueNum });
 			addedToItemsByLabel.add(itemKey);
 			continue;
 		}
@@ -1429,7 +1439,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			}
 			// Add issue only if not already added for this label
 			if (!addedToItemsByLabel.has(`${itemKey}:${labelName}`)) {
-				itemsByLabel.labels[labelName].push({ type: 'issue', number: issueNum });
+				itemsByLabel.labels[labelName].push({
+					type: "issue",
+					number: issueNum,
+				});
 				addedToItemsByLabel.add(`${itemKey}:${labelName}`);
 			}
 		}
@@ -1447,12 +1460,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
 		if (labelNodes.length === 0) {
 			// Check if any linked issues exist in our issues map (regardless of where they appear)
-			const hasLinkedIssueTracked = linkedIssues.some(issueNum =>
-				issuesMap[issueNum] !== undefined
+			const hasLinkedIssueTracked = linkedIssues.some(
+				(issueNum) => issuesMap[issueNum] !== undefined,
 			);
 
 			if (!hasLinkedIssueTracked && !addedToItemsByLabel.has(itemKey)) {
-				itemsByLabel.unlabeled.push({ type: 'pr', number: prNumber });
+				itemsByLabel.unlabeled.push({ type: "pr", number: prNumber });
 				addedToItemsByLabel.add(itemKey);
 			}
 			continue;
@@ -1467,13 +1480,16 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			}
 
 			// Check if any linked issues exist in our issues map (regardless of labels)
-			const hasLinkedIssueTracked = linkedIssues.some(issueNum =>
-				issuesMap[issueNum] !== undefined
+			const hasLinkedIssueTracked = linkedIssues.some(
+				(issueNum) => issuesMap[issueNum] !== undefined,
 			);
 
 			// Add PR only if no linked issues are tracked and not already added
-			if (!hasLinkedIssueTracked && !addedToItemsByLabel.has(`${itemKey}:${lname}`)) {
-				itemsByLabel.labels[lname].push({ type: 'pr', number: prNumber });
+			if (
+				!hasLinkedIssueTracked &&
+				!addedToItemsByLabel.has(`${itemKey}:${lname}`)
+			) {
+				itemsByLabel.labels[lname].push({ type: "pr", number: prNumber });
 				addedToItemsByLabel.add(`${itemKey}:${lname}`);
 			}
 		}

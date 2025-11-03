@@ -1215,7 +1215,8 @@ exclude-contributors:
 												login: "contributor",
 												__typename: "User",
 												url: "https://github.com/contributor",
-												avatarUrl: "https://avatars.githubusercontent.com/u/123?v=4",
+												avatarUrl:
+													"https://avatars.githubusercontent.com/u/123?v=4",
 											},
 											closingIssuesReferences: {
 												nodes: [
@@ -1229,9 +1230,15 @@ exclude-contributors:
 															login: "issue-author",
 															__typename: "User",
 															url: "https://github.com/issue-author",
-															avatarUrl: "https://avatars.githubusercontent.com/u/999?v=4",
+															avatarUrl:
+																"https://avatars.githubusercontent.com/u/999?v=4",
 														},
-														labels: { nodes: [{ name: "bug" }, { name: "high-priority" }] },
+														labels: {
+															nodes: [
+																{ name: "bug" },
+																{ name: "high-priority" },
+															],
+														},
 														repository: {
 															name: "repo",
 															owner: {
@@ -1249,9 +1256,15 @@ exclude-contributors:
 															login: "performance-author",
 															__typename: "User",
 															url: "https://github.com/performance-author",
-															avatarUrl: "https://avatars.githubusercontent.com/u/888?v=4",
+															avatarUrl:
+																"https://avatars.githubusercontent.com/u/888?v=4",
 														},
-														labels: { nodes: [{ name: "enhancement" }, { name: "performance" }] },
+														labels: {
+															nodes: [
+																{ name: "enhancement" },
+																{ name: "performance" },
+															],
+														},
 														repository: {
 															name: "repo",
 															owner: {
@@ -1334,13 +1347,23 @@ exclude-contributors:
 			// Issues with no matching categories should appear in uncategorized
 			// Since we don't have specific category labels matching issue labels in test config,
 			// the issues should appear in uncategorized items with type 'issue'
-			const uncategorizedIssues = res.categorizedItems.uncategorized.filter(item => item.type === 'issue');
+			const uncategorizedIssues = res.categorizedItems.uncategorized.filter(
+				(item) => item.type === "issue",
+			);
 			expect(uncategorizedIssues.length).toBe(2); // Both issue 105 and 110
-			expect(uncategorizedIssues).toContainEqual({ type: 'issue', number: 105 });
-			expect(uncategorizedIssues).toContainEqual({ type: 'issue', number: 110 });
+			expect(uncategorizedIssues).toContainEqual({
+				type: "issue",
+				number: 105,
+			});
+			expect(uncategorizedIssues).toContainEqual({
+				type: "issue",
+				number: 110,
+			});
 
 			// PR should not appear in uncategorized because it has linked issues that took priority
-			const uncategorizedPRs = res.categorizedItems.uncategorized.filter(item => item.type === 'pr');
+			const uncategorizedPRs = res.categorizedItems.uncategorized.filter(
+				(item) => item.type === "pr",
+			);
 			expect(uncategorizedPRs.length).toBe(0);
 
 			// Check itemsByLabel field
@@ -1349,14 +1372,28 @@ exclude-contributors:
 			expect(res.itemsByLabel.unlabeled).toBeDefined();
 
 			// Issues should appear in their respective labels
-			expect(res.itemsByLabel.labels["bug"]).toContainEqual({ type: 'issue', number: 110 });
-			expect(res.itemsByLabel.labels["high-priority"]).toContainEqual({ type: 'issue', number: 110 });
-			expect(res.itemsByLabel.labels["enhancement"]).toContainEqual({ type: 'issue', number: 105 });
-			expect(res.itemsByLabel.labels["performance"]).toContainEqual({ type: 'issue', number: 105 });
+			expect(res.itemsByLabel.labels["bug"]).toContainEqual({
+				type: "issue",
+				number: 110,
+			});
+			expect(res.itemsByLabel.labels["high-priority"]).toContainEqual({
+				type: "issue",
+				number: 110,
+			});
+			expect(res.itemsByLabel.labels["enhancement"]).toContainEqual({
+				type: "issue",
+				number: 105,
+			});
+			expect(res.itemsByLabel.labels["performance"]).toContainEqual({
+				type: "issue",
+				number: 105,
+			});
 
 			// PR should not appear in any labels because linked issues take priority
 			const allLabelItems = Object.values(res.itemsByLabel.labels).flat();
-			const prItemsInLabels = allLabelItems.filter(item => item.type === 'pr');
+			const prItemsInLabels = allLabelItems.filter(
+				(item) => item.type === "pr",
+			);
 			expect(prItemsInLabels.length).toBe(0);
 
 			// Unlabeled should be empty since both issues have labels
@@ -1403,7 +1440,6 @@ exclude-contributors:
 				}
 
 				if (u.includes("/graphql")) {
-
 					return {
 						ok: true,
 						status: 200,
@@ -1422,7 +1458,8 @@ exclude-contributors:
 												login: "contributor",
 												__typename: "User",
 												url: "https://github.com/contributor",
-												avatarUrl: "https://avatars.githubusercontent.com/u/123?v=4",
+												avatarUrl:
+													"https://avatars.githubusercontent.com/u/123?v=4",
 											},
 										},
 									],
