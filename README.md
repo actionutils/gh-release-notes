@@ -215,6 +215,13 @@ Include them in templates using:
 - `pullRequestsByLabel`: PR numbers grouped by label
   - `labels{ <label>: number[] }`: map from label name to PR numbers (each PR appears under all its labels; order matches `mergedPullRequests`)
   - `unlabeled[]`: PR numbers without any labels
+- `issuesByLabel`: Issue numbers grouped by label (similar to `pullRequestsByLabel`)
+  - `labels{ <label>: number[] }`: map from label name to issue numbers (each issue appears under all its labels)
+  - `unlabeled[]`: issue numbers without any labels
+- `categorizedItems`: Mixed categorization of issues and PRs with issue prioritization
+  - `uncategorized[]`: array of items `{ type: 'issue'|'pr', number: number }`
+  - `categories[]`: `title`, `labels[]`, `collapse_after?`, `items[]` (array of items with type and number)
+  - **Issue Priority**: When both issues and PRs have matching labels, issues take priority and PRs with linked issues are excluded
 - `contributors[]`: all PR authors
 - `newContributors[] | null`: first-time contributors (contains `login` and `firstPullRequest` as PR number)
 - `owner`, `repo`, `defaultBranch`, `lastRelease`, `latestMergedAt`, `pullRequestsSearchLink`, `fullChangelogLink`
@@ -231,6 +238,39 @@ Include them in templates using:
 {% endfor %}
 
 **Full Changelog**: {{ fullChangelogLink }}
+```
+
+### Examples with Issues and Mixed Categorization
+
+**Using `issuesByLabel` to group issues by labels:**
+```jinja
+## Bugs Fixed
+{% for issue_number in issuesByLabel.labels.bug %}
+- {{ issues[issue_number|string].title }} (#{{ issue_number }}) by @{{ issues[issue_number|string].author.login }}
+{% endfor %}
+```
+
+**Using `categorizedItems` for issue-prioritized categorization:**
+```jinja
+{% for category in categorizedItems.categories %}
+## {{ category.title }}
+{% for item in category.items %}
+{% if item.type == 'issue' %}
+- 🐛 {{ issues[item.number|string].title }} (#{{ item.number }}) by @{{ issues[item.number|string].author.login }}
+{% else %}
+- {{ pullRequests[item.number|string].title }} (#{{ item.number }}) by @{{ pullRequests[item.number|string].author.login }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+## Other Changes
+{% for item in categorizedItems.uncategorized %}
+{% if item.type == 'issue' %}
+- 🐛 {{ issues[item.number|string].title }} (#{{ item.number }})
+{% else %}
+- {{ pullRequests[item.number|string].title }} (#{{ item.number }})
+{% endif %}
+{% endfor %}
 ```
 
 ## Contributors' Sponsor Information

@@ -1317,6 +1317,31 @@ exclude-contributors:
 			expect(issue105.author.url).toBe("https://github.com/performance-author");
 			expect(issue105.labels).toEqual(["enhancement", "performance"]);
 			expect(issue105.linkedPRs).toEqual([123]);
+
+			// Check issuesByLabel field
+			expect(res.issuesByLabel).toBeDefined();
+			expect(res.issuesByLabel.labels["bug"]).toEqual([110]);
+			expect(res.issuesByLabel.labels["high-priority"]).toEqual([110]);
+			expect(res.issuesByLabel.labels["enhancement"]).toEqual([105]);
+			expect(res.issuesByLabel.labels["performance"]).toEqual([105]);
+			expect(res.issuesByLabel.unlabeled).toEqual([]);
+
+			// Check categorizedItems field
+			expect(res.categorizedItems).toBeDefined();
+			expect(res.categorizedItems.uncategorized).toBeDefined();
+			expect(res.categorizedItems.categories).toBeDefined();
+
+			// Issues with no matching categories should appear in uncategorized
+			// Since we don't have specific category labels matching issue labels in test config,
+			// the issues should appear in uncategorized items with type 'issue'
+			const uncategorizedIssues = res.categorizedItems.uncategorized.filter(item => item.type === 'issue');
+			expect(uncategorizedIssues.length).toBe(2); // Both issue 105 and 110
+			expect(uncategorizedIssues).toContainEqual({ type: 'issue', number: 105 });
+			expect(uncategorizedIssues).toContainEqual({ type: 'issue', number: 110 });
+
+			// PR should not appear in uncategorized because it has linked issues that took priority
+			const uncategorizedPRs = res.categorizedItems.uncategorized.filter(item => item.type === 'pr');
+			expect(uncategorizedPRs.length).toBe(0);
 		} finally {
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}
