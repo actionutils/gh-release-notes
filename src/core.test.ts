@@ -1390,7 +1390,9 @@ exclude-contributors:
 			});
 
 			// PR should not appear in any labels because linked issues take priority
-			const allLabelItems = Object.values(res.itemsByLabel.labels).flat() as Array<{ type: string; number: number }>;
+			const allLabelItems = Object.values(
+				res.itemsByLabel.labels,
+			).flat() as Array<{ type: string; number: number }>;
 			const prItemsInLabels = allLabelItems.filter(
 				(item) => item.type === "pr",
 			);
