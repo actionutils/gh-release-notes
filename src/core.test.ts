@@ -1159,4 +1159,337 @@ exclude-contributors:
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}
 	});
+
+	test("fetches closing issues when includeAllData is true", async () => {
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "gh-release-notes-test-"),
+		);
+
+		try {
+			const cfgPath = path.join(tmpDir, "config.yml");
+			await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+			// Mock GraphQL response with closing issues
+			global.fetch = mock(async (url: string | URL | Request) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
+
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
+				}
+
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
+
+				if (u.includes("/graphql")) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 123,
+											title: "Fix important bug",
+											url: "https://github.com/owner/repo/pull/123",
+											mergedAt: "2024-01-01T00:00:00Z",
+											labels: { nodes: [] },
+											author: {
+												login: "contributor",
+												__typename: "User",
+												url: "https://github.com/contributor",
+												avatarUrl:
+													"https://avatars.githubusercontent.com/u/123?v=4",
+											},
+											closingIssuesReferences: {
+												nodes: [
+													{
+														number: 110,
+														title: "Bug in authentication",
+														state: "CLOSED",
+														url: "https://github.com/owner/repo/issues/110",
+														closedAt: "2024-01-01T00:00:00Z",
+														author: {
+															login: "issue-author",
+															__typename: "User",
+															url: "https://github.com/issue-author",
+															avatarUrl:
+																"https://avatars.githubusercontent.com/u/999?v=4",
+														},
+														labels: {
+															nodes: [
+																{ name: "bug" },
+																{ name: "high-priority" },
+															],
+														},
+														repository: {
+															name: "repo",
+															owner: {
+																login: "owner",
+															},
+														},
+													},
+													{
+														number: 105,
+														title: "Performance issue",
+														state: "CLOSED",
+														url: "https://github.com/owner/repo/issues/105",
+														closedAt: "2023-12-30T00:00:00Z",
+														author: {
+															login: "performance-author",
+															__typename: "User",
+															url: "https://github.com/performance-author",
+															avatarUrl:
+																"https://avatars.githubusercontent.com/u/888?v=4",
+														},
+														labels: {
+															nodes: [
+																{ name: "enhancement" },
+																{ name: "performance" },
+															],
+														},
+														repository: {
+															name: "repo",
+															owner: {
+																login: "owner",
+															},
+														},
+													},
+												],
+											},
+										},
+									],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			}) as unknown as typeof fetch;
+
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				includeAllData: true,
+			});
+
+			// Verify closing issues are included in the issues map and PR references
+			expect(res.mergedPullRequests).toHaveLength(1);
+			const prNumber = res.mergedPullRequests[0];
+			const pr = res.pullRequests[prNumber];
+
+			// Check that PR has closing issue references (as issue numbers)
+			expect(pr.closingIssuesReferences).toBeDefined();
+			expect(pr.closingIssuesReferences).toHaveLength(2);
+			expect(pr.closingIssuesReferences).toContain(110);
+			expect(pr.closingIssuesReferences).toContain(105);
+
+			// Check that issues are stored in the issues map
+			expect(res.issues).toBeDefined();
+			expect(Object.keys(res.issues)).toHaveLength(2);
+
+			const issue110 = res.issues[110];
+			expect(issue110.number).toBe(110);
+			expect(issue110.title).toBe("Bug in authentication");
+			expect(issue110.state).toBe("CLOSED");
+			expect(issue110.url).toBe("https://github.com/owner/repo/issues/110");
+			expect(issue110.closedAt).toBe("2024-01-01T00:00:00Z");
+			expect(issue110.author.login).toBe("issue-author");
+			expect(issue110.author.type).toBe("User");
+			expect(issue110.author.url).toBe("https://github.com/issue-author");
+			expect(issue110.labels).toEqual(["bug", "high-priority"]);
+			expect(issue110.linkedPRs).toEqual([123]);
+
+			const issue105 = res.issues[105];
+			expect(issue105.number).toBe(105);
+			expect(issue105.title).toBe("Performance issue");
+			expect(issue105.state).toBe("CLOSED");
+			expect(issue105.url).toBe("https://github.com/owner/repo/issues/105");
+			expect(issue105.closedAt).toBe("2023-12-30T00:00:00Z");
+			expect(issue105.author.login).toBe("performance-author");
+			expect(issue105.author.type).toBe("User");
+			expect(issue105.author.url).toBe("https://github.com/performance-author");
+			expect(issue105.labels).toEqual(["enhancement", "performance"]);
+			expect(issue105.linkedPRs).toEqual([123]);
+
+			// Check issuesByLabel field
+			expect(res.issuesByLabel).toBeDefined();
+			expect(res.issuesByLabel.labels["bug"]).toEqual([110]);
+			expect(res.issuesByLabel.labels["high-priority"]).toEqual([110]);
+			expect(res.issuesByLabel.labels["enhancement"]).toEqual([105]);
+			expect(res.issuesByLabel.labels["performance"]).toEqual([105]);
+			expect(res.issuesByLabel.unlabeled).toEqual([]);
+
+			// Check categorizedItems field
+			expect(res.categorizedItems).toBeDefined();
+			expect(res.categorizedItems.uncategorized).toBeDefined();
+			expect(res.categorizedItems.categories).toBeDefined();
+
+			// Issues with no matching categories should appear in uncategorized
+			// Since we don't have specific category labels matching issue labels in test config,
+			// the issues should appear in uncategorized items with type 'issue'
+			const uncategorizedIssues = res.categorizedItems.uncategorized.filter(
+				(item: { type: string; number: number }) => item.type === "issue",
+			);
+			expect(uncategorizedIssues.length).toBe(2); // Both issue 105 and 110
+			expect(uncategorizedIssues).toContainEqual({
+				type: "issue",
+				number: 105,
+			});
+			expect(uncategorizedIssues).toContainEqual({
+				type: "issue",
+				number: 110,
+			});
+
+			// PR should not appear in uncategorized because it has linked issues that took priority
+			const uncategorizedPRs = res.categorizedItems.uncategorized.filter(
+				(item: { type: string; number: number }) => item.type === "pr",
+			);
+			expect(uncategorizedPRs.length).toBe(0);
+
+			// Check itemsByLabel field
+			expect(res.itemsByLabel).toBeDefined();
+			expect(res.itemsByLabel.labels).toBeDefined();
+			expect(res.itemsByLabel.unlabeled).toBeDefined();
+
+			// Issues should appear in their respective labels
+			expect(res.itemsByLabel.labels["bug"]).toContainEqual({
+				type: "issue",
+				number: 110,
+			});
+			expect(res.itemsByLabel.labels["high-priority"]).toContainEqual({
+				type: "issue",
+				number: 110,
+			});
+			expect(res.itemsByLabel.labels["enhancement"]).toContainEqual({
+				type: "issue",
+				number: 105,
+			});
+			expect(res.itemsByLabel.labels["performance"]).toContainEqual({
+				type: "issue",
+				number: 105,
+			});
+
+			// PR should not appear in any labels because linked issues take priority
+			const allLabelItems = Object.values(
+				res.itemsByLabel.labels,
+			).flat() as Array<{ type: string; number: number }>;
+			const prItemsInLabels = allLabelItems.filter(
+				(item) => item.type === "pr",
+			);
+			expect(prItemsInLabels.length).toBe(0);
+
+			// Unlabeled should be empty since both issues have labels
+			expect(res.itemsByLabel.unlabeled).toEqual([]);
+		} finally {
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
+
+	test("does not fetch closing issues when includeAllData is false", async () => {
+		const tmpDir = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "gh-release-notes-test-"),
+		);
+
+		try {
+			const cfgPath = path.join(tmpDir, "config.yml");
+			await fsPromises.writeFile(cfgPath, 'template: "$CHANGES"\n');
+
+			// Mock GraphQL response without closing issues
+			global.fetch = mock(async (url: string | URL | Request) => {
+				const u =
+					typeof url === "string"
+						? url
+						: url instanceof URL
+							? url.toString()
+							: (url as Request).url;
+
+				if (u.endsWith(`/repos/${owner}/${repo}`)) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => ({ default_branch: "main" }),
+					};
+				}
+
+				if (u.includes("/releases")) {
+					return {
+						ok: true,
+						status: 200,
+						headers: new Map([["content-type", "application/json"]]),
+						json: async () => [],
+					};
+				}
+
+				if (u.includes("/graphql")) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({
+							data: {
+								search: {
+									pageInfo: { hasNextPage: false, endCursor: null },
+									nodes: [
+										{
+											number: 123,
+											title: "Fix important bug",
+											url: "https://github.com/owner/repo/pull/123",
+											mergedAt: "2024-01-01T00:00:00Z",
+											labels: { nodes: [] },
+											author: {
+												login: "contributor",
+												__typename: "User",
+												url: "https://github.com/contributor",
+												avatarUrl:
+													"https://avatars.githubusercontent.com/u/123?v=4",
+											},
+										},
+									],
+								},
+							},
+						}),
+					};
+				}
+
+				throw new Error("Unexpected fetch: " + u);
+			}) as unknown as typeof fetch;
+
+			const { run } = await import(sourcePath);
+			const res = await run({
+				repo: `${owner}/${repo}`,
+				config: cfgPath,
+				includeAllData: false,
+			});
+
+			// Verify closing issues are not included when includeAllData is false
+			expect(res.mergedPullRequests).toHaveLength(1);
+			const prNumber = res.mergedPullRequests[0];
+			const pr = res.pullRequests[prNumber];
+
+			expect(pr.closingIssuesReferences).toBeUndefined();
+			expect(res.issues).toEqual({});
+		} finally {
+			await fsPromises.rm(tmpDir, { recursive: true });
+		}
+	});
 });
