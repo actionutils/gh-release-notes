@@ -137,9 +137,13 @@ export type RunOptions = {
 // Type for label in final output (flattened)
 export type Label = string;
 
-// Type for MergedPullRequest - flattens labels for final output
-export type MergedPullRequest = Omit<PullRequest, "labels"> & {
+// Type for MergedPullRequest - flattens labels and closing issues for final output
+export type MergedPullRequest = Omit<
+	PullRequest,
+	"labels" | "closingIssuesReferences"
+> & {
 	labels?: Label[];
+	closingIssuesReferences?: number[]; // Array of issue numbers
 };
 
 // Export types for external consumers
@@ -176,6 +180,24 @@ export type CategorizedPullRequestsByNumber = {
 	}>;
 };
 
+// Item type for mixed issue/PR categorization
+export type Item = {
+	type: "issue" | "pr";
+	number: number;
+};
+
+// Categorized items (issues and PRs) with issue prioritization
+export type CategorizedItems = {
+	uncategorized: Item[];
+	categories: Array<{
+		title: string;
+		labels?: string[];
+		"collapse-after"?: number;
+		[k: string]: unknown;
+		items: Item[];
+	}>;
+};
+
 // Type for new contributor - author data plus firstPullRequest number only
 export type NewContributor = Author & {
 	firstPullRequest: number;
@@ -203,6 +225,30 @@ export type ReleaseInfo = {
 	patchVersion: number;
 };
 
+// Type for Issue from GraphQL response (normalized)
+export type Issue = {
+	number: number;
+	title: string;
+	state: string;
+	url: string;
+	closedAt?: string;
+	author: {
+		login: string;
+		type: string; // Normalized from __typename
+		url: string;
+		avatarUrl: string;
+		sponsorsListing?: { url: string };
+	};
+	labels?: Label[]; // Flattened labels for final output
+	linkedPRs: number[]; // PR numbers that reference this issue
+	repository: {
+		name: string;
+		owner: {
+			login: string;
+		};
+	};
+};
+
 export type RunResult = {
 	owner: string;
 	repo: string;
@@ -216,6 +262,8 @@ export type RunResult = {
 	pullRequests: Record<number, MergedPullRequest>;
 	// Merged PR numbers in order
 	mergedPullRequests: number[];
+	// Issue data map: Issue number -> data
+	issues: Record<number, Issue>;
 	// Categorized PR numbers
 	categorizedPullRequests: CategorizedPullRequestsByNumber;
 	// Pull requests grouped by label
@@ -224,6 +272,24 @@ export type RunResult = {
 	pullRequestsByLabel: {
 		labels: Record<string, number[]>;
 		unlabeled: number[];
+	};
+	// Issues grouped by label (similar to pullRequestsByLabel)
+	// - labels: map of label name -> issue numbers (in order)
+	// - unlabeled: issue numbers without any labels (in order)
+	issuesByLabel: {
+		labels: Record<string, number[]>;
+		unlabeled: number[];
+	};
+	// Categorized items (issues and PRs) with issue prioritization
+	// Issues take priority over PRs when both have the same labels
+	categorizedItems: CategorizedItems;
+	// Items (issues and PRs) grouped by label with issue prioritization
+	// Similar to pullRequestsByLabel but includes issues with priority
+	// - labels: map of label name -> items (issues prioritized over PRs)
+	// - unlabeled: items without any labels (issues first, then PRs)
+	itemsByLabel: {
+		labels: Record<string, Item[]>;
+		unlabeled: Item[];
 	};
 	contributors: Author[];
 	newContributors: NewContributor[] | null;
@@ -907,6 +973,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const needHead = String(rdConfig["change-template"] || "").includes(
 		"$HEAD_REF_NAME",
 	);
+	const needClosingIssues: boolean = includeAllData;
 
 	const sinceDate: string | undefined = lastRelease?.created_at || undefined;
 	// Use the repository default branch for base filtering to avoid issues when
@@ -936,6 +1003,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		withBody: needBody,
 		withBaseRefName: needBase,
 		withHeadRefName: needHead,
+		withClosingIssues: needClosingIssues,
 		sponsorFetchMode,
 		includeLabels,
 		excludeLabels,
@@ -1150,13 +1218,66 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		rdConfig as CategorizeConfig,
 	);
 
-	// Build pullRequests map with flattened labels
+	// Build issues map from all PRs' closing issues references
+	const issuesMap: Record<number, Issue> = {};
+	const issueToPRsMap: Record<number, Set<number>> = {};
+
+	// First pass: collect all issues and track which PRs reference them
+	for (const pr of pullRequestsSorted || []) {
+		if (pr.closingIssuesReferences?.nodes) {
+			for (const issue of pr.closingIssuesReferences.nodes) {
+				// Initialize issue if not seen before
+				if (!issuesMap[issue.number]) {
+					issuesMap[issue.number] = {
+						number: issue.number,
+						title: issue.title,
+						state: issue.state,
+						url: issue.url,
+						closedAt: issue.closedAt,
+						author: {
+							login: issue.author.login,
+							type: issue.author.__typename, // Normalize __typename to type
+							url: issue.author.url,
+							avatarUrl: issue.author.avatarUrl,
+							sponsorsListing: issue.author.sponsorsListing,
+						},
+						labels:
+							issue.labels?.nodes?.map((node: { name: string }) => node.name) ||
+							[],
+						linkedPRs: [], // Will be populated in second pass
+						repository: issue.repository,
+					};
+				}
+
+				// Track which PRs reference this issue
+				if (!issueToPRsMap[issue.number]) {
+					issueToPRsMap[issue.number] = new Set();
+				}
+				issueToPRsMap[issue.number].add(pr.number);
+			}
+		}
+	}
+
+	// Second pass: populate linkedPRs for each issue
+	for (const [issueNumber, prNumbers] of Object.entries(issueToPRsMap)) {
+		const issueNum = Number(issueNumber);
+		if (issuesMap[issueNum]) {
+			issuesMap[issueNum].linkedPRs = Array.from(prNumbers).sort(
+				(a, b) => a - b,
+			);
+		}
+	}
+
+	// Build pullRequests map with flattened labels and closing issues
 	const pullRequestsMap: Record<number, MergedPullRequest> = {};
 	for (const pr of pullRequestsSorted || []) {
 		pullRequestsMap[pr.number] = {
 			...pr,
 			labels:
 				pr.labels?.nodes?.map((node: { name: string }) => node.name) || [],
+			closingIssuesReferences:
+				pr.closingIssuesReferences?.nodes?.map((issue) => issue.number) ||
+				undefined,
 		} as unknown as MergedPullRequest;
 	}
 
@@ -1190,6 +1311,187 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}
 	}
 
+	// Build issue label grouping similar to pullRequestsByLabel
+	const issuesByLabel: {
+		labels: Record<string, number[]>;
+		unlabeled: number[];
+	} = { labels: {}, unlabeled: [] };
+
+	for (const [issueNumber, issue] of Object.entries(issuesMap)) {
+		const issueNum = Number(issueNumber);
+		const labels = issue.labels || [];
+
+		if (labels.length === 0) {
+			issuesByLabel.unlabeled.push(issueNum);
+			continue;
+		}
+
+		for (const labelName of labels) {
+			if (!labelName) continue;
+			if (!issuesByLabel.labels[labelName]) {
+				issuesByLabel.labels[labelName] = [];
+			}
+			issuesByLabel.labels[labelName].push(issueNum);
+		}
+	}
+
+	// Build categorized items with issue prioritization
+	// Issues take priority over PRs when both have the same labels
+	const categorizedItems: CategorizedItems = {
+		uncategorized: [],
+		categories: [],
+	};
+
+	// Track which items (issues/PRs) have been categorized to avoid duplicates
+	const categorizedIssues = new Set<number>();
+	const categorizedPRs = new Set<number>();
+
+	// Start with categorized PRs structure and enhance with issues
+	for (const category of flattenedCategorizedNumbers.categories) {
+		const categoryItems: Item[] = [];
+
+		// First, add all issues that match any of the category labels
+		if (category.labels) {
+			for (const label of category.labels) {
+				const issuesForLabel = issuesByLabel.labels[label] || [];
+				for (const issueNum of issuesForLabel) {
+					if (!categorizedIssues.has(issueNum)) {
+						categoryItems.push({ type: "issue", number: issueNum });
+						categorizedIssues.add(issueNum);
+					}
+				}
+			}
+		}
+
+		// Then, add PRs that match the category labels (but only if not replaced by issues)
+		for (const prNum of category.pullRequests) {
+			// Check if this PR has linked issues that are already categorized
+			const pr = pullRequestsMap[prNum];
+			const hasLinkedCategorizedIssue =
+				pr?.closingIssuesReferences?.some((issueNum) =>
+					categorizedIssues.has(issueNum),
+				) || false;
+
+			if (!hasLinkedCategorizedIssue && !categorizedPRs.has(prNum)) {
+				categoryItems.push({ type: "pr", number: prNum });
+				categorizedPRs.add(prNum);
+			}
+		}
+
+		categorizedItems.categories.push({
+			...category,
+			items: categoryItems,
+		});
+	}
+
+	// Handle uncategorized items (issues first, then PRs)
+	// Add uncategorized issues (both unlabeled and those with labels that don't match any category)
+	for (const issueNum of Object.keys(issuesMap).map(Number)) {
+		if (!categorizedIssues.has(issueNum)) {
+			categorizedItems.uncategorized.push({ type: "issue", number: issueNum });
+			categorizedIssues.add(issueNum);
+		}
+	}
+
+	// Add uncategorized PRs (only if they don't have linked categorized issues)
+	for (const prNum of flattenedCategorizedNumbers.uncategorized) {
+		const pr = pullRequestsMap[prNum];
+		const hasLinkedCategorizedIssue =
+			pr?.closingIssuesReferences?.some((issueNum) =>
+				categorizedIssues.has(issueNum),
+			) || false;
+
+		if (!hasLinkedCategorizedIssue && !categorizedPRs.has(prNum)) {
+			categorizedItems.uncategorized.push({ type: "pr", number: prNum });
+			categorizedPRs.add(prNum);
+		}
+	}
+
+	// Build itemsByLabel with issue prioritization
+	// Similar to pullRequestsByLabel but includes issues with priority
+	const itemsByLabel: {
+		labels: Record<string, Item[]>;
+		unlabeled: Item[];
+	} = { labels: {}, unlabeled: [] };
+
+	// Track which items have been added to avoid duplicates across labels
+	const addedToItemsByLabel = new Set<string>(); // "issue:123" or "pr:456"
+
+	// First pass: Add all issues by their labels
+	for (const [issueNumber, issue] of Object.entries(issuesMap)) {
+		const issueNum = Number(issueNumber);
+		const labels = issue.labels || [];
+		const itemKey = `issue:${issueNum}`;
+
+		if (labels.length === 0) {
+			itemsByLabel.unlabeled.push({ type: "issue", number: issueNum });
+			addedToItemsByLabel.add(itemKey);
+			continue;
+		}
+
+		for (const labelName of labels) {
+			if (!labelName) continue;
+			if (!itemsByLabel.labels[labelName]) {
+				itemsByLabel.labels[labelName] = [];
+			}
+			// Add issue only if not already added for this label
+			if (!addedToItemsByLabel.has(`${itemKey}:${labelName}`)) {
+				itemsByLabel.labels[labelName].push({
+					type: "issue",
+					number: issueNum,
+				});
+				addedToItemsByLabel.add(`${itemKey}:${labelName}`);
+			}
+		}
+	}
+
+	// Second pass: Add PRs that don't have linked issues already in the same labels
+	for (const pr of pullRequestsSorted || []) {
+		const prNumber = pr.number as number;
+		const labelNodes = pr.labels?.nodes || [];
+		const itemKey = `pr:${prNumber}`;
+
+		// Get the processed PR to access flattened closingIssuesReferences
+		const processedPR = pullRequestsMap[prNumber];
+		const linkedIssues = processedPR?.closingIssuesReferences || [];
+
+		if (labelNodes.length === 0) {
+			// Check if any linked issues exist in our issues map (regardless of where they appear)
+			const hasLinkedIssueTracked = linkedIssues.some(
+				(issueNum) => issuesMap[issueNum] !== undefined,
+			);
+
+			if (!hasLinkedIssueTracked && !addedToItemsByLabel.has(itemKey)) {
+				itemsByLabel.unlabeled.push({ type: "pr", number: prNumber });
+				addedToItemsByLabel.add(itemKey);
+			}
+			continue;
+		}
+
+		for (const node of labelNodes) {
+			const lname = String(node?.name || "");
+			if (!lname) continue;
+
+			if (!itemsByLabel.labels[lname]) {
+				itemsByLabel.labels[lname] = [];
+			}
+
+			// Check if any linked issues exist in our issues map (regardless of labels)
+			const hasLinkedIssueTracked = linkedIssues.some(
+				(issueNum) => issuesMap[issueNum] !== undefined,
+			);
+
+			// Add PR only if no linked issues are tracked and not already added
+			if (
+				!hasLinkedIssueTracked &&
+				!addedToItemsByLabel.has(`${itemKey}:${lname}`)
+			) {
+				itemsByLabel.labels[lname].push({ type: "pr", number: prNumber });
+				addedToItemsByLabel.add(`${itemKey}:${lname}`);
+			}
+		}
+	}
+
 	// Determine the latest mergedAt timestamp among the PRs
 	const latestMergedAt: string | null = (pullRequestsSorted || []).reduce(
 		(acc: string | null, pr) => {
@@ -1218,8 +1520,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}),
 		pullRequests: pullRequestsMap,
 		mergedPullRequests: (pullRequestsSorted || []).map((pr) => pr.number),
+		issues: issuesMap,
 		categorizedPullRequests: flattenedCategorizedNumbers,
 		pullRequestsByLabel,
+		issuesByLabel,
+		categorizedItems,
+		itemsByLabel,
 		contributors,
 		newContributors: newContributorsOutput,
 		release: {

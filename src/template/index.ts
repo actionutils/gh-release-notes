@@ -4,6 +4,32 @@ import { logVerbose } from "../logger";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
+// Recursively convert Maps into plain objects so they can be JSON-serialized.
+// Note: JSON keys must be strings, so number/boolean keys are stringified.
+function mapToObject(value: unknown): unknown {
+	if (value instanceof Map) {
+		return Object.fromEntries(
+			Array.from(value, ([k, v]) => [String(k), mapToObject(v)]),
+		);
+	}
+	if (Array.isArray(value)) {
+		return value.map(mapToObject);
+	}
+	// If it's already a plain object, still traverse in case it contains Maps.
+	if (value !== null && typeof value === "object") {
+		return Object.fromEntries(
+			Object.entries(value).map(([k, v]) => [k, mapToObject(v)]),
+		);
+	}
+	return value;
+}
+
+// Helper function to log error and throw for better debugging with WASM bindings
+function logAndThrow(message: string): never {
+	console.error(message);
+	throw new Error(message);
+}
+
 export class TemplateRenderer {
 	private env: Environment;
 	private contentLoader: ContentLoaderFactory;
@@ -11,6 +37,35 @@ export class TemplateRenderer {
 	constructor(githubToken?: string) {
 		this.env = new Environment();
 		this.contentLoader = new ContentLoaderFactory(githubToken);
+
+		// Add custom filters
+		this.addCustomFilters();
+	}
+
+	/**
+	 * Add custom filters to the environment
+	 */
+	private addCustomFilters(): void {
+		// Add extract filter to extract values from an object using keys from an array
+		// Inspired by Ansible's extract filter: https://docs.ansible.com/ansible/2.9/user_guide/playbooks_filters.html#extracting-values-from-containers
+		// Usage: keys | map('extract', object)
+		// Equivalent to: keys.map(key => object[key])
+		this.env.addFilter("extract", (key: unknown, object: unknown) => {
+			if (object instanceof Map) {
+				return mapToObject(object.get(String(key)));
+			} else if (object instanceof Array) {
+				const index = Number(key);
+				if (isNaN(index)) {
+					logAndThrow(`extract filter: invalid array index '${String(key)}'`);
+				}
+				return mapToObject(object[index]);
+			} else {
+				const objectType = object === null ? "null" : typeof object;
+				logAndThrow(
+					`extract filter: unsupported type '${objectType}' for object parameter`,
+				);
+			}
+		});
 	}
 
 	async loadAndRender(

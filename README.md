@@ -204,9 +204,32 @@ Include them in templates using:
 > [!CAUTION]
 > Manual release notes only work with **local** `.changelog/` files. Even when using remote templates via `--template pkg:...`, the `include` statements can only reference files in your local `.changelog/` directory, not remote files.
 
+### Custom Filters
+
+gh-release-notes provides additional custom filters beyond the standard MiniJinja filters to make template authoring easier:
+
+#### `extract` filter
+
+Extracts values from a Map or Array using keys. Inspired by [Ansible's extract filter](https://docs.ansible.com/ansible/2.9/user_guide/playbooks_filters.html#extracting-values-from-containers).
+
+**Usage:**
+```jinja
+keys | map('extract', object)
+```
+
+**Example - Get unique authors from linked pull requests:**
+```jinja
+{% for author in issue.linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}
+  @{{ author }}
+{% endfor %}
+```
+
+This extracts PR objects from the `pullRequests` map using PR numbers in `issue.linkedPRs`, gets each author's login, and deduplicates them. Without the `extract` filter, achieving the same result would require complex template logic with [namespace objects](https://docs.rs/minijinja/latest/minijinja/functions/fn.namespace.html).
+
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
-- `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `additions`, `deletions`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`
+- `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `additions`, `deletions`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`, `closingIssuesReferences[]` (optional, array of issue numbers)
+- `issues{ <issue-number>: <Issue data> }`: map of issue number to issue object containing `number`, `title`, `state`, `url`, `closedAt`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `repository{ name, owner{ login } }`
 - `mergedPullRequests[]`: array of PR numbers in display order
 - `categorizedPullRequests`:
   - `uncategorized[]`: array of PR numbers
@@ -214,6 +237,17 @@ Include them in templates using:
 - `pullRequestsByLabel`: PR numbers grouped by label
   - `labels{ <label>: number[] }`: map from label name to PR numbers (each PR appears under all its labels; order matches `mergedPullRequests`)
   - `unlabeled[]`: PR numbers without any labels
+- `issuesByLabel`: Issue numbers grouped by label (similar to `pullRequestsByLabel`)
+  - `labels{ <label>: number[] }`: map from label name to issue numbers (each issue appears under all its labels)
+  - `unlabeled[]`: issue numbers without any labels
+- `categorizedItems`: Mixed categorization of issues and PRs with issue prioritization
+  - `uncategorized[]`: array of items `{ type: 'issue'|'pr', number: number }`
+  - `categories[]`: `title`, `labels[]`, `collapse_after?`, `items[]` (array of items with type and number)
+  - **Issue Priority**: When both issues and PRs have matching labels, issues take priority and PRs with linked issues are excluded
+- `itemsByLabel`: Mixed items (issues and PRs) grouped by label with issue prioritization
+  - `labels{ <label>: Item[] }`: map from label name to items (issues prioritized over PRs with linked issues)
+  - `unlabeled[]`: items without any labels (issues first, then PRs without linked issues)
+  - **Issue Priority**: Similar to `pullRequestsByLabel` but includes issues with priority; PRs excluded if they have linked tracked issues
 - `contributors[]`: all PR authors
 - `newContributors[] | null`: first-time contributors (contains `login` and `firstPullRequest` as PR number)
 - `owner`, `repo`, `defaultBranch`, `lastRelease`, `latestMergedAt`, `pullRequestsSearchLink`, `fullChangelogLink`
@@ -231,6 +265,7 @@ Include them in templates using:
 
 **Full Changelog**: {{ fullChangelogLink }}
 ```
+
 
 ## Contributors' Sponsor Information
 
@@ -404,12 +439,17 @@ Include them in templates using:
   </tbody>
 </table>
 
+## Linked Issues
+
+The tool can fetch issues that are automatically closed by pull requests (via GitHub's `closingIssuesReferences` API). See [GitHub's documentation on linking pull requests to issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue) for details on how to manually link PRs to issues using keywords like `Closes #123`, `Fixes #456`, etc.
+
 ## Differences from release-drafter
 
 - Extra placeholders available: `$FULL_CHANGELOG_LINK`, `$NEW_CONTRIBUTORS`
 - Zero-config works; also easy to standardize via purl remote config/templates
 - JSON output enables fully custom rendering pipelines
 - Optional sponsor enrichment (adds sponsors listing URL when available)
+- Linked issues support
 
 ## Permissions
 
