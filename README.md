@@ -417,96 +417,17 @@ Include them in templates using:
   </tbody>
 </table>
 
+## Linked Issues
+
+The tool can fetch issues that are automatically closed by pull requests (via GitHub's `closingIssuesReferences` API). See [GitHub's documentation on linking pull requests to issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue) for details on how to manually link PRs to issues using keywords like `Closes #123`, `Fixes #456`, etc.
+
 ## Differences from release-drafter
 
 - Extra placeholders available: `$FULL_CHANGELOG_LINK`, `$NEW_CONTRIBUTORS`
 - Zero-config works; also easy to standardize via purl remote config/templates
 - JSON output enables fully custom rendering pipelines
 - Optional sponsor enrichment (adds sponsors listing URL when available)
-
-## Linked Issues
-
-The tool can fetch issues that are automatically closed by pull requests (via GitHub's `closingIssuesReferences` API). See [GitHub's documentation on linking pull requests to issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue) for details on how to manually link PRs to issues using keywords like `Closes #123`, `Fixes #456`, etc.
-
-### Access linked issues in templates
-
-Each pull request may include a `closingIssuesReferences` field containing linked issues:
-
-```jinja
-{% for pr_number in mergedPullRequests %}
-{% set pr = pullRequests[pr_number|string] %}
-## {{ pr.title }} (#{{ pr.number }})
-
-{% if pr.closingIssuesReferences %}
-**Closes:**
-{% for issue_number in pr.closingIssuesReferences %}
-{% set issue = issues[issue_number|string] %}
-- {{ issue.title }} (#{{ issue.number }}) - {{ issue.url }}
-{% endfor %}
-{% endif %}
-{% endfor %}
-```
-
-### Example linked issues data structure
-
-```json
-{
-  "pullRequests": {
-    "123": {
-      "number": 123,
-      "title": "Fix authentication bug",
-      "closingIssuesReferences": [110, 105]
-    }
-  },
-  "issues": {
-    "110": {
-      "number": 110,
-      "title": "Bug in authentication system",
-      "state": "CLOSED",
-      "url": "https://github.com/owner/repo/issues/110",
-      "closedAt": "2024-01-01T00:00:00Z",
-      "author": {
-        "login": "issue-author",
-        "type": "User",
-        "url": "https://github.com/issue-author",
-        "avatarUrl": "https://avatars.githubusercontent.com/u/999?v=4"
-      },
-      "labels": ["bug", "high-priority"],
-      "linkedPRs": [123],
-      "repository": {
-        "name": "repo",
-        "owner": {
-          "login": "owner"
-        }
-      }
-    },
-    "105": {
-      "number": 105,
-      "title": "Performance issue",
-      "state": "CLOSED",
-      "url": "https://github.com/owner/repo/issues/105",
-      "closedAt": "2023-12-30T00:00:00Z",
-      "author": {
-        "login": "performance-author",
-        "type": "User",
-        "url": "https://github.com/performance-author",
-        "avatarUrl": "https://avatars.githubusercontent.com/u/888?v=4"
-      },
-      "labels": ["enhancement", "performance"],
-      "linkedPRs": [123],
-      "repository": {
-        "name": "repo",
-        "owner": {
-          "login": "owner"
-        }
-      }
-    }
-  }
-}
-```
-
-- **Cross-repository support**: Includes issues from other repositories when linked
-- **Performance**: Only fetched when needed (when `includeAllData: true`)
+- Linked issues support
 
 ## Permissions
 
