@@ -4,63 +4,34 @@
 
 {% include ['body.md.jinja', 'body.md'] ignore missing %}
 
-{% for category in categorizedPullRequests.categories %}
-{%- if category.pullRequests | length > 0 %}
+{% for category in categorizedItems.categories %}
+{%- if category.items | length > 0 %}
+
 ### {{ category.title }}
-{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.pullRequests | length > category["collapse-after"] %}
+{%- if category["collapse-after"] and category["collapse-after"] > 0 and category.items | length > category["collapse-after"] %}
 
 <details>
-<summary>Show all {{ category.pullRequests | length }} items</summary>
+<summary>Show all {{ category.items | length }} items</summary>
 
-{% for n in category.pullRequests %}
-{%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
-{%- endfor %}
-
-</details>
-{%- else %}
-{%- for n in category.pullRequests %}
-{%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
-{%- endfor %}
-{%- endif %}
-{%- endif %}
-{%- endfor %}
-
-{# Render uncategorized PRs only when no categories are defined (no header) #}
-{%- if (categorizedPullRequests.categories | length == 0) and (categorizedPullRequests.uncategorized | length > 0) %}
-{%- for n in categorizedPullRequests.uncategorized %}
-{%- set pr = pullRequests[n|string] %}
-- {{ pr.title }} by @{{ pr.author.login }} in [#{{ pr.number }}]({{ pr.url }}) ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
-{%- endfor %}
-{%- endif %}
-
-{# Add issues support similar to label-with-issues.md.jinja #}
-{%- if itemsByLabel and (itemsByLabel.labels | length) > 0 %}
-{%- for label in itemsByLabel.labels %}
-{%- set items = itemsByLabel.labels[label] %}
-{%- set issueItems = items | selectattr("type", "equalto", "issue") | list %}
-{%- if issueItems | length > 0 %}
-
-### Issues: {{ label }}
-{%- if (issueItems | length) >= 5 %}
-
-<details>
-<summary>Show all {{ issueItems | length }} issues</summary>
-
-{% for item in issueItems %}
+{% for item in category.items %}
+{%- if item.type == "issue" %}
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- else %}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endif %}
 {%- endfor %}
 
 </details>
 {%- else %}
-{%- for item in issueItems %}
+{%- for item in category.items %}
+{%- if item.type == "issue" %}
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
@@ -68,23 +39,19 @@
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
+{%- else %}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
+{%- endif %}
 {%- endfor %}
 {%- endif %}
 {%- endif %}
 {%- endfor %}
 
-{%- if itemsByLabel and itemsByLabel.unlabeled and (itemsByLabel.unlabeled | length) > 0 %}
-{%- set items = itemsByLabel.unlabeled %}
-{%- set issueItems = items | selectattr("type", "equalto", "issue") | list %}
-{%- if issueItems | length > 0 %}
-
-### Unlabeled Issues
-{%- if (issueItems | length) >= 5 %}
-
-<details>
-<summary>Show all {{ issueItems | length }} issues</summary>
-
-{% for item in issueItems %}
+{# Render uncategorized items only when no categories are defined #}
+{%- if (categorizedItems.categories | length == 0) and (categorizedItems.uncategorized | length > 0) %}
+{%- for item in categorizedItems.uncategorized %}
+{%- if item.type == "issue" %}
 {%- set issue = issues[item.number|string] %}
 {%- set linkedPRs = issue.linkedPRs or [] %}
 {%- if linkedPRs | length > 0 %}
@@ -92,22 +59,11 @@
 {%- else %}
 - [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
 {%- endif %}
-{%- endfor %}
-
-</details>
 {%- else %}
-{%- for item in issueItems %}
-{%- set issue = issues[item.number|string] %}
-{%- set linkedPRs = issue.linkedPRs or [] %}
-{%- if linkedPRs | length > 0 %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for author in linkedPRs | map('extract', pullRequests) | map(attribute='author.login') | unique %}{% if not loop.first %}, {% endif %}@{{ author }}{% endfor %}
-{%- else %}
-- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }} ($\textsf{\color{ #3fb950}{\textsf{+{{ pr.additions }}}}\color{ #f85149}{\textsf{ -{{ pr.deletions }}}}}$)
 {%- endif %}
 {%- endfor %}
-{%- endif %}
-{%- endif %}
-{%- endif %}
 {%- endif %}
 {%- if newContributors | length > 0 %}
 
