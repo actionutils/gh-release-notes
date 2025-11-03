@@ -973,10 +973,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	const needHead = String(rdConfig["change-template"] || "").includes(
 		"$HEAD_REF_NAME",
 	);
-	const needClosingIssues =
+	const needClosingIssues: boolean =
 		includeAllData ||
 		String(rdConfig["change-template"] || "").includes("$CLOSING_ISSUES") ||
-		(template && template.includes("closingIssuesReferences"));
+		(template !== undefined && template.includes("closingIssuesReferences"));
 
 	const sinceDate: string | undefined = lastRelease?.created_at || undefined;
 	// Use the repository default branch for base filtering to avoid issues when

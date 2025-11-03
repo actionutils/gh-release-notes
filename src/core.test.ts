@@ -1348,7 +1348,7 @@ exclude-contributors:
 			// Since we don't have specific category labels matching issue labels in test config,
 			// the issues should appear in uncategorized items with type 'issue'
 			const uncategorizedIssues = res.categorizedItems.uncategorized.filter(
-				(item) => item.type === "issue",
+				(item: { type: string; number: number }) => item.type === "issue",
 			);
 			expect(uncategorizedIssues.length).toBe(2); // Both issue 105 and 110
 			expect(uncategorizedIssues).toContainEqual({
@@ -1362,7 +1362,7 @@ exclude-contributors:
 
 			// PR should not appear in uncategorized because it has linked issues that took priority
 			const uncategorizedPRs = res.categorizedItems.uncategorized.filter(
-				(item) => item.type === "pr",
+				(item: { type: string; number: number }) => item.type === "pr",
 			);
 			expect(uncategorizedPRs.length).toBe(0);
 
@@ -1390,7 +1390,7 @@ exclude-contributors:
 			});
 
 			// PR should not appear in any labels because linked issues take priority
-			const allLabelItems = Object.values(res.itemsByLabel.labels).flat();
+			const allLabelItems = Object.values(res.itemsByLabel.labels).flat() as Array<{ type: string; number: number }>;
 			const prItemsInLabels = allLabelItems.filter(
 				(item) => item.type === "pr",
 			);
