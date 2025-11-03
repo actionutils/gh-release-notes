@@ -1,0 +1,176 @@
+{% include ['header.md.jinja', 'header.md'] ignore missing %}
+
+## What's Changed
+
+{% include ['body.md.jinja', 'body.md'] ignore missing %}
+
+{# If there are labeled items, render sections per label, then optionally Unlabeled. Otherwise, list unlabeled without a header. #}
+{%- if (itemsByLabel.labels | length) > 0 %}
+{%- for label in itemsByLabel.labels %}
+
+### {{ label }}
+{%- set items = itemsByLabel.labels[label] %}
+{%- if (items | length) >= 5 %}
+
+<details>
+<summary>Show all {{ items | length }} items</summary>
+
+{% for item in items %}
+{%- if item.type == "issue" %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}@{{ pullRequests[prNum|string].author.login }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- else %}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+{%- endif %}
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for item in items %}
+{%- if item.type == "issue" %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}@{{ pullRequests[prNum|string].author.login }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- else %}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+
+{%- if itemsByLabel.unlabeled and (itemsByLabel.unlabeled | length) > 0 %}
+
+### Unlabeled
+{%- set items = itemsByLabel.unlabeled %}
+{%- if (items | length) >= 5 %}
+
+<details>
+<summary>Show all {{ items | length }} items</summary>
+
+{% for item in items %}
+{%- if item.type == "issue" %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}@{{ pullRequests[prNum|string].author.login }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- else %}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+{%- endif %}
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for item in items %}
+{%- if item.type == "issue" %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}@{{ pullRequests[prNum|string].author.login }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- else %}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- else %}
+{%- set items = itemsByLabel.unlabeled %}
+{%- if (items | length) >= 5 %}
+
+<details>
+<summary>Show all {{ items | length }} items</summary>
+
+{% for item in items %}
+{%- if item.type == "issue" %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}@{{ pullRequests[prNum|string].author.login }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- else %}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+{%- endif %}
+{%- endfor %}
+
+</details>
+{%- else %}
+{%- for item in items %}
+{%- if item.type == "issue" %}
+{%- set issue = issues[item.number|string] %}
+{%- set linkedPRs = issue.linkedPRs or [] %}
+{%- if linkedPRs | length > 0 %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }} in {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}[#{{ prNum }}]({{ pullRequests[prNum|string].url }}){% endfor %} by {% for prNum in linkedPRs %}{% if not loop.first %}, {% endif %}@{{ pullRequests[prNum|string].author.login }}{% endfor %}
+{%- else %}
+- [#{{ item.number }}]({{ issue.url }}): {{ issue.title }}
+{%- endif %}
+{%- else %}
+{%- set pr = pullRequests[item.number|string] %}
+- [#{{ item.number }}]({{ pr.url }}): {{ pr.title }} by @{{ pr.author.login }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- if newContributors | length > 0 %}
+
+## New Contributors
+{%- for contributor in newContributors %}
+{%- set n = contributor.firstPullRequest %}
+{%- set pr = pullRequests[n|string] %}
+- @{{ contributor.login }} made their first contribution in [#{{ pr.number }}]({{ pr.url }})
+{%- endfor %}
+{%- endif %}
+
+{%- if contributors | length > 0 %}
+
+## Contributors
+
+<table>
+  <tbody>
+    <tr>
+{%- for contributor in contributors %}
+      <td align="center" valign="top" width="100">
+        <a href="{{ contributor.url }}">
+          <img src="https://wsrv.nl/?url={{ contributor.avatarUrl }}&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="64px" alt="{{ contributor.login }}"/><br />
+        </a>
+        <sub>@{{ contributor.login }}{% if contributor.type == 'Bot' %}[bot]{% endif %}</sub>
+        {%- if contributor.sponsorsListing %}
+        <br><br>
+        <a href="{{ contributor.sponsorsListing.url }}" title="Sponsor {{ contributor.login }}">
+          <img src="https://img.shields.io/badge/-Sponsor-ea4aaa?style=for-the-badge&logo=github&logoColor=white" height="24" />
+        </a>
+        {%- endif %}
+      </td>
+{%- if loop.index % 6 == 0 and not loop.last %}
+    </tr>
+    <tr>
+{%- endif %}
+{%- endfor %}
+    </tr>
+  </tbody>
+  </table>
+{%- endif %}
+
+**Full Changelog**: {{ fullChangelogLink }}{%- if pullRequestsSearchLink %} | [Pull Requests]({{ pullRequestsSearchLink }}){%- endif %}
+
+{% include ['footer.md.jinja', 'footer.md'] ignore missing %}
