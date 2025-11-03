@@ -56,7 +56,7 @@ export class TemplateRenderer {
 			} else if (object instanceof Array) {
 				const index = Number(key);
 				if (isNaN(index)) {
-					logAndThrow(`extract filter: invalid array index '${key}'`);
+					logAndThrow(`extract filter: invalid array index '${String(key)}'`);
 				}
 				return mapToObject(object[index]);
 			} else {
