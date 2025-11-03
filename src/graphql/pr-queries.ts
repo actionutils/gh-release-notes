@@ -30,11 +30,12 @@ export interface GraphQLLabel {
 
 // Type for Closing Issue from GraphQL response
 export interface GraphQLClosingIssue {
-	id: string;
 	number: number;
 	title: string;
 	state: string;
 	url: string;
+	closedAt?: string;
+	author: GraphQLAuthor;
 	repository: {
 		name: string;
 		owner: {
@@ -127,11 +128,18 @@ function buildSearchQuery(): string {
             headRefName @include(if: $withHead)
             closingIssuesReferences(first: 10) @include(if: $withClosingIssues) {
               nodes {
-                id
                 number
                 title
                 state
                 url
+                closedAt
+                author {
+                  login
+                  __typename
+                  url
+                  avatarUrl
+                  ... on User { sponsorsListing @include(if: $withSponsor) { url } }
+                }
                 repository {
                   name
                   owner {

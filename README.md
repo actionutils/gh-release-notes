@@ -207,7 +207,7 @@ Include them in templates using:
 ### JSON structure (example)
 - `release`: `name`, `tag`, `body`, `targetCommitish`, `resolvedVersion`, `majorVersion`, `minorVersion`, `patchVersion`
 - `pullRequests{ <pr-number>: <PR data> }`: map of PR number to PR object containing `number`, `title`, `url`, `mergedAt`, `additions`, `deletions`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `labels[]`, `closingIssuesReferences[]` (optional, array of issue numbers)
-- `issues{ <issue-number>: <Issue data> }`: map of issue number to issue object containing `id`, `number`, `title`, `state`, `url`, `repository{ name, owner{ login } }`
+- `issues{ <issue-number>: <Issue data> }`: map of issue number to issue object containing `number`, `title`, `state`, `url`, `closedAt`, `author{ login, type, url, avatarUrl, sponsorsListing? }`, `repository{ name, owner{ login } }`
 - `mergedPullRequests[]`: array of PR numbers in display order
 - `categorizedPullRequests`:
   - `uncategorized[]`: array of PR numbers
@@ -448,11 +448,17 @@ Each pull request may include a `closingIssuesReferences` field containing linke
   },
   "issues": {
     "110": {
-      "id": "I_kwDOP7h4Y87SWYAW",
       "number": 110,
       "title": "Bug in authentication system",
       "state": "CLOSED",
       "url": "https://github.com/owner/repo/issues/110",
+      "closedAt": "2024-01-01T00:00:00Z",
+      "author": {
+        "login": "issue-author",
+        "type": "User",
+        "url": "https://github.com/issue-author",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/999?v=4"
+      },
       "repository": {
         "name": "repo",
         "owner": {
@@ -461,11 +467,17 @@ Each pull request may include a `closingIssuesReferences` field containing linke
       }
     },
     "105": {
-      "id": "I_kwDOP7h4Y87SWYAB",
       "number": 105,
       "title": "Performance issue",
       "state": "CLOSED",
       "url": "https://github.com/owner/repo/issues/105",
+      "closedAt": "2023-12-30T00:00:00Z",
+      "author": {
+        "login": "performance-author",
+        "type": "User",
+        "url": "https://github.com/performance-author",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/888?v=4"
+      },
       "repository": {
         "name": "repo",
         "owner": {

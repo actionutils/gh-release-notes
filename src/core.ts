@@ -206,11 +206,18 @@ export type ReleaseInfo = {
 
 // Type for Issue from GraphQL response (normalized)
 export type Issue = {
-	id: string;
 	number: number;
 	title: string;
 	state: string;
 	url: string;
+	closedAt?: string;
+	author: {
+		login: string;
+		type: string; // Normalized from __typename
+		url: string;
+		avatarUrl: string;
+		sponsorsListing?: { url: string };
+	};
 	repository: {
 		name: string;
 		owner: {
@@ -1178,11 +1185,18 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (pr.closingIssuesReferences?.nodes) {
 			for (const issue of pr.closingIssuesReferences.nodes) {
 				issuesMap[issue.number] = {
-					id: issue.id,
 					number: issue.number,
 					title: issue.title,
 					state: issue.state,
 					url: issue.url,
+					closedAt: issue.closedAt,
+					author: {
+						login: issue.author.login,
+						type: issue.author.__typename, // Normalize __typename to type
+						url: issue.author.url,
+						avatarUrl: issue.author.avatarUrl,
+						sponsorsListing: issue.author.sponsorsListing,
+					},
 					repository: issue.repository,
 				};
 			}

@@ -1220,11 +1220,17 @@ exclude-contributors:
 											closingIssuesReferences: {
 												nodes: [
 													{
-														id: "I_kwDOP7h4Y87SWYAW",
 														number: 110,
 														title: "Bug in authentication",
 														state: "CLOSED",
 														url: "https://github.com/owner/repo/issues/110",
+														closedAt: "2024-01-01T00:00:00Z",
+														author: {
+															login: "issue-author",
+															__typename: "User",
+															url: "https://github.com/issue-author",
+															avatarUrl: "https://avatars.githubusercontent.com/u/999?v=4",
+														},
 														repository: {
 															name: "repo",
 															owner: {
@@ -1233,11 +1239,17 @@ exclude-contributors:
 														},
 													},
 													{
-														id: "I_kwDOP7h4Y87SWYAB",
 														number: 105,
 														title: "Performance issue",
 														state: "CLOSED",
 														url: "https://github.com/owner/repo/issues/105",
+														closedAt: "2023-12-30T00:00:00Z",
+														author: {
+															login: "performance-author",
+															__typename: "User",
+															url: "https://github.com/performance-author",
+															avatarUrl: "https://avatars.githubusercontent.com/u/888?v=4",
+														},
 														repository: {
 															name: "repo",
 															owner: {
@@ -1285,12 +1297,20 @@ exclude-contributors:
 			expect(issue110.title).toBe("Bug in authentication");
 			expect(issue110.state).toBe("CLOSED");
 			expect(issue110.url).toBe("https://github.com/owner/repo/issues/110");
+			expect(issue110.closedAt).toBe("2024-01-01T00:00:00Z");
+			expect(issue110.author.login).toBe("issue-author");
+			expect(issue110.author.type).toBe("User");
+			expect(issue110.author.url).toBe("https://github.com/issue-author");
 
 			const issue105 = res.issues[105];
 			expect(issue105.number).toBe(105);
 			expect(issue105.title).toBe("Performance issue");
 			expect(issue105.state).toBe("CLOSED");
 			expect(issue105.url).toBe("https://github.com/owner/repo/issues/105");
+			expect(issue105.closedAt).toBe("2023-12-30T00:00:00Z");
+			expect(issue105.author.login).toBe("performance-author");
+			expect(issue105.author.type).toBe("User");
+			expect(issue105.author.url).toBe("https://github.com/performance-author");
 		} finally {
 			await fsPromises.rm(tmpDir, { recursive: true });
 		}
