@@ -30,7 +30,7 @@ jobs:
     - name: Install dependencies
       run: bun install
 
-    - uses: reviewdog/action-setup@v1.4.0
+    - uses: reviewdog/action-setup@v1.5.0
     - name: Run lint
       env:
         REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
