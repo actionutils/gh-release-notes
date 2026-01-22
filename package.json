@@ -42,7 +42,7 @@
     "oxlint": "^1.19.0",
     "oxlint-tsgolint": "^0.4.0",
     "packageurl-js": "^2.0.1",
-    "release-drafter": "github:release-drafter/release-drafter#v6.1.0",
+    "release-drafter": "github:release-drafter/release-drafter#v6.2.0",
     "semver": "^7.6.3",
     "typescript": "^5.9.3",
     "yargs": "^18.0.0"
