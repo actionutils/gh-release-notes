@@ -1,22 +1,32 @@
 {
   "name": "@actionutils/gh-release-notes",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "PR-based release notes generator. Release-drafter compatible CLI using release-drafter internals.",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   },
   "bin": {
     "gh-release-notes": "dist/cli.js"
   },
+  "files": [
+    "dist",
+    "templates"
+  ],
   "scripts": {
-    "build:lib": "bun build src/core.ts --target=node --outdir=dist",
+    "build:lib": "bun run scripts/build-library.ts && tsc -p tsconfig.build.json",
     "build:cli": "bun build src/cli.ts --target=node --outdir=dist",
-    "build": "bun run build:lib && bun run build:cli",
+    "build": "bun run clean && bun run build:lib && bun run build:cli",
     "compile": "bun build src/cli.ts --compile --outfile=gh-release-notes",
     "prepublishOnly": "bun run build",
     "test": "bun test",
+    "test:package": "bun run build && node scripts/test-package.mjs",
     "lint": "oxlint --type-aware -D no-explicit-any src",
     "lint:fix": "oxlint --type-aware -D no-explicit-any --fix src",
     "format": "biome format --write src",
@@ -29,6 +39,9 @@
   "overrides": {
     "@actions/core": "file:shims/actions-core"
   },
+  "dependencies": {
+    "minijinja-js": "2.12.0"
+  },
   "devDependencies": {
     "@actions/core": "file:shims/actions-core",
     "@biomejs/biome": "^2.2.5",
@@ -38,7 +51,6 @@
     "@types/pino-std-serializers": "^4.0.0",
     "@types/yargs": "^17.0.33",
     "js-yaml": "^4.1.0",
-    "minijinja-js": "^2.12.0",
     "oxlint": "^1.19.0",
     "oxlint-tsgolint": "^0.4.0",
     "packageurl-js": "^2.0.1",
@@ -53,5 +65,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/actionutils/gh-release-notes"
-  }
+  },
+  "license": "MIT"
 }

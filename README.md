@@ -16,6 +16,57 @@ PR-based release notes generator with strong compatibility with GitHub’s Gener
 - Automate in CI/CD or preview locally
 - Shape the output via JSON or your favorite templating engine
 
+## Use from another tool
+
+The npm package exports `run` and TypeScript types. Tools such as
+`create-release-pr` can generate notes directly, without invoking the CLI or
+GitHub's write-permission-dependent Generate Release Notes endpoint.
+
+The library entry point, exported types, and `configRef` option described here
+are part of the unreleased v0.8.0; the currently published npm version is v0.7.0.
+
+```ts
+import { run, type RunOptions } from "@actionutils/gh-release-notes";
+
+const options: RunOptions = {
+  repo: "acme/tool",
+  token: process.env.GITHUB_TOKEN,
+  configRef: "main",
+  target: "main",
+  prevTag: "v1.0.0",
+  tag: "v1.1.0",
+  sponsorFetchMode: "none",
+  includeAllData: false,
+};
+const { release } = await run(options);
+console.log(release.body);
+```
+
+`configRef` loads the target repository's `.github/release-drafter.yml`,
+`.github/release.yml`, or `.github/release.yaml`, in that order, at the supplied
+ref. Missing files use the default configuration; authentication, network, and
+parse errors are reported. No checkout is required. Without `configRef`, default
+configuration discovery continues to use the current working directory.
+
+An explicit `config` takes precedence and can be a local path, HTTPS URL, or
+GitHub purl. Set `template` to use MiniJinja and `includeAllData: true` when the
+template needs linked issues or other enriched data. Local template paths and
+`.changelog/` includes are resolved from the working directory.
+
+The library only reads GitHub data. Its token needs `contents: read` and
+`pull-requests: read`; the calling tool remains responsible for writing PRs or
+publishing releases. Errors reject the returned promise so callers can choose
+their own failure policy.
+
+The Node library uses MiniJinja's standard Node entry point. When bundling it,
+include the engine's WASM asset; `create-release-pr` verifies this with an ncc
+integration test. Standalone Bun binaries keep an embedded WASM engine.
+
+For local development, run `bun install --frozen-lockfile`, `bun run check`,
+`bun run typecheck`, and `bun run test:package`. The package test installs the
+tarball in a temporary project and checks the public import, strict TypeScript
+types, CLI, and template rendering.
+
 ## Installation
 
 Quick install (latest)

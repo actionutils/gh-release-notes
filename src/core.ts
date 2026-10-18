@@ -8,6 +8,7 @@ import { normalizeConfig } from "./github-config-converter";
 import semver from "semver";
 import { DEFAULT_FALLBACK_CONFIG } from "./constants";
 import { ContentLoaderFactory } from "./content-loader";
+import { ContentNotFoundError } from "./content-loader/types";
 import {
 	findNewContributors,
 	formatNewContributorsSection,
@@ -113,7 +114,7 @@ const {
 	) => MergedPullRequest[];
 } = require("release-drafter/lib/sort-pull-requests");
 
-import type { SponsorFetchMode, PullRequest } from "./graphql/pr-queries";
+import type { SponsorFetchMode, PullRequest } from "./graphql/pr-queries.js";
 import { TemplateRenderer } from "./template";
 
 // Type alias for GitHub release response used across helpers
@@ -123,6 +124,8 @@ type GitHubRelease =
 export type RunOptions = {
 	repo: string;
 	config?: string;
+	// Read default configuration from this repository ref instead of the workspace.
+	configRef?: string;
 	template?: string;
 	prevTag?: string;
 	tag?: string;
@@ -765,6 +768,23 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			}
 		}
 		cfg = parseConfigString(rawCfg, configFilename);
+	} else if (options.configRef) {
+		const loader = new ContentLoaderFactory(token);
+		for (const filename of [
+			".github/release-drafter.yml",
+			".github/release.yml",
+			".github/release.yaml",
+		]) {
+			try {
+				const source = `pkg:github/${owner}/${repo}@${encodeURIComponent(options.configRef)}#${filename}`;
+				const content = await loader.load(source);
+				cfg = parseConfigString(content, filename);
+				break;
+			} catch (error) {
+				if (!(error instanceof ContentNotFoundError)) throw error;
+			}
+		}
+		cfg ??= { ...DEFAULT_FALLBACK_CONFIG };
 	} else {
 		logVerbose("[Config] No config specified; searching default locations");
 		// Try release-drafter.yml first
@@ -798,7 +818,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 			logVerbose(
 				"[Config] No local config found; using default fallback config",
 			);
-			cfg = DEFAULT_FALLBACK_CONFIG;
+			cfg = { ...DEFAULT_FALLBACK_CONFIG };
 		}
 	}
 
