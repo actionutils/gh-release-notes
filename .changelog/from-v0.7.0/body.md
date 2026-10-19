@@ -1,10 +1,5 @@
 ### 🎯 Key Features in This Release
 
-#### 📚 Reusable Library
-The npm package now has a working public entry point and TypeScript types.
-`configRef` loads repository configuration without a checkout, and the Node
-library supports bundlers such as ncc, including MiniJinja's WASM asset.
-
 #### 📝 Manual Release Notes Support
 With PR #118, you can now create rich, customized release notes by placing markdown files in `.changelog/` directories:
 - Global templates in `.changelog/templates/`
