@@ -1,4 +1,5 @@
 import type { ContentLoader } from "./types";
+import { ContentNotFoundError } from "./types";
 import { parsePurl, parseChecksumQualifier, validateChecksums } from "./utils";
 import { logVerbose } from "../logger";
 
@@ -79,7 +80,7 @@ export class PurlGitHubContentLoader implements ContentLoader {
 		path: string,
 	): Promise<string> {
 		// Use GitHub Contents API
-		const url = `https://api.github.com/repos/${repo}/contents/${path}?ref=${ref}`;
+		const url = `https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(ref)}`;
 		logVerbose(`[ContentLoader:purl] Fetching content: ${url}`);
 		const response = await fetch(url, {
 			headers: {
@@ -91,7 +92,7 @@ export class PurlGitHubContentLoader implements ContentLoader {
 
 		if (!response.ok) {
 			if (response.status === 404) {
-				throw new Error(
+				throw new ContentNotFoundError(
 					`File not found: ${path} in ${repo}@${ref}. Check the path and permissions.`,
 				);
 			}

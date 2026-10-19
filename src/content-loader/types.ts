@@ -11,3 +11,4 @@ export interface Checksum {
 	algorithm: "sha256" | "sha512" | "sha1";
 	hash: string;
 }
+export class ContentNotFoundError extends Error {}

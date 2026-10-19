@@ -109,6 +109,88 @@ describe("actionutils/gh-release-notes core", () => {
 		fs.readFileSync = originalReadFileSync;
 	});
 
+	test("loads repository configuration at configRef without a checkout", async () => {
+		const originalMock = global.fetch;
+		const requests: string[] = [];
+		global.fetch = mock(async (input: string | URL | Request) => {
+			const url = new URL(
+				typeof input === "string" || input instanceof URL ? input : input.url,
+			);
+			if (url.pathname.includes("/contents/")) {
+				requests.push(url.pathname);
+				expect(url.searchParams.get("ref")).toBe("feature/release");
+				if (url.pathname.endsWith("release-drafter.yml"))
+					return new Response("Not found", { status: 404 });
+				return new Response("template: 'Remote configuration: $CHANGES'");
+			}
+			return originalMock(input);
+		}) as unknown as typeof fetch;
+		const { run } = await import(sourcePath);
+		const result = await run({
+			repo: `${owner}/${repo}`,
+			configRef: "feature/release",
+			skipNewContributors: true,
+			includeAllData: false,
+		});
+		expect(requests).toEqual([
+			`/repos/${owner}/${repo}/contents/.github/release-drafter.yml`,
+			`/repos/${owner}/${repo}/contents/.github/release.yml`,
+		]);
+		expect(result.release.body).toContain("Remote configuration:");
+	});
+
+	test("remote default configuration falls back only for missing files", async () => {
+		const originalMock = global.fetch;
+		global.fetch = mock(async (input: string | URL | Request) => {
+			const url = String(input);
+			if (url.includes("/contents/"))
+				return new Response("Not found", { status: 404 });
+			return originalMock(input);
+		}) as unknown as typeof fetch;
+		const { run } = await import(sourcePath);
+		const options = {
+			repo: `${owner}/${repo}`,
+			configRef: "main",
+			skipNewContributors: true,
+			includeAllData: false,
+		};
+		expect((await run(options)).release.body).toContain("What's Changed");
+		global.fetch = mock(
+			async () =>
+				new Response("Forbidden", { status: 403, statusText: "Forbidden" }),
+		) as unknown as typeof fetch;
+		await expect(run(options)).rejects.toThrow("403");
+	});
+
+	test("custom templates do not mutate defaults for subsequent library calls", async () => {
+		const originalMock = global.fetch;
+		global.fetch = mock(async (input: string | URL | Request) => {
+			if (String(input).includes("/contents/"))
+				return new Response("Not found", { status: 404 });
+			return originalMock(input);
+		}) as unknown as typeof fetch;
+		const directory = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), "notes-defaults-"),
+		);
+		try {
+			const template = path.join(directory, "notes.jinja");
+			await fsPromises.writeFile(template, "Custom notes");
+			const { run } = await import(sourcePath);
+			const options = {
+				repo: `${owner}/${repo}`,
+				configRef: "main",
+				skipNewContributors: true,
+				includeAllData: false,
+			};
+			expect((await run({ ...options, template })).release.body).toBe(
+				"Custom notes",
+			);
+			expect((await run(options)).release.body).toContain("What's Changed");
+		} finally {
+			await fsPromises.rm(directory, { recursive: true, force: true });
+		}
+	});
+
 	test("auto-loads local .github/release-drafter.yml when --config is omitted", async () => {
 		const localCfg = path.resolve(process.cwd(), ".github/release-drafter.yml");
 
